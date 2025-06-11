@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch.jsx"
-import {Button} from "@/components/ui/button.jsx";
+import {Button} from "@/components/ui/button";
 
 function Home() {
     const [enabled, setEnabled] = useState(false);
@@ -10,7 +10,7 @@ function Home() {
             <h1 className="text-2xl font-bold mb-4">Home</h1>
             <div className="flex items-center space-x-4">
                 <Switch checked={enabled} onCheckedChange={setEnabled} />
-                <Button/>
+                <Button>OK</Button>
                 <span>{enabled ? "Aktiviert" : "Deaktiviert"}</span>
             </div>
         </div>
