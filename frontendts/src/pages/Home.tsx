@@ -1,6 +1,4 @@
-import Navbar from "../components/navbar.tsx";
 import Hero from "../components/Hero.js";
-import Footer from "../components/footer.tsx";
 import RideCard from "../components/RideCard.tsx";
 
 function Home() {
@@ -15,7 +13,6 @@ function Home() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            <Navbar />
 
             <main className="flex-grow bg-cyan-100">
                 <Hero />
@@ -26,7 +23,6 @@ function Home() {
                 </div>
             </main>
 
-            <Footer />
         </div>
     );
 }
