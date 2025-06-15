@@ -1,13 +1,16 @@
-import { Button } from "@/components/ui/button"
+import Footer from "./components/footer"
 import Navbar from "./components/navbar"
+import AGB from "./pages/AGB"
+import Impressum from "./pages/Impressum"
+import Kontakt from "./pages/Kontakt"
+import Login from "./pages/Login"
  
 function App() {
   return (
     <>
     <Navbar/>
-    <div className="flex min-h-svh flex-col items-center justify-center">
-      <Button>Click me</Button>
-    </div>
+    <Login/>
+    <Footer/>
     </>
   )
 }
