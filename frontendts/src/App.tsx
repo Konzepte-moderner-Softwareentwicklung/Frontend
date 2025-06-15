@@ -1,6 +1,6 @@
 
 import Navbar from "./components/navbar"
-import { BrowserRouter, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import Chat from "@/components/pages/chat/chat.tsx";
 import Home from "@/components/pages/Home.tsx";
@@ -11,12 +11,12 @@ function App() {
   return (
     <>
     <Navbar/>
-      <BrowserRouter>
+      <Routes>
         <Route path="/chat" element={<Chat />} />
         <Route path="/" element={<Home />} />
         <Route path="/Drives" element={<Drives/>} />
         <Route path="/profile" element={<Profile />} />
-      </BrowserRouter>
+        </Routes>
     </>
   )
 }
