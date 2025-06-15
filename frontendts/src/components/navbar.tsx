@@ -45,18 +45,18 @@ export default function Navbar() {
             </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/profile">
-              <NavigationMenuLink className="text-black hover: transition-colors" asChild>
+            <NavigationMenuLink asChild>
+              <a href="/profile" className="text-black hover:transition-colors">
                 Profile
-              </NavigationMenuLink>
-            </Link>
+              </a>
+            </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/login">
-              <NavigationMenuLink className="text-black hover: transition-colors" asChild>
-                Sign in / Register
-              </NavigationMenuLink>
-            </Link>
+            <NavigationMenuLink asChild>
+              <a href="/login" className="text-black hover:transition-colors">
+                Login/Register
+              </a>
+            </NavigationMenuLink>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
