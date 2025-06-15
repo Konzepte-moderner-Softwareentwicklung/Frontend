@@ -9,16 +9,15 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 import { Link } from "@radix-ui/react-navigation-menu"
+import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg"
 
 export default function Navbar() {
   return (
-    <nav className="w-full bg-black text-white px-6 py-4 flex items-center justify-between">
+    <nav className="w-full bg-neutral-200 text-black px-6 py-3 flex items-center justify-between">
       {/* Left: Logo + Brand */}
       <div className="flex items-center space-x-4">
         {/* Logo (replace with <Image> if needed) */}
-        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-black font-bold text-sm">
-          L
-        </div>
+        <img src={Logo} className="h-10 w-10"/>
         <span className="text-xl font-semibold">MyCargonaut</span>
       </div>
 
@@ -27,22 +26,36 @@ export default function Navbar() {
         <NavigationMenuList className="space-x-6">
           <NavigationMenuItem>
             <Link href="/">
-              <NavigationMenuLink className="text-white hover:text-gray-300 transition-colors">
+              <NavigationMenuLink className="text-black hover: transition-colors" asChild>
                 Home
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/drives">
-              <NavigationMenuLink className="text-white hover:text-gray-300 transition-colors">
+            <NavigationMenuLink asChild>
+              <a href="/drives" className="text-black hover:transition-colors">
                 Drives
+              </a>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <a href="/chats" className="text-black hover:transition-colors">
+                Chats
+              </a>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <Link href="/profile">
+              <NavigationMenuLink className="text-black hover: transition-colors" asChild>
+                Profile
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/profile">
-              <NavigationMenuLink className="text-white hover:text-gray-300 transition-colors">
-                Profile
+            <Link href="/login">
+              <NavigationMenuLink className="text-black hover: transition-colors" asChild>
+                Sign in / Register
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
