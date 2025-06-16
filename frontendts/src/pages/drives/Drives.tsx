@@ -1,5 +1,5 @@
 import {Button} from "@/components/ui/button.tsx";
-import { Card, CardContent } from "../ui/card";
+import { Card, CardContent } from "../../components/ui/card.tsx";
 import {
     Pagination,
     PaginationEllipsis,
@@ -7,8 +7,8 @@ import {
     PaginationLink,
     PaginationNext,
     PaginationPrevious
-} from "../ui/pagination";
-import { Input } from "../ui/input";
+} from "../../components/ui/pagination.tsx";
+import { Input } from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 
 function Drives(){
