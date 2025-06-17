@@ -33,7 +33,7 @@ function Drives(){
             </section>
 
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                {[...Array(5)].map((_, i) => ( //TODO: LImit auf 10-20 Begrenzen
+                {[...Array(10)].map((_, i) => ( //TODO: Standard 10, aber mit Auswahl von Menge pro Seite
                     <Card key={i} className="rounded-2xl shadow">
                         <CardContent className="p-4">
                             <div className="bg-gray-200 h-32 rounded mb-4" />
