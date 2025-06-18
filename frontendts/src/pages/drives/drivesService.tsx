@@ -325,3 +325,5 @@ export async function fetchOffers(): Promise<Offer[]> {
     });
 }
 
+
+

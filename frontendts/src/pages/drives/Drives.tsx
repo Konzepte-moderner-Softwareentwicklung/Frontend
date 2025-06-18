@@ -16,6 +16,16 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+import {
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+
 import { Input } from "../../components/ui/input.tsx";
 import { Slider } from "@/components/ui/slider.tsx";
 import { fetchOffers, type Offer } from "@/pages/drives/drivesService.tsx";
@@ -50,20 +60,40 @@ function Drives() {
         <div className="bg-cyan-100 min-h-screen p-6">
             <section className="bg-white p-6 rounded-2xl shadow mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <Input placeholder="von: Ort" />
-                    <Input placeholder="bis: Ort" />
-                    <Input placeholder="Datum" />
+                    <div>
+                        <label className="block text-sm mb-1">Von</label>
+                        <Input placeholder="Ort" />
+                    </div>
+                    <div>
+                        <label className="block text-sm mb-1">Bis</label>
+                        <Input placeholder="Ort" />
+                    </div>
+                    <div>
+                        <label className="block text-sm mb-1">Datum</label>
+                        <Input type="date" />
+                    </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Input placeholder="freie Plätze" />
-                    <Input placeholder="Bewertungen" />
-                    <Input placeholder="Gewicht" />
+                    <div>
+                        <label className="block text-sm mb-1">Freie Plätze</label>
+                        <Input placeholder="z. B. 3" />
+                    </div>
+                    <div>
+                        <label className="block text-sm mb-1">Bewertungen</label>
+                        <Input placeholder="z. B. ≥ 4.5" />
+                    </div>
+                    <div>
+                        <label className="block text-sm mb-1">Max. Gewicht</label>
+                        <Input placeholder="in kg" />
+                    </div>
                     <div>
                         <label className="block text-sm mb-1">Preis</label>
                         <Slider defaultValue={[100]} max={100} step={1} />
                     </div>
                 </div>
             </section>
+
 
 
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -73,7 +103,7 @@ function Drives() {
                     paginatedOffers.map((offer) => (
                         <Card key={offer.id} className="rounded-2xl shadow">
                             <CardContent className="p-4">
-                                <div className="bg-gray-200 h-32 rounded mb-4">
+                                <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
                                     {offer.imageURL && (
                                         <img
                                             src={offer.imageURL}
@@ -82,19 +112,31 @@ function Drives() {
                                         />
                                     )}
                                 </div>
+
                                 <p className="font-medium">
                                     {offer.locationFrom} → {offer.locationTo}
                                 </p>
+
                                 <p className="font-bold">{offer.price} Euro</p>
+
+                                {/* ⭐ Bewertung */}
+                                {/*{offer.rating && offer.ratingCount ? (*/}
+                                {/*    <p className="text-sm text-gray-600">*/}
+                                {/*        {offer.rating.toFixed(1)} Sterne ({offer.ratingCount} Bewertungen)*/}
+                                {/*    </p>*/}
+                                {/*) : (*/}
+                                {/*    <p className="text-sm text-gray-400 italic">Keine Bewertungen</p>*/}
+                                {/*)}*/}
                             </CardContent>
                         </Card>
+
                     ))
                 )}
             </section>
 
 
             <div className="flex justify-between items-center mt-6">
-                <Pagination className="list-none">
+                <Pagination className="list-none cursor-pointer">
                     <PaginationPrevious
                         onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                         className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
@@ -126,9 +168,35 @@ function Drives() {
                     </PaginationNext>
                 </Pagination>
 
-                <Button className="bg-green-600 cursor-pointer hover:bg-green-700 text-white">
-                    Fahrt erstellen
-                </Button>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button className="bg-green-600 cursor-pointer hover:bg-green-700 text-white">
+                            Fahrt erstellen
+                        </Button>
+                    </DialogTrigger>
+
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle>Neue Fahrt erstellen</DialogTitle>
+                            <DialogDescription>
+                                Fülle die Informationen aus, um eine neue Fahrt anzulegen.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {/* Beispiel-Formular */}
+                        <div className="grid gap-4 py-4">
+                            <Input placeholder="Von Ort" />
+                            <Input placeholder="Nach Ort" />
+                            <Input placeholder="Datum" type="date" />
+                            <Input placeholder="Preis in €" type="number" />
+                        </div>
+
+                        <DialogFooter>
+                            <Button  className="cursor-pointer" type="submit">Speichern</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
             </div>
 
             <div className="flex justify-end mb-4">
