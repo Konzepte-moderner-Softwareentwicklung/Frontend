@@ -1,4 +1,4 @@
-export interface Offer{
+export interface Offer {
     id: string;
     title: string;
     description: string;
@@ -317,10 +317,11 @@ export const mockOffers: Offer[] = [
     },
 ];
 
-async function fetchOffers(): Promise<Offer[]> {
+export async function fetchOffers(): Promise<Offer[]> {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve(mockOffers);
         }, 500);
     });
 }
+
