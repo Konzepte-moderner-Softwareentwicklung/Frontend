@@ -28,12 +28,21 @@ import {
 
 import { Input } from "../../components/ui/input.tsx";
 import { Slider } from "@/components/ui/slider.tsx";
-import { fetchOffers, type Offer } from "@/pages/drives/drivesService.tsx";
+import {
+    fetchOffers,
+    fetchOffersWithFilter,
+    type Filter,
+    getMaxPrice,
+    type Offer
+} from "@/pages/drives/drivesService.tsx";
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [filter, setFilter] = useState<Filter | undefined>(undefined);
+    const maxPrice = getMaxPrice();
+    const [price, setPrice] = useState([100]);
 
     const totalPages = Math.ceil(offers.length / entriesPerPage);
 
@@ -46,50 +55,98 @@ function Drives() {
     useEffect(() => {
         async function loadOffers() {
             try {
-                const data = await fetchOffers();
+                const data = filter
+                    ? await fetchOffersWithFilter(filter)
+                    : await fetchOffers();
                 setOffers(data);
+
+                setCurrentPage(1); // immer auf Seite 1 zurücksetzen, wenn neue Daten kommen
             } catch (error) {
                 console.error("Fehler beim Laden der Angebote:", error);
             }
         }
 
         loadOffers();
-    }, []);
+    }, [filter]);
 
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
+
             <section className="bg-white p-6 rounded-2xl shadow mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label className="block text-sm mb-1">Von</label>
-                        <Input placeholder="Ort" />
+                        <Input
+                            placeholder="Ort"
+                            onChange={(e) => setFilter((prev) => ({ ...prev, locationFrom: e.target.value }))}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm mb-1">Bis</label>
-                        <Input placeholder="Ort" />
+                        <Input
+                            placeholder="Ort"
+                            onChange={(e) => setFilter((prev) => ({ ...prev, locationTo: e.target.value }))}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm mb-1">Datum</label>
-                        <Input type="date" />
+                        <Input
+                            type="date"
+                            onChange={(e) => setFilter((prev) => ({ ...prev, date: e.target.value }))}
+                        />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-sm mb-1">Freie Plätze</label>
-                        <Input placeholder="z. B. 3" />
+                        <Input
+                            placeholder="z. B. 3"
+                            type="number"
+                            onChange={(e) => setFilter((prev) => ({
+                                ...prev,
+                                freeSpace: e.target.value ? parseInt(e.target.value) : undefined
+                            }))}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm mb-1">Bewertungen</label>
-                        <Input placeholder="z. B. ≥ 4.5" />
+                        <Input
+                            placeholder="z. B. ≥ 4.5"
+                            type="number"
+                            step="0.1"
+                            onChange={(e) => setFilter((prev) => ({
+                                ...prev,
+                                rating: e.target.value ? parseFloat(e.target.value) : undefined
+                            }))}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm mb-1">Max. Gewicht</label>
-                        <Input placeholder="in kg" />
+                        <Input
+                            placeholder="in kg"
+                            type="number"
+                            onChange={(e) => setFilter((prev) => ({
+                                ...prev,
+                                maxWeight: e.target.value ? parseInt(e.target.value) : undefined
+                            }))}
+                        />
                     </div>
                     <div>
-                        <label className="block text-sm mb-1">Preis</label>
-                        <Slider defaultValue={[100]} max={100} step={1} />
+                        <label className="block text-sm mb-1">Preis :{price[0]}</label>
+                        <Slider
+                            defaultValue={[100]}
+                            max={maxPrice}
+                            step={1}
+                            onValueChange={(value) =>{
+                                setPrice(value)
+                                setFilter((prev) => ({
+                                    ...prev,
+                                    maxPrice: value[0]
+                                }))
+                            }
+                            }
+                        />
                     </div>
                 </div>
             </section>
@@ -223,5 +280,7 @@ function Drives() {
 
     );
 }
+
+
 
 export default Drives;

@@ -2,40 +2,51 @@ export interface Offer {
     id: string;
     title: string;
     description: string;
-    price:number;
+    price: number;
     locationFrom: string;
     locationTo: string;
-    creator:string;
+    creator: string;
     createdAt: Date;
-    isChat:boolean;
-    chatId:string;
-    isPhone:boolean;
-    isEmail:boolean;
-    startDateTime:Date;
-    endDateTime:Date;
-    canTransport:Space;
-    occupied:boolean;
-    occupiedBy:string;
-    restricted:string[];
-    info:string[];
-    infoCar:string[];
-    imageURL:string;
+    isChat: boolean;
+    chatId: string;
+    isPhone: boolean;
+    isEmail: boolean;
+    startDateTime: Date;
+    endDateTime: Date;
+    canTransport: Space;
+    occupied: boolean;
+    occupiedBy: string;
+    restricted: string[];
+    info: string[];
+    infoCar: string[];
+    imageURL: string;
 }
 
-interface Space{
-    items:Item[];
-    seats:number;
+export interface Filter {
+    freeSpace?: number;
+    locationFrom?: string;
+    locationTo?: string;
+    locationFromDiff?: number;
+    date?: string;
+    user?: string;
+    creator?: string;
+    maxPrice?: number;
 }
 
-interface Item{
-    size:Size;
-    weight:number;
+interface Space {
+    items: Item[];
+    seats: number;
 }
 
-interface Size{
-    width:number;
-    height:number;
-    depth:number;
+interface Item {
+    size: Size;
+    weight: number;
+}
+
+interface Size {
+    width: number;
+    height: number;
+    depth: number;
 }
 
 export const mockOffers: Offer[] = [
@@ -57,8 +68,8 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 2,
             items: [
-                { size: { width: 80, height: 120, depth: 60 }, weight: 30 },
-                { size: { width: 50, height: 70, depth: 40 }, weight: 15 },
+                {size: {width: 80, height: 120, depth: 60}, weight: 30},
+                {size: {width: 50, height: 70, depth: 40}, weight: 15},
             ],
         },
         occupied: false,
@@ -112,7 +123,7 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 1,
             items: [
-                { size: { width: 60, height: 40, depth: 40 }, weight: 10 },
+                {size: {width: 60, height: 40, depth: 40}, weight: 10},
             ],
         },
         occupied: false,
@@ -166,8 +177,8 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 0,
             items: [
-                { size: { width: 30, height: 30, depth: 30 }, weight: 5 },
-                { size: { width: 40, height: 50, depth: 40 }, weight: 8 },
+                {size: {width: 30, height: 30, depth: 30}, weight: 5},
+                {size: {width: 40, height: 50, depth: 40}, weight: 8},
             ],
         },
         occupied: false,
@@ -195,8 +206,8 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 1,
             items: [
-                { size: { width: 100, height: 200, depth: 80 }, weight: 60 },
-                { size: { width: 90, height: 150, depth: 70 }, weight: 45 },
+                {size: {width: 100, height: 200, depth: 80}, weight: 60},
+                {size: {width: 90, height: 150, depth: 70}, weight: 45},
             ],
         },
         occupied: false,
@@ -224,7 +235,7 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 0,
             items: [
-                { size: { width: 20, height: 10, depth: 5 }, weight: 1 },
+                {size: {width: 20, height: 10, depth: 5}, weight: 1},
             ],
         },
         occupied: false,
@@ -252,8 +263,8 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 0,
             items: [
-                { size: { width: 170, height: 100, depth: 40 }, weight: 12 },
-                { size: { width: 180, height: 110, depth: 45 }, weight: 14 },
+                {size: {width: 170, height: 100, depth: 40}, weight: 12},
+                {size: {width: 180, height: 110, depth: 45}, weight: 14},
             ],
         },
         occupied: false,
@@ -321,6 +332,57 @@ export async function fetchOffers(): Promise<Offer[]> {
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve(mockOffers);
+        }, 500);
+    });
+}
+
+export function getMaxPrice(): number {
+    let price = 0;
+    mockOffers.forEach((offer: Offer) => {
+        if (offer.price > price) {
+            price = offer.price;
+        }
+    })
+    return price;
+}
+
+export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const filteredOffers = mockOffers.filter((offer) => {
+                const matchesLocationFrom =
+                    filter.locationFrom !== undefined &&
+                    filter.locationFrom !== "" &&
+                    offer.locationFrom.includes(filter.locationFrom);
+
+                const matchesLocationTo =
+                    filter.locationTo !== undefined &&
+                    filter.locationTo !== "" &&
+                    offer.locationTo.includes(filter.locationTo);
+
+                const matchesDate =
+                    filter.date !== undefined &&
+                    filter.date !== "" &&
+                    new Date(offer.endDateTime).toDateString() === new Date(filter.date).toDateString();
+
+                const matchesFreeSpace =
+                    filter.freeSpace !== undefined &&
+                    offer.canTransport.seats === filter.freeSpace;
+
+                const matchesMaxPrice =
+                    filter.maxPrice !== undefined &&
+                    offer.price <= filter.maxPrice;
+
+                return (
+                    (!filter.locationFrom || matchesLocationFrom) &&
+                    (!filter.locationTo || matchesLocationTo) &&
+                    (!filter.date || matchesDate) &&
+                    (filter.freeSpace === undefined || matchesFreeSpace) &&
+                    (filter.maxPrice === undefined || matchesMaxPrice)
+                );
+            });
+
+            resolve(filteredOffers); // <-- Richtige Position
         }, 500);
     });
 }
