@@ -15,11 +15,29 @@ export interface Offer {
     endDateTime: Date;
     canTransport: Space;
     occupied: boolean;
-    occupiedBy: string;
-    restricted: string[];
+    occupiedBy: string[];
+    restrictions: string[];
     info: string[];
     infoCar: string[];
     imageURL: string;
+}
+
+export interface OfferMessage{
+    title: string;
+    description: string;
+    price: number;
+    locationFrom: string;
+    locationTo: string;
+    creator: string;
+    startDateTime: Date;
+    endDateTime: Date;
+    canTransport: Space;
+    occupied: boolean;
+    occupiedBy: string[];
+    restrictions: string[];
+    info: string[];
+    infoCar: string[];
+
 }
 
 export interface Filter {
@@ -33,7 +51,7 @@ export interface Filter {
     maxPrice?: number;
 }
 
-interface Space {
+export interface Space {
     items: Item[];
     seats: number;
 }
@@ -73,8 +91,8 @@ export const mockOffers: Offer[] = [
             ],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: ["Haustiere", "Rauchen"],
+        occupiedBy: [],
+        restrictions: ["Haustiere", "Rauchen"],
         info: ["Fahrt findet bei jedem Wetter statt", "Pausen alle 2 Stunden"],
         infoCar: ["Transporter mit Rampe", "Klimaanlage vorhanden"],
         imageURL: "https://example.com/images/offer1.jpg",
@@ -99,8 +117,8 @@ export const mockOffers: Offer[] = [
             items: [],
         },
         occupied: true,
-        occupiedBy: "user789",
-        restricted: ["Großes Gepäck"],
+        occupiedBy: ["user789"],
+        restrictions: ["Großes Gepäck"],
         info: ["Bitte pünktlich sein", "Zwischenstopp in Hannover"],
         infoCar: ["SUV, Nichtraucherfahrzeug"],
         imageURL: "https://example.com/images/offer2.jpg",
@@ -127,8 +145,8 @@ export const mockOffers: Offer[] = [
             ],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: [],
+        occupiedBy: [],
+        restrictions: [],
         info: ["Nur kleinere Gegenstände", "Transportversicherung inklusive"],
         infoCar: ["Kleiner Van", "Rückfahrkamera"],
         imageURL: "https://example.com/images/offer3.jpg",
@@ -153,8 +171,8 @@ export const mockOffers: Offer[] = [
             items: [],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: ["Rauchen"],
+        occupiedBy: [],
+        restrictions: ["Rauchen"],
         info: ["Pausen je nach Wunsch", "Snacks an Bord"],
         infoCar: ["Kombi, sehr geräumig"],
         imageURL: "https://example.com/images/offer4.jpg",
@@ -182,8 +200,8 @@ export const mockOffers: Offer[] = [
             ],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: ["Zerbrechliche Waren"],
+        occupiedBy: [],
+        restrictions: ["Zerbrechliche Waren"],
         info: ["Nur werktags", "Sendungsverfolgung via App"],
         infoCar: ["Kastenwagen, Kameraüberwachung"],
         imageURL: "https://example.com/images/offer5.jpg",
@@ -211,8 +229,8 @@ export const mockOffers: Offer[] = [
             ],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: [],
+        occupiedBy: [],
+        restrictions: [],
         info: ["Möbelspanner vorhanden", "Fahrer hilft beim Tragen"],
         infoCar: ["Sprinter 3.5t", "Hecklift"],
         imageURL: "https://example.com/images/offer6.jpg",
@@ -239,8 +257,8 @@ export const mockOffers: Offer[] = [
             ],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: ["Gefahrgut"],
+        occupiedBy: [],
+        restrictions: ["Gefahrgut"],
         info: ["Nur für eilige Sendungen", "Keine Rückfahrt geplant"],
         infoCar: ["PKW", "Sicheres Handschuhfach"],
         imageURL: "https://example.com/images/offer7.jpg",
@@ -268,8 +286,8 @@ export const mockOffers: Offer[] = [
             ],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: [],
+        occupiedBy: [],
+        restrictions: [],
         info: ["Fahrradträger vorhanden", "Bitte vorher sauber machen"],
         infoCar: ["Van mit Heckträger"],
         imageURL: "https://example.com/images/offer8.jpg",
@@ -294,8 +312,8 @@ export const mockOffers: Offer[] = [
             items: [],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: ["Haustiere", "laute Musik"],
+        occupiedBy: [],
+        restrictions: ["Haustiere", "laute Musik"],
         info: ["Snacks & Getränke an Bord", "Pass/ID erforderlich"],
         infoCar: ["Reisebus mit Liegesitzen"],
         imageURL: "https://example.com/images/offer9.jpg",
@@ -320,8 +338,8 @@ export const mockOffers: Offer[] = [
             items: [],
         },
         occupied: false,
-        occupiedBy: "",
-        restricted: [],
+        occupiedBy: [],
+        restrictions: [],
         info: ["Stromanschluss im Auto", "Fahrt klimaneutral kompensiert"],
         infoCar: ["E-Auto (Tesla Model Y)", "Panoramadach"],
         imageURL: "https://example.com/images/offer10.jpg",
@@ -383,6 +401,16 @@ export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
             });
 
             resolve(filteredOffers); // <-- Richtige Position
+        }, 500);
+    });
+}
+
+export async function createOffer(offer: OfferMessage): Promise<Offer> {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const newOffer = offer as Offer;
+            mockOffers.push(newOffer);
+            resolve(newOffer);
         }, 500);
     });
 }

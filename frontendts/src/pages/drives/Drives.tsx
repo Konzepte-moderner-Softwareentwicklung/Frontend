@@ -29,11 +29,12 @@ import {
 import { Input } from "../../components/ui/input.tsx";
 import { Slider } from "@/components/ui/slider.tsx";
 import {
+    createOffer,
     fetchOffers,
     fetchOffersWithFilter,
     type Filter,
     getMaxPrice,
-    type Offer
+    type Offer, type OfferMessage, type Space
 } from "@/pages/drives/drivesService.tsx";
 
 function Drives() {
@@ -41,8 +42,41 @@ function Drives() {
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [filter, setFilter] = useState<Filter | undefined>(undefined);
-    const maxPrice = getMaxPrice();
-    const [price, setPrice] = useState([100]);
+    const maxOfferPrice = getMaxPrice();
+    const [maxPrice, setMaxPrice] = useState([100]);
+    const [title,setTitle] = useState("");
+    const [description,setDescription] = useState("");
+    const [fromLocation, setFromLocation] = useState("");
+    const [startDate, setStartDate] = useState(new Date());
+    const [canTransport, setCanTransport] = useState( "");
+    const [endDate, setEndDate] = useState(new Date());
+    const [toLocation, setToLocation] = useState("");
+    const [price, setPrice] = useState("");
+
+    const numericPrice = parseFloat(price);
+    const seats = {seats:parseInt(canTransport),items:[]} as Space ;
+    const createNewOffer = () => {
+        const offerData: OfferMessage = {
+            title: title,
+            description: description,
+            price: numericPrice,
+            locationFrom: fromLocation,
+            locationTo: toLocation,
+            creator: "user",
+            startDateTime: startDate,
+            endDateTime: endDate,
+            canTransport: seats,
+            occupied: false,
+            occupiedBy: [],
+            restrictions: [],
+            info: [],
+            infoCar: []
+        };
+
+        createOffer(offerData).then();
+    };
+
+
 
     const totalPages = Math.ceil(offers.length / entriesPerPage);
 
@@ -133,13 +167,13 @@ function Drives() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm mb-1">Preis :{price[0]}</label>
+                        <label className="block text-sm mb-1">Preis :{maxPrice[0]}</label>
                         <Slider
                             defaultValue={[100]}
-                            max={maxPrice}
+                            max={maxOfferPrice}
                             step={1}
                             onValueChange={(value) =>{
-                                setPrice(value)
+                                setMaxPrice(value)
                                 setFilter((prev) => ({
                                     ...prev,
                                     maxPrice: value[0]
@@ -240,16 +274,59 @@ function Drives() {
                             </DialogDescription>
                         </DialogHeader>
 
-                        {/* Beispiel-Formular */}
+
                         <div className="grid gap-4 py-4">
-                            <Input placeholder="Von Ort" />
-                            <Input placeholder="Nach Ort" />
-                            <Input placeholder="Datum" type="date" />
-                            <Input placeholder="Preis in €" type="number" />
+                            <Input
+                                placeholder="Title"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
+                            <Input
+                                placeholder="Von Ort"
+                                value={fromLocation}
+                                onChange={(e) => setFromLocation(e.target.value)}
+                            />
+                            <Input
+                                placeholder="Nach Ort"
+                                value={toLocation}
+                                onChange={(e) => setToLocation(e.target.value)}
+                            />
+                            <Input
+                                placeholder="StartDatum"
+                                type="date"
+                                value={startDate ? startDate.toISOString().split("T")[0] : ""}
+                                onChange={(e) => setStartDate(new Date(e.target.value))}
+                            />
+                            <Input
+                                placeholder="EndDatum"
+                                type="date"
+                                value={startDate ? startDate.toISOString().split("T")[0] : ""}
+                                onChange={(e) => setEndDate(new Date(e.target.value))}
+                            />
+                            <Input
+                                placeholder="Anzahl Passagiere"
+                                type="number"
+                                value={description}
+                                onChange={(e) => setCanTransport(e.target.value)}
+                            />
+                            <Input
+                                placeholder="Preis in €"
+                                type="number"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                            />
+                            <Input
+                                placeholder="Beschreibung"
+                                type="text"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                            />
+
                         </div>
 
+
                         <DialogFooter>
-                            <Button  className="cursor-pointer" type="submit">Speichern</Button>
+                            <Button  onClick={createNewOffer} className="cursor-pointer" type="submit">Erstellen</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
