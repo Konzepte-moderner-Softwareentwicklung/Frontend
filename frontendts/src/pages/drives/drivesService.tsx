@@ -354,6 +354,25 @@ export async function fetchOffers(): Promise<Offer[]> {
     });
 }
 
+export async function fetchOffer(id: string | undefined): Promise<Offer | undefined> {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(mockOffers.find(offer => offer.id === id));
+        }, 500);
+    });
+}
+
+export async function getOffer(id:string|undefined): Promise<Offer | undefined> {
+    // In bereits vorhandenen offers suchen
+
+    let foundOffer =  mockOffers.find(offer => offer.id === id);
+    if(foundOffer == undefined){
+        await fetchOffer(id).then(offer => foundOffer = offer);
+    }
+    return foundOffer;
+
+}
+
 export function getMaxPrice(): number {
     let price = 0;
     mockOffers.forEach((offer: Offer) => {

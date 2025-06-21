@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent } from "../../components/ui/card.tsx";
+import { useNavigate } from 'react-router-dom';
 import {
     Pagination,
     PaginationItem,
@@ -79,7 +80,7 @@ function Drives() {
 
 
     const totalPages = Math.ceil(offers.length / entriesPerPage);
-
+    const navigate = useNavigate();
 
     const paginatedOffers = offers.slice(
         (currentPage - 1) * entriesPerPage,
@@ -192,7 +193,7 @@ function Drives() {
                     <p className="col-span-full text-center text-gray-600">Keine Angebote gefunden.</p>
                 ) : (
                     paginatedOffers.map((offer) => (
-                        <Card key={offer.id} className="rounded-2xl shadow">
+                        <Card key={offer.id} className="rounded-2xl shadow"  onClick={()=>navigate(`/drives/${offer.id}`)}>
                             <CardContent className="p-4">
                                 <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
                                     {offer.imageURL && (
