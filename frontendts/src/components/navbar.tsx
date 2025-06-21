@@ -54,7 +54,14 @@ export default function Navbar() {
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
               <a href="/login" className="text-black hover:transition-colors">
-                Login/Register
+                Login
+              </a>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <a href="/register" className="text-black hover:transition-colors">
+                Sign up
               </a>
             </NavigationMenuLink>
           </NavigationMenuItem>
