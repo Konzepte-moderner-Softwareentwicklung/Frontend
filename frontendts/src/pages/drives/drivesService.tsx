@@ -391,6 +391,7 @@ export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
                     filter.maxPrice !== undefined &&
                     offer.price <= filter.maxPrice;
 
+
                 return (
                     (!filter.locationFrom || matchesLocationFrom) &&
                     (!filter.locationTo || matchesLocationTo) &&
@@ -400,7 +401,7 @@ export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
                 );
             });
 
-            resolve(filteredOffers); // <-- Richtige Position
+            resolve(filteredOffers);
         }, 500);
     });
 }
