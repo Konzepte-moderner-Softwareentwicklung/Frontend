@@ -94,7 +94,7 @@ function Drives() {
                     : await fetchOffers();
                 setOffers(data);
 
-                setCurrentPage(1); // immer auf Seite 1 zurücksetzen, wenn neue Daten kommen
+                setCurrentPage(1);
             } catch (error) {
                 console.error("Fehler beim Laden der Angebote:", error);
             }
@@ -146,7 +146,7 @@ function Drives() {
                     <div>
                         <label className="block text-sm mb-1">Bewertungen</label>
                         <Input
-                            placeholder="z. B. ≥ 4.5"
+                            placeholder="z.B.  4.5"
                             type="number"
                             step="0.1"
                             onChange={(e) => setFilter((prev) => ({
@@ -210,14 +210,6 @@ function Drives() {
 
                                 <p className="font-bold">{offer.price} Euro</p>
 
-                                {/* ⭐ Bewertung */}
-                                {/*{offer.rating && offer.ratingCount ? (*/}
-                                {/*    <p className="text-sm text-gray-600">*/}
-                                {/*        {offer.rating.toFixed(1)} Sterne ({offer.ratingCount} Bewertungen)*/}
-                                {/*    </p>*/}
-                                {/*) : (*/}
-                                {/*    <p className="text-sm text-gray-400 italic">Keine Bewertungen</p>*/}
-                                {/*)}*/}
                             </CardContent>
                         </Card>
 
