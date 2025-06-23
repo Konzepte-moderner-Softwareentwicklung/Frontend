@@ -1,18 +1,27 @@
 import {useNavigate, useParams} from 'react-router-dom';
 import {getOffer, type Offer} from "@/pages/drives/drivesService.tsx";
+import WebSocketComponent from "@/components/drivesWebSocket.tsx";
+import {useEffect, useState} from "react";
 function DrivesDetailPage() {
     const navigate = useNavigate();
    
     const { id } = useParams();
 
-    let offer:Offer | undefined;
+    const [offer, setOffer] = useState<Offer | undefined>(undefined);
     const handleBack = () => {
         navigate("/drives");
     };
-    getOffer(id).then((foundOffer) => offer = foundOffer);
+    useEffect(() => {
+        if (id) {
+            getOffer(id).then(setOffer);
+        }
+    }, [id]);
     const joinOffer = () => {
         if(offer != undefined){
-            offer.canTransport.seats =offer.canTransport.seats -1;
+            if(!offer.occupiedBy.includes("user789")){
+                offer.canTransport.seats =offer.canTransport.seats -1;
+                offer.occupiedBy.push("user789");
+            }
         }
     };
     const isLoggedIn = true;
@@ -161,11 +170,13 @@ function DrivesDetailPage() {
                             ))}
                         </ul>
                     </div>
+                    <WebSocketComponent />
                 </div>
             </div>
         </div>
     );
 }
+
 
 
 
