@@ -430,6 +430,7 @@ export async function createOffer(offer: OfferMessage): Promise<Offer> {
     return new Promise((resolve) => {
         setTimeout(() => {
             const newOffer = offer as Offer;
+            newOffer.id = "user1234";//TODO: user mit eingeloggten Benutzer ersetzen
             mockOffers.push(newOffer);
             resolve(newOffer);
         }, 500);

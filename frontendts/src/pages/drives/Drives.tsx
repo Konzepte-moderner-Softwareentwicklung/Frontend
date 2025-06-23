@@ -53,6 +53,9 @@ function Drives() {
     const [endDate, setEndDate] = useState(new Date());
     const [toLocation, setToLocation] = useState("");
     const [price, setPrice] = useState("");
+    const [storageWidth, setStorageWidth] = useState("");
+    const [storageHeight, setStorageHeight] = useState("");
+
 
     const numericPrice = parseFloat(price);
     const seats = {seats:parseInt(canTransport),items:[]} as Space ;
@@ -104,6 +107,7 @@ function Drives() {
         loadOffers();
     }, [filter]);
 
+    const isLoggedIn = true;
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
 
@@ -254,7 +258,7 @@ function Drives() {
 
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button className="bg-green-600 cursor-pointer hover:bg-green-700 text-white">
+                        <Button disabled={!isLoggedIn} className="bg-green-600 cursor-pointer hover:bg-green-700 text-white  disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                             Fahrt erstellen
                         </Button>
                     </DialogTrigger>
@@ -293,13 +297,13 @@ function Drives() {
                             <Input
                                 placeholder="EndDatum"
                                 type="date"
-                                value={startDate ? startDate.toISOString().split("T")[0] : ""}
+                                value={endDate ? endDate.toISOString().split("T")[0] : ""}
                                 onChange={(e) => setEndDate(new Date(e.target.value))}
                             />
                             <Input
                                 placeholder="Anzahl Passagiere"
                                 type="number"
-                                value={description}
+                                value={canTransport}
                                 onChange={(e) => setCanTransport(e.target.value)}
                             />
                             <Input
@@ -308,14 +312,34 @@ function Drives() {
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                             />
+
+                            {/* 📦 Neuer Abschnitt für Lagerraum */}
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum (in Meter)</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        placeholder="Breite"
+                                        type="number"
+                                        value={storageWidth}
+                                        onChange={(e) => setStorageWidth(e.target.value)}
+                                    />
+                                    <Input
+                                        placeholder="Höhe"
+                                        type="number"
+                                        value={storageHeight}
+                                        onChange={(e) => setStorageHeight(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
                             <Input
                                 placeholder="Beschreibung"
                                 type="text"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />
-
                         </div>
+
 
 
                         <DialogFooter>
