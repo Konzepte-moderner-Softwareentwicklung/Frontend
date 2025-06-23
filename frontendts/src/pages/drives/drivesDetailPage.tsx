@@ -72,7 +72,7 @@ function DrivesDetailPage() {
 
                     <button
                         onClick={joinOffer}
-                        disabled={!isLoggedIn && offer.canTransport.seats <=0}
+                        isabled={!isLoggedIn && offer.canTransportd.seats <=0}
                         className={`px-4 py-2 rounded shadow transition ${
                             (isLoggedIn && offer.canTransport.seats >0)
                                 ? "bg-green-500 text-white hover:bg-green-600"

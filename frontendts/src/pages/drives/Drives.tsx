@@ -104,6 +104,7 @@ function Drives() {
         loadOffers();
     }, [filter]);
 
+    const isLoggedIn = true;
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
 
@@ -254,7 +255,7 @@ function Drives() {
 
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button className="bg-green-600 cursor-pointer hover:bg-green-700 text-white">
+                        <Button disabled={!isLoggedIn} className="bg-green-600 cursor-pointer hover:bg-green-700 text-white  disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                             Fahrt erstellen
                         </Button>
                     </DialogTrigger>
