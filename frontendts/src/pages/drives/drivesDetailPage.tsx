@@ -18,7 +18,7 @@ function DrivesDetailPage() {
     }, [id]);
     const joinOffer = () => {
         if(offer != undefined){
-            if(!offer.occupiedBy.includes("user789")){
+            if(!offer.occupiedBy.includes("user789")){ //TODO: Später mit User id ersetzen
                 offer.canTransport.seats =offer.canTransport.seats -1;
                 offer.occupiedBy.push("user789");
             }
