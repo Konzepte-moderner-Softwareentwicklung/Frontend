@@ -1,6 +1,5 @@
 import {useNavigate, useParams} from 'react-router-dom';
 import {getOffer, type Offer} from "@/pages/drives/drivesService.tsx";
-import WebSocketComponent from "@/components/drivesWebSocket.tsx";
 import {useEffect, useState} from "react";
 function DrivesDetailPage() {
     const navigate = useNavigate();
@@ -170,7 +169,6 @@ function DrivesDetailPage() {
                             ))}
                         </ul>
                     </div>
-                    <WebSocketComponent />
                 </div>
             </div>
         </div>
