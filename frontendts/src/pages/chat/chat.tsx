@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import { 
   fetchChatContacts, 
   fetchChatHistory, 
@@ -8,7 +8,7 @@ import {
   subscribeToMessages,
   type ChatContact, 
   type ChatMessage 
-} from "./chatService";
+} from "./chatService.tsx";
 
 export default function Chat() {
   // State für Kontakte und Chat
