@@ -20,6 +20,7 @@ export interface Offer {
     info: string[];
     infoCar: string[];
     imageURL: string;
+    isOffer?: boolean;
 }
 
 export interface OfferMessage{

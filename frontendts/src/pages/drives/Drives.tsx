@@ -136,7 +136,7 @@ function Drives() {
                     <div>
                         <label className="block text-sm mb-1">Freie Plätze</label>
                         <Input
-                            placeholder="z. B. 3"
+                            placeholder="z.B. 3"
                             type="number"
                             onChange={(e) => setFilter((prev) => ({
                                 ...prev,
