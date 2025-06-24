@@ -76,7 +76,7 @@ export const mockOffers: Offer[] = [
         price: 120,
         locationFrom: "München",
         locationTo: "Berlin",
-        creator: "user123",
+        creator: "user789",
         createdAt: new Date("2025-06-10T10:00:00Z"),
         isChat: true,
         chatId: "chat-001",
