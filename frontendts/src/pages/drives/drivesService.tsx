@@ -14,7 +14,7 @@ export interface Offer {
     startDateTime: Date;
     endDateTime: Date;
     canTransport: Space;
-    occupied: boolean;
+    occupiedSpace: Space; // ⬅️ aktualisiert
     occupiedBy: string[];
     restrictions: string[];
     info: string[];
@@ -23,7 +23,7 @@ export interface Offer {
     isOffer?: boolean;
 }
 
-export interface OfferMessage{
+export interface OfferMessage {
     title: string;
     description: string;
     price: number;
@@ -33,13 +33,13 @@ export interface OfferMessage{
     startDateTime: Date;
     endDateTime: Date;
     canTransport: Space;
-    occupied: boolean;
+    occupiedSpace: Space; // ⬅️ aktualisiert
     occupiedBy: string[];
     restrictions: string[];
     info: string[];
     infoCar: string[];
-
 }
+
 
 export interface Filter {
     freeSpace?: number;
@@ -57,12 +57,12 @@ export interface Space {
     seats: number;
 }
 
-interface Item {
+export interface Item {
     size: Size;
     weight: number;
 }
 
-interface Size {
+export interface Size {
     width: number;
     height: number;
     depth: number;
@@ -72,7 +72,7 @@ export const mockOffers: Offer[] = [
     {
         id: "offer-001",
         title: "Transport von Möbeln nach Berlin",
-        description: "Ich biete eine Fahrt von München nach Berlin am Wochenende an. Platz für Möbel und 2 Personen.",
+        description: "Ich biete eine Fahrt von München nach Berlin am Wochenende an.",
         price: 120,
         locationFrom: "München",
         locationTo: "Berlin",
@@ -87,21 +87,35 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 2,
             items: [
-                {size: {width: 80, height: 120, depth: 60}, weight: 30},
-                {size: {width: 50, height: 70, depth: 40}, weight: 15},
+                {
+                    size: { width: 100, height: 120, depth: 80 },
+                    weight: 100,
+                },
             ],
         },
-        occupied: false,
-        occupiedBy: [],
+        occupiedSpace: {
+            seats: 1,
+            items: [
+                {
+                    size: { width: 50, height: 60, depth: 40 },
+                    weight: 20,
+                },
+                {
+                    size: { width: 40, height: 50, depth: 30 },
+                    weight: 15,
+                },
+            ],
+        },
+        occupiedBy: ["user789"],
         restrictions: ["Haustiere", "Rauchen"],
-        info: ["Fahrt findet bei jedem Wetter statt", "Pausen alle 2 Stunden"],
-        infoCar: ["Transporter mit Rampe", "Klimaanlage vorhanden"],
+        info: ["Fahrt findet bei jedem Wetter statt"],
+        infoCar: ["Transporter mit Rampe"],
         imageURL: "https://example.com/images/offer1.jpg",
     },
     {
         id: "offer-002",
         title: "Mitfahrgelegenheit nach Hamburg",
-        description: "Fahre mit einem SUV von Köln nach Hamburg. 3 Sitzplätze verfügbar, kein großer Stauraum.",
+        description: "Fahre mit einem SUV von Köln nach Hamburg. 3 Sitzplätze verfügbar.",
         price: 50,
         locationFrom: "Köln",
         locationTo: "Hamburg",
@@ -115,19 +129,32 @@ export const mockOffers: Offer[] = [
         endDateTime: new Date("2025-06-18T13:00:00Z"),
         canTransport: {
             seats: 3,
-            items: [],
+            items: [
+                {
+                    size: { width: 100, height: 50, depth: 50 },
+                    weight: 50,
+                },
+            ],
         },
-        occupied: true,
+        occupiedSpace: {
+            seats: 1,
+            items: [
+                {
+                    size: { width: 40, height: 40, depth: 30 },
+                    weight: 20,
+                },
+            ],
+        },
         occupiedBy: ["user789"],
-        restrictions: ["Großes Gepäck"],
-        info: ["Bitte pünktlich sein", "Zwischenstopp in Hannover"],
-        infoCar: ["SUV, Nichtraucherfahrzeug"],
+        restrictions: [],
+        info: ["Bitte pünktlich sein"],
+        infoCar: ["SUV"],
         imageURL: "https://example.com/images/offer2.jpg",
     },
     {
         id: "offer-003",
         title: "Kleintransporte Stuttgart → Nürnberg",
-        description: "Fahre mit kleinem Van, perfekt für 1-2 Kartons oder kleine Möbelstücke.",
+        description: "Perfekt für kleine Möbel oder 1-2 Kartons.",
         price: 70,
         locationFrom: "Stuttgart",
         locationTo: "Nürnberg",
@@ -142,210 +169,305 @@ export const mockOffers: Offer[] = [
         canTransport: {
             seats: 1,
             items: [
-                {size: {width: 60, height: 40, depth: 40}, weight: 10},
+                {
+                    size: { width: 80, height: 60, depth: 50 },
+                    weight: 40,
+                },
             ],
         },
-        occupied: false,
+        occupiedSpace: {
+            seats: 0,
+            items: [
+                {
+                    size: { width: 60, height: 40, depth: 40 },
+                    weight: 15,
+                },
+            ],
+        },
         occupiedBy: [],
         restrictions: [],
-        info: ["Nur kleinere Gegenstände", "Transportversicherung inklusive"],
-        infoCar: ["Kleiner Van", "Rückfahrkamera"],
+        info: ["Transportversicherung inklusive"],
+        infoCar: ["Kleiner Van"],
         imageURL: "https://example.com/images/offer3.jpg",
     },
     {
         id: "offer-004",
-        title: "Studentenfahrt Leipzig → Dresden",
-        description: "Ich pendle regelmäßig, gerne Mitfahrgelegenheit für Studierende.",
-        price: 15,
+        title: "Umzugshilfe von Leipzig nach Dresden",
+        description: "Habe einen großen Sprinter, kann Möbel transportieren.",
+        price: 90,
         locationFrom: "Leipzig",
         locationTo: "Dresden",
-        creator: "user789",
-        createdAt: new Date("2025-06-11T16:00:00Z"),
-        isChat: false,
-        chatId: "",
+        creator: "user315",
+        createdAt: new Date("2025-06-13T15:20:00Z"),
+        isChat: true,
+        chatId: "chat-315",
         isPhone: false,
         isEmail: true,
-        startDateTime: new Date("2025-06-19T08:00:00Z"),
-        endDateTime: new Date("2025-06-19T10:00:00Z"),
+        startDateTime: new Date("2025-06-24T08:00:00Z"),
+        endDateTime: new Date("2025-06-24T10:00:00Z"),
         canTransport: {
-            seats: 4,
-            items: [],
+            seats: 2,
+            items: [
+                {
+                    size: { width: 150, height: 120, depth: 100 },
+                    weight: 200,
+                },
+            ],
         },
-        occupied: false,
-        occupiedBy: [],
-        restrictions: ["Rauchen"],
-        info: ["Pausen je nach Wunsch", "Snacks an Bord"],
-        infoCar: ["Kombi, sehr geräumig"],
+        occupiedSpace: {
+            seats: 1,
+            items: [
+                {
+                    size: { width: 80, height: 70, depth: 60 },
+                    weight: 60,
+                },
+                {
+                    size: { width: 60, height: 50, depth: 40 },
+                    weight: 35,
+                },
+            ],
+        },
+        occupiedBy: ["user002"],
+        restrictions: ["Keine Tiere"],
+        info: ["Tragehilfe vorhanden"],
+        infoCar: ["Großer Sprinter"],
         imageURL: "https://example.com/images/offer4.jpg",
     },
     {
         id: "offer-005",
-        title: "Lieferung von Paketen Frankfurt → Mainz",
-        description: "Fahre werktags täglich zwischen Frankfurt und Mainz – Transport von kleinen Sendungen möglich.",
-        price: 25,
-        locationFrom: "Frankfurt",
-        locationTo: "Mainz",
-        creator: "user321",
-        createdAt: new Date("2025-06-15T08:15:00Z"),
-        isChat: true,
-        chatId: "chat-321",
+        title: "Nachts nach Frankfurt",
+        description: "Fahre nachts mit leerem Kofferraum nach Frankfurt.",
+        price: 40,
+        locationFrom: "Nürnberg",
+        locationTo: "Frankfurt",
+        creator: "user998",
+        createdAt: new Date("2025-06-11T20:00:00Z"),
+        isChat: false,
+        chatId: "",
         isPhone: true,
         isEmail: false,
-        startDateTime: new Date("2025-06-17T07:30:00Z"),
-        endDateTime: new Date("2025-06-17T09:00:00Z"),
+        startDateTime: new Date("2025-06-25T22:00:00Z"),
+        endDateTime: new Date("2025-06-26T01:00:00Z"),
         canTransport: {
-            seats: 0,
+            seats: 1,
             items: [
-                {size: {width: 30, height: 30, depth: 30}, weight: 5},
-                {size: {width: 40, height: 50, depth: 40}, weight: 8},
+                {
+                    size: { width: 70, height: 50, depth: 60 },
+                    weight: 40,
+                },
             ],
         },
-        occupied: false,
+        occupiedSpace: {
+            seats: 0,
+            items: [],
+        },
         occupiedBy: [],
-        restrictions: ["Zerbrechliche Waren"],
-        info: ["Nur werktags", "Sendungsverfolgung via App"],
-        infoCar: ["Kastenwagen, Kameraüberwachung"],
+        restrictions: [],
+        info: ["Nachtruhe erwünscht"],
+        infoCar: ["Limousine"],
         imageURL: "https://example.com/images/offer5.jpg",
     },
     {
         id: "offer-006",
-        title: "Umzugshilfe Wien → Linz",
-        description: "Großer Transporter mit Ladefläche. Ideal für Umzüge oder größere Lieferungen.",
-        price: 180,
-        locationFrom: "Wien",
-        locationTo: "Linz",
-        creator: "user900",
-        createdAt: new Date("2025-06-13T10:45:00Z"),
+        title: "Pick-up Service Berlin – Rostock",
+        description: "Fahre regelmäßig und kann kleine Pakete mitnehmen.",
+        price: 30,
+        locationFrom: "Berlin",
+        locationTo: "Rostock",
+        creator: "user744",
+        createdAt: new Date("2025-06-15T08:30:00Z"),
         isChat: true,
-        chatId: "chat-900",
+        chatId: "chat-744",
         isPhone: true,
         isEmail: true,
-        startDateTime: new Date("2025-06-25T06:00:00Z"),
-        endDateTime: new Date("2025-06-25T12:00:00Z"),
+        startDateTime: new Date("2025-06-27T09:00:00Z"),
+        endDateTime: new Date("2025-06-27T12:00:00Z"),
         canTransport: {
             seats: 1,
             items: [
-                {size: {width: 100, height: 200, depth: 80}, weight: 60},
-                {size: {width: 90, height: 150, depth: 70}, weight: 45},
+                {
+                    size: { width: 100, height: 60, depth: 60 },
+                    weight: 50,
+                },
             ],
         },
-        occupied: false,
+        occupiedSpace: {
+            seats: 0,
+            items: [
+                {
+                    size: { width: 40, height: 30, depth: 30 },
+                    weight: 10,
+                },
+                {
+                    size: { width: 30, height: 30, depth: 20 },
+                    weight: 5,
+                },
+            ],
+        },
         occupiedBy: [],
-        restrictions: [],
-        info: ["Möbelspanner vorhanden", "Fahrer hilft beim Tragen"],
-        infoCar: ["Sprinter 3.5t", "Hecklift"],
+        restrictions: ["Kein Alkohol"],
+        info: ["Sicher und pünktlich"],
+        infoCar: ["Kombi"],
         imageURL: "https://example.com/images/offer6.jpg",
     },
     {
         id: "offer-007",
-        title: "Kurierfahrt München → Salzburg",
-        description: "Expresslieferung für Dokumente oder kleine Pakete.",
-        price: 90,
-        locationFrom: "München",
-        locationTo: "Salzburg",
-        creator: "user999",
-        createdAt: new Date("2025-06-15T17:20:00Z"),
-        isChat: false,
-        chatId: "",
-        isPhone: false,
-        isEmail: true,
-        startDateTime: new Date("2025-06-20T13:00:00Z"),
-        endDateTime: new Date("2025-06-20T15:00:00Z"),
+        title: "Transporter mit Ladefläche",
+        description: "Platz für sperrige Gegenstände, z. B. Fahrräder oder Kühlschränke.",
+        price: 100,
+        locationFrom: "Bremen",
+        locationTo: "Hannover",
+        creator: "user111",
+        createdAt: new Date("2025-06-17T14:10:00Z"),
+        isChat: true,
+        chatId: "chat-111",
+        isPhone: true,
+        isEmail: false,
+        startDateTime: new Date("2025-06-28T10:00:00Z"),
+        endDateTime: new Date("2025-06-28T12:30:00Z"),
         canTransport: {
-            seats: 0,
+            seats: 2,
             items: [
-                {size: {width: 20, height: 10, depth: 5}, weight: 1},
+                {
+                    size: { width: 160, height: 130, depth: 100 },
+                    weight: 300,
+                },
             ],
         },
-        occupied: false,
-        occupiedBy: [],
-        restrictions: ["Gefahrgut"],
-        info: ["Nur für eilige Sendungen", "Keine Rückfahrt geplant"],
-        infoCar: ["PKW", "Sicheres Handschuhfach"],
+        occupiedSpace: {
+            seats: 1,
+            items: [
+                {
+                    size: { width: 100, height: 100, depth: 80 },
+                    weight: 120,
+                },
+            ],
+        },
+        occupiedBy: ["user332"],
+        restrictions: [],
+        info: ["Laderampe vorhanden"],
+        infoCar: ["Offener Transporter"],
         imageURL: "https://example.com/images/offer7.jpg",
     },
     {
         id: "offer-008",
-        title: "Mitnahme für Fahrräder Köln → Bonn",
-        description: "Transportmöglichkeit für 2 Fahrräder am Samstagvormittag.",
-        price: 20,
-        locationFrom: "Köln",
-        locationTo: "Bonn",
-        creator: "userbike",
-        createdAt: new Date("2025-06-16T07:00:00Z"),
-        isChat: true,
-        chatId: "chat-bike",
-        isPhone: true,
-        isEmail: false,
-        startDateTime: new Date("2025-06-21T10:00:00Z"),
-        endDateTime: new Date("2025-06-21T11:00:00Z"),
-        canTransport: {
-            seats: 0,
-            items: [
-                {size: {width: 170, height: 100, depth: 40}, weight: 12},
-                {size: {width: 180, height: 110, depth: 45}, weight: 14},
-            ],
-        },
-        occupied: false,
-        occupiedBy: [],
-        restrictions: [],
-        info: ["Fahrradträger vorhanden", "Bitte vorher sauber machen"],
-        infoCar: ["Van mit Heckträger"],
-        imageURL: "https://example.com/images/offer8.jpg",
-    },
-    {
-        id: "offer-009",
-        title: "Langstreckenfahrt Paris → Berlin",
-        description: "Internationale Fahrt über Nacht, bequemer Reisebus mit WLAN.",
-        price: 250,
-        locationFrom: "Paris",
-        locationTo: "Berlin",
-        creator: "userfrde",
-        createdAt: new Date("2025-06-09T13:30:00Z"),
+        title: "Fahrt zum Flughafen Stuttgart",
+        description: "Reise früh morgens, Gepäck kann mitgenommen werden.",
+        price: 25,
+        locationFrom: "Ulm",
+        locationTo: "Stuttgart",
+        creator: "user007",
+        createdAt: new Date("2025-06-16T06:15:00Z"),
         isChat: false,
         chatId: "",
         isPhone: false,
         isEmail: true,
-        startDateTime: new Date("2025-06-27T20:00:00Z"),
-        endDateTime: new Date("2025-06-28T08:00:00Z"),
+        startDateTime: new Date("2025-06-29T04:30:00Z"),
+        endDateTime: new Date("2025-06-29T06:00:00Z"),
         canTransport: {
-            seats: 10,
-            items: [],
+            seats: 1,
+            items: [
+                {
+                    size: { width: 80, height: 40, depth: 50 },
+                    weight: 25,
+                },
+            ],
         },
-        occupied: false,
+        occupiedSpace: {
+            seats: 0,
+            items: [
+                {
+                    size: { width: 40, height: 30, depth: 30 },
+                    weight: 8,
+                },
+            ],
+        },
         occupiedBy: [],
-        restrictions: ["Haustiere", "laute Musik"],
-        info: ["Snacks & Getränke an Bord", "Pass/ID erforderlich"],
-        infoCar: ["Reisebus mit Liegesitzen"],
+        restrictions: ["Keine großen Hunde"],
+        info: ["Kofferraum frei"],
+        infoCar: ["Kompaktwagen"],
+        imageURL: "https://example.com/images/offer8.jpg",
+    },
+    {
+        id: "offer-009",
+        title: "Wochenendfahrt München → Salzburg",
+        description: "Gemütliche Fahrt mit VW Bus, viel Platz.",
+        price: 60,
+        locationFrom: "München",
+        locationTo: "Salzburg",
+        creator: "user303",
+        createdAt: new Date("2025-06-19T17:45:00Z"),
+        isChat: true,
+        chatId: "chat-303",
+        isPhone: true,
+        isEmail: true,
+        startDateTime: new Date("2025-07-01T10:00:00Z"),
+        endDateTime: new Date("2025-07-01T13:00:00Z"),
+        canTransport: {
+            seats: 4,
+            items: [
+                {
+                    size: { width: 150, height: 110, depth: 90 },
+                    weight: 250,
+                },
+            ],
+        },
+        occupiedSpace: {
+            seats: 2,
+            items: [
+                {
+                    size: { width: 70, height: 60, depth: 50 },
+                    weight: 40,
+                },
+            ],
+        },
+        occupiedBy: ["user789", "user999"],
+        restrictions: [],
+        info: ["Gemütliche Fahrt mit Musik"],
+        infoCar: ["VW Bus"],
         imageURL: "https://example.com/images/offer9.jpg",
     },
     {
         id: "offer-010",
-        title: "Mitfahrgelegenheit Amsterdam → Düsseldorf",
-        description: "Günstig, umweltfreundlich und gesellig – 2 Plätze frei!",
-        price: 35,
-        locationFrom: "Amsterdam",
-        locationTo: "Düsseldorf",
-        creator: "usertravel",
-        createdAt: new Date("2025-06-16T18:00:00Z"),
+        title: "Täglicher Pendelservice Bonn ↔ Köln",
+        description: "Fahre täglich und kann kleine Pakete mitnehmen.",
+        price: 15,
+        locationFrom: "Bonn",
+        locationTo: "Köln",
+        creator: "user002",
+        createdAt: new Date("2025-06-20T09:00:00Z"),
         isChat: true,
-        chatId: "chat-travel",
+        chatId: "chat-002",
         isPhone: true,
-        isEmail: true,
-        startDateTime: new Date("2025-06-23T09:00:00Z"),
-        endDateTime: new Date("2025-06-23T13:00:00Z"),
+        isEmail: false,
+        startDateTime: new Date("2025-07-02T07:00:00Z"),
+        endDateTime: new Date("2025-07-02T08:00:00Z"),
         canTransport: {
-            seats: 2,
-            items: [],
+            seats: 1,
+            items: [
+                {
+                    size: { width: 60, height: 50, depth: 50 },
+                    weight: 30,
+                },
+            ],
         },
-        occupied: false,
+        occupiedSpace: {
+            seats: 0,
+            items: [
+                {
+                    size: { width: 40, height: 30, depth: 20 },
+                    weight: 10,
+                },
+            ],
+        },
         occupiedBy: [],
         restrictions: [],
-        info: ["Stromanschluss im Auto", "Fahrt klimaneutral kompensiert"],
-        infoCar: ["E-Auto (Tesla Model Y)", "Panoramadach"],
+        info: ["Tägliche Fahrten möglich"],
+        infoCar: ["Kleinwagen"],
         imageURL: "https://example.com/images/offer10.jpg",
     },
 ];
+
 
 export async function fetchOffers(): Promise<Offer[]> {
     return new Promise((resolve) => {
@@ -438,4 +560,18 @@ export async function createOffer(offer: OfferMessage): Promise<Offer> {
 }
 
 
+const isSpaceAvailable = (can: Space, occupied: Space, newItem: Item, newSeatCount: number) => {
+    const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+    const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+        newItem.size.width * newItem.size.height * newItem.size.depth;
+
+    const maxItem = can.items[0];
+    const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
+
+    return (
+        totalWeight <= maxItem.weight &&
+        totalVolume <= maxVolume &&
+        occupied.seats + newSeatCount <= can.seats
+    );
+};
 

@@ -1,15 +1,27 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { getOffer, type Offer } from "@/pages/drives/drivesService.tsx";
+import {getOffer, type Item, type Offer} from "@/pages/drives/drivesService.tsx";
 import { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog.tsx";
+import { Button } from "@/components/ui/button";
+import {DialogDescription} from "@radix-ui/react-dialog";
 
 function DrivesDetailPage() {
   const ws = useRef<WebSocket | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const userId = "user789";
 
   const [isDriver, setIsDriver] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [joinsWithPassenger, setJoinsWithPassenger] = useState(false);
+  const [itemWidth, setItemWidth] = useState("");
+  const [itemHeight, setItemHeight] = useState("");
+  const [itemDepth, setItemDepth] = useState("");
+  const [itemWeight, setItemWeight] = useState("");
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     // change if the token is not saved in the localStorage
     ws.current = new WebSocket(
       `/api/tracking?token=${localStorage.getItem("token")}`,
@@ -68,21 +80,44 @@ function DrivesDetailPage() {
   useEffect(() => {
     if (id) {
       getOffer(id).then(setOffer);
-    }
-  }, [id]);
-  const joinOffer = () => {
-    if (offer != undefined) {
-      if (!offer.occupiedBy.includes("user789")) {
-        // TODO: replace with the drivers id and maybe the offer.creator with something like offer.driver
-        if (offer.creator == "user789") {
-          setIsDriver(true);
-        }
-        offer.canTransport.seats = offer.canTransport.seats - 1;
-        offer.occupiedBy.push("user789");
+      if(offer?.creator == userId){
+        setIsDriver(true);
       }
     }
+  }, [id, offer?.creator]);
+  const joinOffer = () => {
+    if (!offer || offer.occupiedBy.includes(userId)) return;
+
+
+
+    if (joinsWithPassenger && offer.canTransport.seats > 0) {
+      offer.canTransport.seats -= 1;
+    }
+
+    // Füge Item hinzu
+    const newItem: Item = {
+      weight: parseFloat(itemWeight),
+      size: {
+        width: parseFloat(itemWidth),
+        height: parseFloat(itemHeight),
+        depth: parseFloat(itemDepth),
+      },
+    };
+
+    offer.occupiedBy.push(newItem);
+
+    // Füge Benutzer zur Teilnehmerliste hinzu
+    offer.occupiedBy.push(userId);
+
+    // Force re-render
+    setOffer({ ...offer });
   };
+
+
   const isLoggedIn = true;
+  const hasJoined = offer?.occupiedBy.includes(userId);
+  const noSeatsLeft = offer? offer?.canTransport.seats <= 0:undefined;
+
 
   const goToChat = () => {
     // navigate(`/chat/${offer.chatId}`);
@@ -137,16 +172,77 @@ function DrivesDetailPage() {
             </button>
           )}
           <button
-            onClick={joinOffer}
-            disabled={!isLoggedIn && offer.canTransport.seats <= 0}
-            className={`px-4 py-2 rounded shadow transition ${
-              isLoggedIn && offer.canTransport.seats > 0
-                ? "bg-green-500 text-white hover:bg-green-600"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+              onClick={() => setShowJoinDialog(true)}
+              disabled={!isLoggedIn || hasJoined || noSeatsLeft}
+              className={`px-4 py-2 rounded shadow transition ${
+                  !isLoggedIn || hasJoined || noSeatsLeft
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-green-500 text-white hover:bg-green-600"
+              }`}
           >
-            Teilnehmen
+            {hasJoined ? "Bereits teilgenommen" : "Teilnehmen"}
           </button>
+          {showJoinDialog && (
+              <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Teilnahme bestätigen</DialogTitle>
+                    <DialogDescription>
+                      Gib bitte an, ob du selbst mitfährst und ob du Gepäck mitnimmst.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="grid gap-4 py-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                          type="checkbox"
+                          checked={joinsWithPassenger}
+                          onChange={(e) => setJoinsWithPassenger(e.target.checked)}
+                      />
+                      Ich fahre selbst mit
+                    </label>
+
+                    <Input
+                        placeholder="Breite in m"
+                        type="number"
+                        value={itemWidth}
+                        onChange={(e) => setItemWidth(e.target.value)}
+                    />
+                    <Input
+                        placeholder="Höhe in m"
+                        type="number"
+                        value={itemHeight}
+                        onChange={(e) => setItemHeight(e.target.value)}
+                    />
+                    <Input
+                        placeholder="Tiefe in m"
+                        type="number"
+                        value={itemDepth}
+                        onChange={(e) => setItemDepth(e.target.value)}
+                    />
+                    <Input
+                        placeholder="Gewicht in kg"
+                        type="number"
+                        value={itemWeight}
+                        onChange={(e) => setItemWeight(e.target.value)}
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                        onClick={() => {
+                          joinOffer();
+                          setShowJoinDialog(false);
+                        }}
+                    >
+                      Teilnehmen
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+          )}
+
+
 
           <button
             onClick={goToChat}
