@@ -30,14 +30,16 @@ import {
 import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
-    createOffer,
+    createOffer, createSearch,
     fetchOffers,
     fetchOffersWithFilter,
     type Filter,
     getMaxPrice,
-    type Offer, type OfferMessage, type Space
+    type Offer, type OfferDialogFields, type SearchDialogFields, type Space
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
+
+
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
@@ -63,9 +65,7 @@ function Drives() {
     const [storageWeight, setStorageWeight] = useState<number | null>(null);
     const [storageHeight, setStorageHeight] = useState<number | null>(null);
 
-
     const numericPrice = parseFloat(price);
-
 
     const seats: Space = {
         seats: parseInt(canTransport),
@@ -82,7 +82,7 @@ function Drives() {
     };
 
     const createNewOffer = () => {
-        const offerData: OfferMessage = {
+        const offerData: OfferDialogFields = {
             title: title,
             description: description,
             price: numericPrice,
@@ -101,6 +101,25 @@ function Drives() {
         };
 
         createOffer(offerData).then();
+    };
+
+    const createNewSearch = () => {
+        const offerData: SearchDialogFields = {
+            title: title,
+            description: description,
+            price: numericPrice,
+            locationFrom: fromLocation,
+            locationTo: toLocation,
+            canTransport: seats,
+            occupiedSpace: seats,
+            occupiedBy: [],
+            restrictions: restrictions.split(";"),
+            info: info.split(";"),
+            infoCar: infoCar.split(";"),
+            car: car
+        };
+
+        createSearch(offerData).then();
     };
 
 
@@ -411,7 +430,7 @@ function Drives() {
                                         onChange={(e) => setStorageHeight(e.target.value === "" ? null : parseFloat(e.target.value))}
                                     />
                                     <Input
-                                        placeholder="Gewicht"
+                                        placeholder="Gewicht in kg"
                                         type="number"
                                         value={storageWeight ?? ""}
                                         onChange={(e) => setStorageWeight(e.target.value === "" ? null : parseFloat(e.target.value))}
@@ -480,9 +499,9 @@ function Drives() {
 
                     <DialogContent className="sm:max-w-[800px] sm:max-h-[1000px] scroll">
                         <DialogHeader>
-                            <DialogTitle>Neue Fahrt erstellen</DialogTitle>
+                            <DialogTitle>Neues Gesuch erstellen</DialogTitle>
                             <DialogDescription>
-                                Fülle die Informationen aus, um eine neue Fahrt anzulegen.
+                                Fülle die Informationen aus, um eine neue Suche anzulegen.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -507,35 +526,21 @@ function Drives() {
                                         onChange={(e) => setToLocation(e.target.value)}
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Input
-                                        placeholder="StartDatum"
-                                        type="date"
-                                        value={startDate ? startDate.toISOString().split("T")[0] : ""}
-                                        onChange={(e) => setStartDate(new Date(e.target.value))}
-                                    />
-                                    <Input
-                                        placeholder="EndDatum"
-                                        type="date"
-                                        value={endDate ? endDate.toISOString().split("T")[0] : ""}
-                                        onChange={(e) => setEndDate(new Date(e.target.value))}
-                                    />
-                                </div>
                                 <Input
-                                    placeholder="Sitzplätze"
+                                    placeholder="Mitfahrer (mindestens 1)"
                                     type="number"
                                     value={canTransport}
                                     onChange={(e) => setCanTransport(e.target.value)}
                                 />
                                 <Input
-                                    placeholder="Preis pro Person in €"
+                                    placeholder="Wunschpreis pro Person in €"
                                     type="number"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
                                 />
                             </div>
                             <div className="col-span-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Gepäck
                                     (in Meter)</label>
                                 <div className="grid grid-cols-2 gap-4">
 
@@ -552,7 +557,7 @@ function Drives() {
                                         onChange={(e) => setStorageHeight(parseInt(e.target.value))}
                                     />
                                     <Input
-                                        placeholder="Gewicht"
+                                        placeholder="Gewicht in kg"
                                         type="number"
                                         value={storageWeight ?? ""}
                                         onChange={(e) => setStorageWeight(parseInt(e.target.value))}
@@ -580,30 +585,13 @@ function Drives() {
                                 value={restrictions}
                                 onChange={(e) => setRestrictions(e.target.value)}
                             />
-                            <Textarea
-                                placeholder="Infos über Fahrzeug/Anhänger(Einzelne Infos mit ; trennen)"
-                                value={infoCar}
-                                onChange={(e) => setInfoCar(e.target.value)}
-                            />
-                            <Select
-                                onValueChange={(value) => setCar(value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Fahrzeug auswählen"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {["Audi", " Mazda", " Mercedes Benz"].map((count) => (
-                                        <SelectItem key={count} value={count.toString()}>
-                                            {count}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+
+
                         </div>
 
 
                         <DialogFooter>
-                            <Button onClick={createNewOffer} className="cursor-pointer" type="submit">Erstellen</Button>
+                            <Button onClick={createNewSearch} className="cursor-pointer" type="submit">Erstellen</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

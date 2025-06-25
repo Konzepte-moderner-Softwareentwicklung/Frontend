@@ -23,8 +23,19 @@ export interface Offer {
     imageURL: string;
     isOffer?: boolean;
 }
+export interface SearchDialogFields {
+    title: string;
+    description: string;
+    locationFrom: string;
+    locationTo: string;
+    passengers: number;
+    price: number;
+    package:Item;
+    infos: string;
+    restrictions: string[];
+}
 
-export interface OfferMessage {
+export interface OfferDialogFields {
     title: string;
     description: string;
     price: number;
@@ -565,7 +576,7 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
     });
 }
 
-export async function createOffer(offer: OfferMessage): Promise<Offer> {
+export async function createOffer(offer: OfferDialogFields): Promise<Offer> {
     return new Promise((resolve) => {
         setTimeout(() => {
             const newOffer = offer as unknown as Offer;
@@ -577,10 +588,41 @@ export async function createOffer(offer: OfferMessage): Promise<Offer> {
     });
 }
 
-export async function createSearch(offer:Offer){
-return new Promise((resolve) => {
+export async function createSearch(fields:SearchDialogFields){
+    function convertSearchFieldsToOffer(fields: SearchDialogFields):Offer {
+        const offer: Offer = {
+            canTransport: { items:[],
+                seats:0},
+            car: "",
+            chatId: "",
+            createdAt: new Date(),
+            description: fields.description,
+            driver: "",
+            startDateTime: new Date(),
+            endDateTime:  new Date(),
+            id: "",
+            imageURL: "",
+            info: fields.infos.split(";"),
+            infoCar: [],
+            isChat: false,
+            isEmail: false,
+            isOffer: false,
+            isPhone: false,
+            locationFrom: fields.locationFrom,
+            locationTo: fields.locationTo,
+            occupiedBy: [],
+            occupiedSpace: { items:[fields.package],
+                seats:fields.passengers},
+            price: 0,
+            restrictions: [],
+            title: fields.title
+        };
+        return offer ;
+    }
+
+    return new Promise((resolve) => {
     setTimeout(() => {
-            const newOffer = offer as unknown as Offer;
+            const newOffer =convertSearchFieldsToOffer(fields);
             newOffer.occupiedBy.push("user1234");//TODO: user mit eingeloggten Benutzer ersetzen
             newOffer.isOffer = false;
             mockOffers.push(newOffer);
