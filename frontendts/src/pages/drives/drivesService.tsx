@@ -14,11 +14,12 @@ export interface Offer {
     startDateTime: Date;
     endDateTime: Date;
     canTransport: Space;
-    occupiedSpace: Space; // ⬅️ aktualisiert
+    occupiedSpace: Space;
     occupiedBy: string[];
     restrictions: string[];
     info: string[];
     infoCar: string[];
+    car: string;
     imageURL: string;
     isOffer?: boolean;
 }
@@ -29,15 +30,16 @@ export interface OfferMessage {
     price: number;
     locationFrom: string;
     locationTo: string;
-    creator: string;
+    driver: string;
     startDateTime: Date;
     endDateTime: Date;
     canTransport: Space;
-    occupiedSpace: Space; // ⬅️ aktualisiert
+    occupiedSpace: Space;
     occupiedBy: string[];
     restrictions: string[];
     info: string[];
     infoCar: string[];
+    car: string;
 }
 
 
@@ -50,6 +52,8 @@ export interface Filter {
     user?: string;
     creator?: string;
     maxPrice?: number;
+    type?: 'angebote' | 'gesuche' | 'beides';
+    onlyOwn?: boolean;
 }
 
 export interface Space {
@@ -111,6 +115,7 @@ export const mockOffers: Offer[] = [
         info: ["Fahrt findet bei jedem Wetter statt"],
         infoCar: ["Transporter mit Rampe"],
         imageURL: "https://example.com/images/offer1.jpg",
+        car:"Mazda"
     },
     {
         id: "offer-002",
@@ -150,6 +155,7 @@ export const mockOffers: Offer[] = [
         info: ["Bitte pünktlich sein"],
         infoCar: ["SUV"],
         imageURL: "https://example.com/images/offer2.jpg",
+        car:"Mercedes Benz"
     },
     {
         id: "offer-003",
@@ -189,6 +195,7 @@ export const mockOffers: Offer[] = [
         info: ["Transportversicherung inklusive"],
         infoCar: ["Kleiner Van"],
         imageURL: "https://example.com/images/offer3.jpg",
+        car:"Mazda"
     },
     {
         id: "offer-004",
@@ -232,6 +239,7 @@ export const mockOffers: Offer[] = [
         info: ["Tragehilfe vorhanden"],
         infoCar: ["Großer Sprinter"],
         imageURL: "https://example.com/images/offer4.jpg",
+        car:"Audi"
     },
     {
         id: "offer-005",
@@ -266,6 +274,7 @@ export const mockOffers: Offer[] = [
         info: ["Nachtruhe erwünscht"],
         infoCar: ["Limousine"],
         imageURL: "https://example.com/images/offer5.jpg",
+        car:"Audi"
     },
     {
         id: "offer-006",
@@ -309,6 +318,7 @@ export const mockOffers: Offer[] = [
         info: ["Sicher und pünktlich"],
         infoCar: ["Kombi"],
         imageURL: "https://example.com/images/offer6.jpg",
+        car:"Audi"
     },
     {
         id: "offer-007",
@@ -348,6 +358,7 @@ export const mockOffers: Offer[] = [
         info: ["Laderampe vorhanden"],
         infoCar: ["Offener Transporter"],
         imageURL: "https://example.com/images/offer7.jpg",
+        car:"Audi"
     },
     {
         id: "offer-008",
@@ -387,6 +398,7 @@ export const mockOffers: Offer[] = [
         info: ["Kofferraum frei"],
         infoCar: ["Kompaktwagen"],
         imageURL: "https://example.com/images/offer8.jpg",
+        car:"Audi"
     },
     {
         id: "offer-009",
@@ -426,6 +438,7 @@ export const mockOffers: Offer[] = [
         info: ["Gemütliche Fahrt mit Musik"],
         infoCar: ["VW Bus"],
         imageURL: "https://example.com/images/offer9.jpg",
+        car:"Audi"
     },
     {
         id: "offer-010",
@@ -465,6 +478,7 @@ export const mockOffers: Offer[] = [
         info: ["Tägliche Fahrten möglich"],
         infoCar: ["Kleinwagen"],
         imageURL: "https://example.com/images/offer10.jpg",
+        car:"Audi"
     },
 ];
 
@@ -506,7 +520,7 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filter: Filter, userId:String): Promise<Offer[]> {
+export async function fetchOffersWithFilter(filter: Filter,  userId:string): Promise<Offer[]> {
     return new Promise((resolve) => {
         setTimeout(() => {
             const filteredOffers = mockOffers.filter((offer) => {
@@ -554,16 +568,29 @@ export async function fetchOffersWithFilter(filter: Filter, userId:String): Prom
 export async function createOffer(offer: OfferMessage): Promise<Offer> {
     return new Promise((resolve) => {
         setTimeout(() => {
-            const newOffer = offer as Offer;
-            newOffer.id = "user1234";//TODO: user mit eingeloggten Benutzer ersetzen
+            const newOffer = offer as unknown as Offer;
+            newOffer.driver ="user1234";//TODO: user mit eingeloggten Benutzer ersetzen
+            newOffer.isOffer = true;
             mockOffers.push(newOffer);
             resolve(newOffer);
         }, 500);
     });
 }
 
+export async function createSearch(offer:Offer){
+return new Promise((resolve) => {
+    setTimeout(() => {
+            const newOffer = offer as unknown as Offer;
+            newOffer.occupiedBy.push("user1234");//TODO: user mit eingeloggten Benutzer ersetzen
+            newOffer.isOffer = false;
+            mockOffers.push(newOffer);
+            resolve(newOffer);
+    })
+})
+}
 
-const isSpaceAvailable = (can: Space, occupied: Space, newItem: Item, newSeatCount: number) => {
+
+export function isSpaceAvailable (can: Space, occupied: Space, newItem: Item):boolean  {
     const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
     const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
         newItem.size.width * newItem.size.height * newItem.size.depth;
@@ -573,8 +600,7 @@ const isSpaceAvailable = (can: Space, occupied: Space, newItem: Item, newSeatCou
 
     return (
         totalWeight <= maxItem.weight &&
-        totalVolume <= maxVolume &&
-        occupied.seats + newSeatCount <= can.seats
+        totalVolume <= maxVolume
     );
-};
+}
 

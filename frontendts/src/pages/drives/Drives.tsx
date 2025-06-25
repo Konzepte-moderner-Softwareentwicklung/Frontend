@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent } from "../../components/ui/card.tsx";
-import { useNavigate } from 'react-router-dom';
+import {useEffect, useState} from "react";
+import {Button} from "@/components/ui/button.tsx";
+import {Card, CardContent} from "../../components/ui/card.tsx";
+import {useNavigate} from 'react-router-dom';
 import {
     Pagination,
     PaginationItem,
@@ -27,8 +27,8 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 
-import { Input } from "../../components/ui/input.tsx";
-import { Slider } from "@/components/ui/slider.tsx";
+import {Input} from "../../components/ui/input.tsx";
+import {Slider} from "@/components/ui/slider.tsx";
 import {
     createOffer,
     fetchOffers,
@@ -37,6 +37,7 @@ import {
     getMaxPrice,
     type Offer, type OfferMessage, type Space
 } from "@/pages/drives/drivesService.tsx";
+import {Textarea} from "@/components/ui/textarea.tsx";
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
@@ -45,20 +46,41 @@ function Drives() {
     const [filter, setFilter] = useState<Filter | undefined>(undefined);
     const maxOfferPrice = getMaxPrice();
     const [maxPrice, setMaxPrice] = useState([100]);
-    const [title,setTitle] = useState("");
-    const [description,setDescription] = useState("");
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [car, setCar] = useState("");
+    const [info, setInfo] = useState("");
+    const [infoCar, setInfoCar] = useState("");
     const [fromLocation, setFromLocation] = useState("");
     const [startDate, setStartDate] = useState(new Date());
-    const [canTransport, setCanTransport] = useState( "");
+    const [canTransport, setCanTransport] = useState("");
     const [endDate, setEndDate] = useState(new Date());
     const [toLocation, setToLocation] = useState("");
     const [price, setPrice] = useState("");
-    const [storageWidth, setStorageWidth] = useState("");
-    const [storageHeight, setStorageHeight] = useState("");
+    const [restrictions, setRestrictions] = useState("");
+    const [storageWidth, setStorageWidth] = useState<number | null>(null);
+    const [storageDepth, setStorageDepth] = useState<number | null>(null);
+    const [storageWeight, setStorageWeight] = useState<number | null>(null);
+    const [storageHeight, setStorageHeight] = useState<number | null>(null);
 
 
     const numericPrice = parseFloat(price);
-    const seats = {seats:parseInt(canTransport),items:[]} as Space ;
+
+
+    const seats: Space = {
+        seats: parseInt(canTransport),
+        items: [
+            {
+                weight: storageWeight ?? 0,
+                size: {
+                    width: storageWidth ?? 0,
+                    height: storageHeight ?? 0,
+                    depth: storageDepth ?? 0
+                }
+            }
+        ]
+    };
+
     const createNewOffer = () => {
         const offerData: OfferMessage = {
             title: title,
@@ -66,20 +88,20 @@ function Drives() {
             price: numericPrice,
             locationFrom: fromLocation,
             locationTo: toLocation,
-            creator: "user",
+            driver: "user1234", //TODO:Mit Eingeloggten User erstetzen
             startDateTime: startDate,
             endDateTime: endDate,
             canTransport: seats,
-            occupied: false,
+            occupiedSpace: seats,
             occupiedBy: [],
-            restrictions: [],
-            info: [],
-            infoCar: []
+            restrictions: restrictions.split(";"),
+            info: info.split(";"),
+            infoCar: infoCar.split(";"),
+            car: car
         };
 
         createOffer(offerData).then();
     };
-
 
 
     const totalPages = Math.ceil(offers.length / entriesPerPage);
@@ -94,7 +116,7 @@ function Drives() {
         async function loadOffers() {
             try {
                 const data = filter
-                    ? await fetchOffersWithFilter(filter)
+                    ? await fetchOffersWithFilter(filter, "user789")//TODO:eingeloggten Benutzer usen
                     : await fetchOffers();
                 setOffers(data);
 
@@ -108,6 +130,7 @@ function Drives() {
     }, [filter]);
 
     const isLoggedIn = true;
+
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
 
@@ -117,22 +140,55 @@ function Drives() {
                         <label className="block text-sm mb-1">Von</label>
                         <Input
                             placeholder="Ort"
-                            onChange={(e) => setFilter((prev) => ({ ...prev, locationFrom: e.target.value }))}
+                            onChange={(e) => setFilter((prev) => ({...prev, locationFrom: e.target.value}))}
                         />
                     </div>
                     <div>
                         <label className="block text-sm mb-1">Bis</label>
                         <Input
                             placeholder="Ort"
-                            onChange={(e) => setFilter((prev) => ({ ...prev, locationTo: e.target.value }))}
+                            onChange={(e) => setFilter((prev) => ({...prev, locationTo: e.target.value}))}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm mb-1">Datum</label>
+                        <label className="flex text-sm mb-1">Datum</label>
                         <Input
                             type="date"
-                            onChange={(e) => setFilter((prev) => ({ ...prev, date: e.target.value }))}
+                            onChange={(e) => setFilter((prev) => ({...prev, date: e.target.value}))}
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm mb-1">Anzeigen</label>
+                        <select
+                            className="border rounded px-3 py-2 w-full"
+                            value={filter?.type || "beides"}
+                            onChange={(e) =>
+                                setFilter((prev) => ({
+                                    ...prev,
+                                    type: e.target.value as "angebote" | "gesuche" | "beides",
+                                }))
+                            }
+                        >
+                            <option value="beides">Angebote und Gesuche</option>
+                            <option value="angebote">Nur Angebote</option>
+                            <option value="gesuche">Nur Gesuche</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2 mt-6 md:mt-0">
+                        <input
+                            type="checkbox"
+                            id="ownTrips"
+                            className="w-4 h-4"
+                            onChange={(e) =>
+                                setFilter((prev) => ({
+                                    ...prev,
+                                    onlyOwn: e.target.checked,
+                                }))
+                            }
+                        />
+                        <label htmlFor="ownTrips" className="text-sm">
+                            Eigene Fahrten anzeigen
+                        </label>
                     </div>
                 </div>
 
@@ -171,13 +227,14 @@ function Drives() {
                             }))}
                         />
                     </div>
+
                     <div>
                         <label className="block text-sm mb-1">Preis :{maxPrice[0]}</label>
                         <Slider
                             defaultValue={[100]}
                             max={maxOfferPrice}
                             step={1}
-                            onValueChange={(value) =>{
+                            onValueChange={(value) => {
                                 setMaxPrice(value)
                                 setFilter((prev) => ({
                                     ...prev,
@@ -188,37 +245,52 @@ function Drives() {
                         />
                     </div>
                 </div>
-            </section>
 
+
+            </section>
 
 
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 {offers.length === 0 ? (
-                    <p className="col-span-full text-center text-gray-600">Keine Angebote gefunden.</p>
+                    <p className="col-span-full text-center text-gray-600">
+                        Keine Angebote und Gesuche vorhanden.
+                    </p>
                 ) : (
-                    paginatedOffers.map((offer) => (
-                        <Card key={offer.id} className="rounded-2xl shadow"  onClick={()=>navigate(`/drives/${offer.id}`)}>
-                            <CardContent className="p-4">
-                                <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
-                                    {offer.imageURL && (
-                                        <img
-                                            src={offer.imageURL}
-                                            alt="Angebot"
-                                            className="h-full w-full object-cover rounded"
-                                        />
+                    paginatedOffers.map((offer: Offer) => {
+                        const isOffer = offer.isOffer;
+                        return (
+                            <Card
+                                key={offer.id}
+                                className={`rounded-2xl shadow cursor-pointer transition hover:shadow-lg
+                        ${isOffer ? "bg-pink-100" : "border-2 border-green-400"}`}
+                                onClick={() => navigate(`/drives/${offer.id}`)}
+                            >
+                                <CardContent className="p-4">
+                                    {isOffer && (
+                                        <h3 className="text-pink-700 font-semibold mb-2">Suche Fahrt:</h3>
                                     )}
-                                </div>
+                                    {!isOffer && (
+                                        <h3 className="text-green-700 font-semibold mb-2">Biete an:</h3>
+                                    )}
 
-                                <p className="font-medium">
-                                    {offer.locationFrom} → {offer.locationTo}
-                                </p>
+                                    <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
+                                        {offer.imageURL && (
+                                            <img
+                                                src={offer.imageURL}
+                                                alt="Angebot"
+                                                className="h-full w-full object-cover rounded"
+                                            />
+                                        )}
+                                    </div>
 
-                                <p className="font-bold">{offer.price} Euro</p>
-
-                            </CardContent>
-                        </Card>
-
-                    ))
+                                    <p className="font-medium">
+                                        {offer.locationFrom} → {offer.locationTo}
+                                    </p>
+                                    <p className="font-bold">{offer.price} Euro</p>
+                                </CardContent>
+                            </Card>
+                        );
+                    })
                 )}
             </section>
 
@@ -258,12 +330,13 @@ function Drives() {
 
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button disabled={!isLoggedIn} className="bg-green-600 cursor-pointer hover:bg-green-700 text-white  disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
+                        <Button disabled={!isLoggedIn}
+                                className="bg-green-600 cursor-pointer hover:bg-green-700 text-white  disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                             Fahrt erstellen
                         </Button>
                     </DialogTrigger>
 
-                    <DialogContent className="sm:max-w-[500px]">
+                    <DialogContent className="sm:max-w-[800px] sm:max-h-[1000px] scroll">
                         <DialogHeader>
                             <DialogTitle>Neue Fahrt erstellen</DialogTitle>
                             <DialogDescription>
@@ -273,77 +346,264 @@ function Drives() {
 
 
                         <div className="grid gap-4 py-4">
-                            <Input
-                                placeholder="Title"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
-                            <Input
-                                placeholder="Von Ort"
-                                value={fromLocation}
-                                onChange={(e) => setFromLocation(e.target.value)}
-                            />
-                            <Input
-                                placeholder="Nach Ort"
-                                value={toLocation}
-                                onChange={(e) => setToLocation(e.target.value)}
-                            />
-                            <Input
-                                placeholder="StartDatum"
-                                type="date"
-                                value={startDate ? startDate.toISOString().split("T")[0] : ""}
-                                onChange={(e) => setStartDate(new Date(e.target.value))}
-                            />
-                            <Input
-                                placeholder="EndDatum"
-                                type="date"
-                                value={endDate ? endDate.toISOString().split("T")[0] : ""}
-                                onChange={(e) => setEndDate(new Date(e.target.value))}
-                            />
-                            <Input
-                                placeholder="Anzahl Passagiere"
-                                type="number"
-                                value={canTransport}
-                                onChange={(e) => setCanTransport(e.target.value)}
-                            />
-                            <Input
-                                placeholder="Preis in €"
-                                type="number"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                            />
-
-                            {/* 📦 Neuer Abschnitt für Lagerraum */}
                             <div className="col-span-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum (in Meter)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Allgemein</label>
+                                <Input
+                                    placeholder="Titel"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                />
                                 <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        placeholder="Von Ort"
+                                        value={fromLocation}
+                                        onChange={(e) => setFromLocation(e.target.value)}
+                                    />
+                                    <Input
+                                        placeholder="Nach Ort"
+                                        value={toLocation}
+                                        onChange={(e) => setToLocation(e.target.value)}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        placeholder="StartDatum"
+                                        type="date"
+                                        value={startDate ? startDate.toISOString().split("T")[0] : ""}
+                                        onChange={(e) => setStartDate(new Date(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="EndDatum"
+                                        type="date"
+                                        value={endDate ? endDate.toISOString().split("T")[0] : ""}
+                                        onChange={(e) => setEndDate(new Date(e.target.value))}
+                                    />
+
+                                </div>
+                                <Input
+                                    placeholder="Sitzplätze"
+                                    type="number"
+                                    value={canTransport}
+                                    onChange={(e) => setCanTransport(e.target.value)}
+                                />
+                                <Input
+                                    placeholder="Preis pro Person in €"
+                                    type="number"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                />
+                            </div>
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug
+                                    (in Meter)</label>
+                                <div className="grid grid-cols-2 gap-4">
+
                                     <Input
                                         placeholder="Breite"
                                         type="number"
-                                        value={storageWidth}
-                                        onChange={(e) => setStorageWidth(e.target.value)}
+                                        value={storageWidth ?? ""}
+                                        onChange={(e) => setStorageWidth(e.target.value === "" ? null : parseFloat(e.target.value))}
                                     />
                                     <Input
                                         placeholder="Höhe"
                                         type="number"
-                                        value={storageHeight}
-                                        onChange={(e) => setStorageHeight(e.target.value)}
+                                        value={storageHeight ?? ""}
+                                        onChange={(e) => setStorageHeight(e.target.value === "" ? null : parseFloat(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="Gewicht"
+                                        type="number"
+                                        value={storageWeight ?? ""}
+                                        onChange={(e) => setStorageWeight(e.target.value === "" ? null : parseFloat(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="Tiefe"
+                                        type="number"
+                                        value={storageDepth ?? ""}
+                                        onChange={(e) => setStorageDepth(e.target.value === "" ? null : parseFloat(e.target.value))}
                                     />
                                 </div>
                             </div>
-
-                            <Input
+                            <Textarea
                                 placeholder="Beschreibung"
-                                type="text"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />
+                            <Textarea
+                                placeholder="Infos/Hinweise(Einzelne Hinweise mit ; trennen)"
+                                value={info}
+                                onChange={(e) => setInfo(e.target.value)}
+                            />
+                            <Textarea
+                                placeholder="Einschränkungen(Einzelne Einschränkungen mit ; trennen)"
+                                value={restrictions}
+                                onChange={(e) => setRestrictions(e.target.value)}
+                            />
+                            <Textarea
+                                placeholder="Infos über Fahrzeug/Anhänger(Einzelne Infos mit ; trennen)"
+                                value={infoCar}
+                                onChange={(e) => setInfoCar(e.target.value)}
+                            />
+                            <Select
+                                onValueChange={(value) => setCar(value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Fahrzeug auswählen"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {["Audi", " Mazda", " Mercedes Benz"].map((count) => (
+                                        <SelectItem key={count} value={count.toString()}>
+                                            {count}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
 
+                        <DialogFooter>
+                            <Button onClick={createNewOffer} className="cursor-pointer" type="submit">Erstellen</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button
+                            disabled={!isLoggedIn}
+                            className="ml-2 bg-blue-600 cursor-pointer hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        >
+                            Gesuch erstellen
+                        </Button>
+                    </DialogTrigger>
+
+
+                    <DialogContent className="sm:max-w-[800px] sm:max-h-[1000px] scroll">
+                        <DialogHeader>
+                            <DialogTitle>Neue Fahrt erstellen</DialogTitle>
+                            <DialogDescription>
+                                Fülle die Informationen aus, um eine neue Fahrt anzulegen.
+                            </DialogDescription>
+                        </DialogHeader>
+
+
+                        <div className="grid gap-4 py-4">
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Allgemein</label>
+                                <Input
+                                    placeholder="Titel"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        placeholder="Von Ort"
+                                        value={fromLocation}
+                                        onChange={(e) => setFromLocation(e.target.value)}
+                                    />
+                                    <Input
+                                        placeholder="Nach Ort"
+                                        value={toLocation}
+                                        onChange={(e) => setToLocation(e.target.value)}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        placeholder="StartDatum"
+                                        type="date"
+                                        value={startDate ? startDate.toISOString().split("T")[0] : ""}
+                                        onChange={(e) => setStartDate(new Date(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="EndDatum"
+                                        type="date"
+                                        value={endDate ? endDate.toISOString().split("T")[0] : ""}
+                                        onChange={(e) => setEndDate(new Date(e.target.value))}
+                                    />
+                                </div>
+                                <Input
+                                    placeholder="Sitzplätze"
+                                    type="number"
+                                    value={canTransport}
+                                    onChange={(e) => setCanTransport(e.target.value)}
+                                />
+                                <Input
+                                    placeholder="Preis pro Person in €"
+                                    type="number"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                />
+                            </div>
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug
+                                    (in Meter)</label>
+                                <div className="grid grid-cols-2 gap-4">
+
+                                    <Input
+                                        placeholder="Breite"
+                                        type="number"
+                                        value={storageWidth ?? ""}
+                                        onChange={(e) => setStorageWidth(parseInt(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="Höhe"
+                                        type="number"
+                                        value={storageHeight ?? ""}
+                                        onChange={(e) => setStorageHeight(parseInt(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="Gewicht"
+                                        type="number"
+                                        value={storageWeight ?? ""}
+                                        onChange={(e) => setStorageWeight(parseInt(e.target.value))}
+                                    />
+                                    <Input
+                                        placeholder="Tiefe"
+                                        type="number"
+                                        value={storageDepth ?? ""}
+                                        onChange={(e) => setStorageDepth(parseInt(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+                            <Textarea
+                                placeholder="Beschreibung"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                            />
+                            <Textarea
+                                placeholder="Infos/Hinweise(Einzelne Hinweise mit ; trennen)"
+                                value={info}
+                                onChange={(e) => setInfo(e.target.value)}
+                            />
+                            <Textarea
+                                placeholder="Einschränkungen(Einzelne Einschränkungen mit ; trennen)"
+                                value={restrictions}
+                                onChange={(e) => setRestrictions(e.target.value)}
+                            />
+                            <Textarea
+                                placeholder="Infos über Fahrzeug/Anhänger(Einzelne Infos mit ; trennen)"
+                                value={infoCar}
+                                onChange={(e) => setInfoCar(e.target.value)}
+                            />
+                            <Select
+                                onValueChange={(value) => setCar(value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Fahrzeug auswählen"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {["Audi", " Mazda", " Mercedes Benz"].map((count) => (
+                                        <SelectItem key={count} value={count.toString()}>
+                                            {count}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
 
                         <DialogFooter>
-                            <Button  onClick={createNewOffer} className="cursor-pointer" type="submit">Erstellen</Button>
+                            <Button onClick={createNewOffer} className="cursor-pointer" type="submit">Erstellen</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -358,7 +618,7 @@ function Drives() {
                         onValueChange={(value) => setEntriesPerPage(Number(value))}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder="Einträge wählen" />
+                            <SelectValue placeholder="Einträge wählen"/>
                         </SelectTrigger>
                         <SelectContent>
                             {[5, 10, 15, 20].map((count) => (
@@ -374,7 +634,6 @@ function Drives() {
 
     );
 }
-
 
 
 export default Drives;
