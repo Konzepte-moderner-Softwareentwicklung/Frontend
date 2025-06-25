@@ -5,7 +5,7 @@ export interface Offer {
     price: number;
     locationFrom: string;
     locationTo: string;
-    creator: string;
+    driver: string;
     createdAt: Date;
     isChat: boolean;
     chatId: string;
@@ -76,7 +76,7 @@ export const mockOffers: Offer[] = [
         price: 120,
         locationFrom: "München",
         locationTo: "Berlin",
-        creator: "user789",
+        driver: "user789",
         createdAt: new Date("2025-06-10T10:00:00Z"),
         isChat: true,
         chatId: "chat-001",
@@ -119,7 +119,7 @@ export const mockOffers: Offer[] = [
         price: 50,
         locationFrom: "Köln",
         locationTo: "Hamburg",
-        creator: "user456",
+        driver: "user456",
         createdAt: new Date("2025-06-12T09:30:00Z"),
         isChat: false,
         chatId: "",
@@ -158,7 +158,7 @@ export const mockOffers: Offer[] = [
         price: 70,
         locationFrom: "Stuttgart",
         locationTo: "Nürnberg",
-        creator: "user238",
+        driver: "user238",
         createdAt: new Date("2025-06-14T12:00:00Z"),
         isChat: true,
         chatId: "chat-238",
@@ -197,7 +197,7 @@ export const mockOffers: Offer[] = [
         price: 90,
         locationFrom: "Leipzig",
         locationTo: "Dresden",
-        creator: "user315",
+        driver: "user315",
         createdAt: new Date("2025-06-13T15:20:00Z"),
         isChat: true,
         chatId: "chat-315",
@@ -240,7 +240,7 @@ export const mockOffers: Offer[] = [
         price: 40,
         locationFrom: "Nürnberg",
         locationTo: "Frankfurt",
-        creator: "user998",
+        driver: "user998",
         createdAt: new Date("2025-06-11T20:00:00Z"),
         isChat: false,
         chatId: "",
@@ -274,7 +274,7 @@ export const mockOffers: Offer[] = [
         price: 30,
         locationFrom: "Berlin",
         locationTo: "Rostock",
-        creator: "user744",
+        driver: "user744",
         createdAt: new Date("2025-06-15T08:30:00Z"),
         isChat: true,
         chatId: "chat-744",
@@ -317,7 +317,7 @@ export const mockOffers: Offer[] = [
         price: 100,
         locationFrom: "Bremen",
         locationTo: "Hannover",
-        creator: "user111",
+        driver: "user111",
         createdAt: new Date("2025-06-17T14:10:00Z"),
         isChat: true,
         chatId: "chat-111",
@@ -356,7 +356,7 @@ export const mockOffers: Offer[] = [
         price: 25,
         locationFrom: "Ulm",
         locationTo: "Stuttgart",
-        creator: "user007",
+        driver: "user007",
         createdAt: new Date("2025-06-16T06:15:00Z"),
         isChat: false,
         chatId: "",
@@ -395,7 +395,7 @@ export const mockOffers: Offer[] = [
         price: 60,
         locationFrom: "München",
         locationTo: "Salzburg",
-        creator: "user303",
+        driver: "user303",
         createdAt: new Date("2025-06-19T17:45:00Z"),
         isChat: true,
         chatId: "chat-303",
@@ -434,7 +434,7 @@ export const mockOffers: Offer[] = [
         price: 15,
         locationFrom: "Bonn",
         locationTo: "Köln",
-        creator: "user002",
+        driver: "user002",
         createdAt: new Date("2025-06-20T09:00:00Z"),
         isChat: true,
         chatId: "chat-002",
@@ -506,10 +506,13 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
+export async function fetchOffersWithFilter(filter: Filter, userId:String): Promise<Offer[]> {
     return new Promise((resolve) => {
         setTimeout(() => {
             const filteredOffers = mockOffers.filter((offer) => {
+                const isOwn = userId === offer.driver;
+                if (filter.onlyOwn && !isOwn) return false;
+
                 const matchesLocationFrom =
                     filter.locationFrom !== undefined &&
                     filter.locationFrom !== "" &&

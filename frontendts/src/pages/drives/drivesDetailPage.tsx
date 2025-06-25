@@ -80,11 +80,11 @@ function DrivesDetailPage() {
   useEffect(() => {
     if (id) {
       getOffer(id).then(setOffer);
-      if(offer?.creator == userId){
+      if(offer?.driver == userId){
         setIsDriver(true);
       }
     }
-  }, [id, offer?.creator]);
+  }, [id, offer?.driver]);
   const joinOffer = () => {
     if (!offer || offer.occupiedBy.includes(userId)) return;
 
@@ -300,7 +300,7 @@ function DrivesDetailPage() {
                   .join(", ")}
               </p>
               <p>
-                <strong>Ersteller:</strong> {offer.creator}
+                <strong>Ersteller:</strong> {offer.driver}
               </p>
               <p>
                 <strong>Erstellt am:</strong>{" "}
