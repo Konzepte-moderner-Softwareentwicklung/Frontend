@@ -9,8 +9,20 @@ import {
 } from "@/components/ui/navigation-menu"
 import { Link } from "@radix-ui/react-navigation-menu"
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg"
+import { useState } from "react"
+import { Button } from "./ui/button"
 
 export default function Navbar() {
+  const [loggedIn, setLoggedIn] = useState<boolean>(()=>
+  Boolean(sessionStorage.getItem("token"))
+  );
+  
+  const fakeLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("UserID");
+    setLoggedIn(false);
+  };
+
   return (
     <nav className="w-full bg-neutral-200 text-black px-6 py-3 flex items-center justify-between">
       {/* Left: Logo + Brand */}
@@ -51,13 +63,33 @@ export default function Navbar() {
               </a>
             </NavigationMenuLink>
           </NavigationMenuItem>
+          {loggedIn?(
+            <>
+            <Button
+              onClick={fakeLogout}
+              className="bg-red-400 text-white
+              transition-colors duration-300
+            hover:bg-red-600"
+            >
+              Logout
+            </Button>
+            </>):(
+            <>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
               <a href="/login" className="text-black hover:transition-colors">
-                Login/Register
+                Login
               </a>
             </NavigationMenuLink>
           </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <a href="/register" className="text-black hover:transition-colors">
+                Sign up
+              </a>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          </>)}
         </NavigationMenuList>
       </NavigationMenu>
     </nav>
