@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
-import { login } from "@/api/auth";
+import { getUserID, login } from "@/api/user_api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,6 +16,14 @@ export default function Login() {
       const result = await login(email, password);
       localStorage.setItem("token", result.token);
       console.log("Login erfolgreich, Token:", result.token);
+    } catch (error: any) {
+      console.error("Login fehlgeschlagen:", error);
+      alert(error?.response?.data?.error || "Login fehlgeschlagen");
+    }
+    try {
+      const result = await getUserID();
+      localStorage.setItem("UserID", result);
+      console.log("Login erfolgreich, UserID:", result);
     } catch (error: any) {
       console.error("Login fehlgeschlagen:", error);
       alert(error?.response?.data?.error || "Login fehlgeschlagen");

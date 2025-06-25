@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
 import { DatePicker } from "@/components/DatePicker";
-import { register } from "@/api/auth";
+import { register } from "@/api/user_api";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
