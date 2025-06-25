@@ -6,7 +6,7 @@ import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/
 import { Button } from "@/components/ui/button";
 import {DialogDescription} from "@radix-ui/react-dialog";
 
-function DrivesDetailPage() {
+function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
     const userId = "user789";
@@ -360,4 +360,4 @@ function DrivesDetailPage() {
 }
 
 
-export default DrivesDetailPage;
+export default DrivesOfferDetailPage;
