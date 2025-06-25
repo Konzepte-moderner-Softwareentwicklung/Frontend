@@ -12,6 +12,7 @@ import Kontakt from "./pages/Kontakt";
 import Login from "./pages/Login/Login";
 import Register from './pages/Register/Register';
 import "./i18next/config"
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/kontakt" element={<Kontakt />} />
       </Routes>
+      <Toaster />
       <Footer />
     </BrowserRouter>
   );

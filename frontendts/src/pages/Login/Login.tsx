@@ -4,29 +4,37 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
 import { getUserID, login } from "@/api/user_api";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       const result = await login(email, password);
-      localStorage.setItem("token", result.token);
-      console.log("Login erfolgreich, Token:", result.token);
+      sessionStorage.setItem("token", result.token);
+      toast("Login erfolgreich");
+
     } catch (error: any) {
-      console.error("Login fehlgeschlagen:", error);
-      alert(error?.response?.data?.error || "Login fehlgeschlagen");
+      if (error.response?.status === 500) {
+      toast("Server interner Fehler");
+      } else {
+      toast.error('Login fehlgeschlagen');
+      }
     }
     try {
       const result = await getUserID();
-      localStorage.setItem("UserID", result);
-      console.log("Login erfolgreich, UserID:", result);
+      sessionStorage.setItem("UserID", result);
+      if (result) {
+        navigate("/");
+      }
     } catch (error: any) {
-      console.error("Login fehlgeschlagen:", error);
-      alert(error?.response?.data?.error || "Login fehlgeschlagen");
+      toast("Server interner Fehler");
     }
   };
 
