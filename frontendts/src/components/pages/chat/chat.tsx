@@ -6,6 +6,7 @@ import {
   fetchChatHistory, 
   sendChatMessage, 
   subscribeToMessages,
+
   type ChatContact, 
   type ChatMessage 
 } from "./chatService";
@@ -17,18 +18,20 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [userID] = useState<string>(localStorage.getItem("user") || "");
+
+
   // Ref für das Scrollen zum Ende des Chats
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // Laden der Kontakte beim ersten Render
   useEffect(() => {
     const loadContacts = async () => {
       setIsLoading(true);
       try {
         const data = await fetchChatContacts();
-        setContacts(data);
-        
+          setContacts(data);
+
         // Optional: Ersten Kontakt automatisch auswählen
         if (data.length > 0 && !selectedContact) {
           setSelectedContact(data[0]);
@@ -39,18 +42,21 @@ export default function Chat() {
         setIsLoading(false);
       }
     };
-    
+
     loadContacts();
   }, []);
-  
+
+
+
+
   // Laden des Chat-Verlaufs, wenn ein Kontakt ausgewählt wird
   useEffect(() => {
     const loadChatHistory = async () => {
       if (!selectedContact) return;
-      
+
       setIsLoading(true);
       try {
-        const data = await fetchChatHistory(selectedContact.id);
+        const data = await fetchChatHistory();
         setMessages(data);
       } catch (error) {
         console.error("Fehler beim Laden des Chat-Verlaufs:", error);
@@ -58,81 +64,88 @@ export default function Chat() {
         setIsLoading(false);
       }
     };
-    
+
     loadChatHistory();
   }, [selectedContact]);
-  
+
   // Scrollen zum neuesten Nachrichten, wenn Nachrichten geladen werden oder sich ändern
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  
+
   // Abonnieren von neuen Nachrichten über WebSockets/NATS
   useEffect(() => {
     // Abonnieren von Nachrichten
-    const unsubscribe = subscribeToMessages((newMsg) => {
-      // Prüfen, ob die Nachricht zum aktuellen Chat gehört
-      if (selectedContact && 
-          (newMsg.senderId === selectedContact.id || 
-           newMsg.receiverId === selectedContact.id)) {
-        setMessages((prevMessages) => [...prevMessages, newMsg]);
-      }
-      
-      // Aktualisiere ungelesene Nachrichten im Kontakt-Liste
-      setContacts((prevContacts) => 
-        prevContacts.map((contact) => {
-          if (contact.id === newMsg.senderId && contact.id !== selectedContact?.id) {
-            return {
-              ...contact,
-              unreadCount: (contact.unreadCount || 0) + 1,
-              lastMessage: newMsg.content,
-              lastMessageTime: formatTime(new Date(newMsg.timestamp))
-            };
+    try {
+      if (selectedContact) {
+
+        const unsubscribe = subscribeToMessages(selectedContact.chatId, (newMsg) => {
+          // Prüfen, ob die Nachricht zum aktuellen Chat gehört
+          if (selectedContact &&
+              (newMsg.senderId === selectedContact.chatId ||
+                  newMsg.chatId === selectedContact.chatId)) {
+            setMessages((prevMessages) => [...prevMessages, newMsg]);
           }
-          return contact;
-        })
-      );
-    });
-    
-    // Cleanup beim Unmount
-    return () => {
-      unsubscribe();
-    };
+
+          // Aktualisiere ungelesene Nachrichten im Kontakt-Liste
+          setContacts((prevContacts) =>
+              prevContacts.map((contact) => {
+                if (contact.chatId === newMsg.senderId && contact.chatId !== selectedContact?.chatId) {
+                  return {
+                    ...contact,
+                    unreadCount: (contact.unreadCount || 0) + 1,
+                    lastMessage: newMsg.content,
+                    lastMessageTime: formatTime(new Date(newMsg.createdAt))
+                  };
+                }
+                return contact;
+              })
+          );
+        });
+        // Cleanup beim Unmount
+        return () => {
+          unsubscribe();
+        };
+      }
+    }
+      catch (err){
+      console.error(err);
+      }
   }, [selectedContact]);
-  
+
   // Absenden einer neuen Nachricht
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedContact || !newMessage.trim()) return;
-    
+
     setIsLoading(true);
     try {
       // Optimistisches Update: Nachricht sofort anzeigen
       const tempMessage: ChatMessage = {
         id: `temp-${Date.now()}`,
-        senderId: "current", // Aktuelle Benutzer-ID
-        receiverId: selectedContact.id,
+        senderId: userID, // Aktuelle Benutzer-ID
+        chatId: selectedContact.chatId,
         content: newMessage,
-        timestamp: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         read: false
       };
-      
+
       setMessages((prev) => [...prev, tempMessage]);
       setNewMessage("");
-      
+
       // Tatsächlich an Backend senden
-      const sentMessage = await sendChatMessage(selectedContact.id, newMessage);
-      
+      const sentMessage = await sendChatMessage(newMessage, selectedContact.chatId,userID);
+
       // Optimistisches Update mit tatsächlicher Nachricht ersetzen
-      setMessages((prev) => 
+      setMessages((prev) =>
         prev.map((msg) => msg.id === tempMessage.id ? sentMessage : msg)
       );
-      
+
       // Kontaktliste aktualisieren
       setContacts((prev) =>
         prev.map((contact) => {
-          if (contact.id === selectedContact.id) {
+          if (contact.chatId === selectedContact.chatId) {
             return {
               ...contact,
               lastMessage: newMessage,
@@ -142,7 +155,7 @@ export default function Chat() {
           return contact;
         })
       );
-      
+
     } catch (error) {
       console.error("Fehler beim Senden der Nachricht:", error);
       // Optional: Fehlgeschlagene Nachricht markieren oder entfernen
@@ -150,57 +163,61 @@ export default function Chat() {
       setIsLoading(false);
     }
   };
-  
+
   // Hilfsfunktion zum Formatieren der Uhrzeit
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   // Hilfsfunktion zum Formatieren des Datums
   const formatMessageDate = (timestamp: string): string => {
     const date = new Date(timestamp);
     return date.toLocaleDateString() + ' ' + formatTime(date);
   };
-  
+
   // Markieren von Kontakt als ausgewählt
   const handleContactSelect = (contact: ChatContact) => {
     setSelectedContact(contact);
-    
+
     // Ungelesene Nachrichten zurücksetzen
     setContacts((prev) =>
       prev.map((c) => {
-        if (c.id === contact.id) {
+        if (c.chatId === contact.chatId) {
           return { ...c, unreadCount: 0 };
         }
         return c;
       })
     );
   };
-  
+
   return (
     <div className="p-4 h-[calc(100vh-4rem)] flex">
       {/* Kontaktliste (1/4 der Breite) */}
       <div className="w-1/4 border-r border-gray-200 pr-4 overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Chats</h2>
-        
+
         {contacts.length === 0 && !isLoading ? (
           <div className="text-gray-500 text-center">Keine Chats gefunden</div>
         ) : (
           <ul>
-            {contacts.map((contact) => (
-              <li 
-                key={contact.id}
+            {
+              contacts.map((contact) => (
+              <li
+                key={contact.chatId}
                 onClick={() => handleContactSelect(contact)}
                 className={`flex items-center p-3 rounded-lg mb-2 cursor-pointer hover:bg-gray-100 transition ${
-                  selectedContact?.id === contact.id ? "bg-gray-100" : ""
-                }`}
+                  selectedContact?.chatId === contact.chatId ? "bg-gray-100" : ""
+                }`
+            }
+
+
               >
                 {/* Avatar */}
                 <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
                   {contact.avatar ? (
-                    <img 
-                      src={contact.avatar} 
-                      alt={contact.name} 
+                    <img
+                      src={contact.avatar}
+                      alt={contact.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -209,19 +226,19 @@ export default function Chat() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Kontaktinfo */}
                 <div className="flex-grow overflow-hidden">
                   <div className="flex justify-between">
                     <span className="font-semibold">{contact.name}</span>
                     <span className="text-xs text-gray-500">{contact.lastMessageTime}</span>
                   </div>
-                  
+
                   <div className="flex justify-between">
                     <p className="text-sm text-gray-600 truncate">
                       {contact.lastMessage}
                     </p>
-                    
+
                     {/* Ungelesene Nachrichten */}
                     {contact.unreadCount ? (
                       <span className="bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -235,7 +252,7 @@ export default function Chat() {
           </ul>
         )}
       </div>
-      
+
       {/* Chat-Bereich (3/4 der Breite) */}
       <div className="w-3/4 pl-4 flex flex-col">
         {selectedContact ? (
@@ -244,9 +261,9 @@ export default function Chat() {
             <div className="flex items-center py-3 px-4 border-b">
               <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
                 {selectedContact.avatar ? (
-                  <img 
-                    src={selectedContact.avatar} 
-                    alt={selectedContact.name} 
+                  <img
+                    src={selectedContact.avatar}
+                    alt={selectedContact.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -257,7 +274,7 @@ export default function Chat() {
               </div>
               <h3 className="text-lg font-semibold">{selectedContact.name}</h3>
             </div>
-            
+
             {/* Nachrichten-Bereich */}
             <div className="flex-grow overflow-y-auto px-4 py-3">
               {messages.length === 0 ? (
@@ -269,21 +286,21 @@ export default function Chat() {
                   <div
                     key={message.id}
                     className={`mb-4 flex ${
-                      message.senderId === "current" ? "justify-end" : "justify-start"
+                      message.senderId === userID ? "justify-end" : "justify-start"
                     }`}
                   >
                     <div
                       className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                        message.senderId === "current"
+                        message.senderId === userID
                           ? "bg-blue-500 text-white"
                           : "bg-gray-200 text-gray-800"
                       }`}
                     >
                       <p>{message.content}</p>
                       <div className={`text-xs mt-1 ${
-                        message.senderId === "current" ? "text-blue-100" : "text-gray-500"
+                        message.senderId === userID ? "text-blue-100" : "text-gray-500"
                       }`}>
-                        {formatMessageDate(message.timestamp)}
+                        {formatMessageDate(message.createdAt)}
                       </div>
                     </div>
                   </div>
@@ -291,7 +308,7 @@ export default function Chat() {
               )}
               <div ref={messagesEndRef} />
             </div>
-            
+
             {/* Eingabebereich */}
             <form onSubmit={handleSendMessage} className="pt-3 px-4 border-t">
               <div className="flex">
@@ -302,8 +319,8 @@ export default function Chat() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   className="flex-grow mr-2"
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!newMessage.trim() || isLoading}
                 >
                   Senden

@@ -174,6 +174,7 @@ export default function Profile() {
 
   // Ähnliche Änderung für das Laden der Bewertungen...
   useEffect(() => {
+    console.log(localStorage.getItem("UserID"));
     const fetchRatings = async () => {
       setIsLoading(true);
       try {

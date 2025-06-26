@@ -8,9 +8,9 @@ import Profile from "@/components/pages/profile/profile.tsx";
 import AGB from "./pages/AGB";
 import Impressum from "./pages/Impressum";
 import Kontakt from "./pages/Kontakt";
-import Login from "./pages/Login/Login";
-import Register from './pages/Register/Register';
+import Login from "./components/pages/login/Login";
 import "./i18next/config"
+import Register from "@/components/pages/register/Register.tsx";
 
 function App() {
   return (
@@ -22,10 +22,11 @@ function App() {
         <Route path="/Drives" element={<Drives />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/agb" element={<AGB />} />
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/kontakt" element={<Kontakt />} />
+      <Route path="/register" element={<Register />} />
+
       </Routes>
       <Footer />
     </BrowserRouter>
