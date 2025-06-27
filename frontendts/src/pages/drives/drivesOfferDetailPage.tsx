@@ -11,6 +11,9 @@ function DrivesOfferDetailPage() {
     const intervalRef = useRef<number | null>(null);
     const userId = "user789";
     const[isSelfChat, setIsSelfChat] = useState(false);
+    const [showEditDialog, setShowEditDialog] = useState(false);
+    const [editedOffer, setEditedOffer] = useState<Offer | null>(null);
+
 
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
@@ -25,7 +28,7 @@ function DrivesOfferDetailPage() {
         window.scrollTo({top: 0, behavior: "smooth"});
         // change if the token is not saved in the localStorage
         ws.current = new WebSocket(
-            `/api/tracking?token=${localStorage.getItem("token")}`,
+            `/api/tracking?token=${sessionStorage.getItem("token")}`,
         );
 
         ws.current.onopen = () => {
@@ -81,15 +84,16 @@ function DrivesOfferDetailPage() {
     useEffect(() => {
         if (id) {
             getOffer(id).then(setOffer);
+
             if (offer?.driver == userId) {
                 setIsDriver(true);
                 setIsSelfChat(true);
             }
 
         }
-    }, [id, offer?.driver]);
+    }, [id, offer?.driver,isDriver]);
     const joinOffer = () => {
-        if (!offer || offer.occupiedBy.includes(userId)) return;
+        if (!offer || offer.passenger.includes(userId)) return;
 
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
@@ -109,7 +113,7 @@ function DrivesOfferDetailPage() {
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem))
             offer.occupiedSpace.items.push(newItem);
 
-        offer.occupiedBy.push(userId);
+        offer.passenger.push(userId);
 
 
         // Force re-render
@@ -118,7 +122,7 @@ function DrivesOfferDetailPage() {
 
 
     const isLoggedIn = true;
-    const hasJoined = offer?.occupiedBy.includes(userId);
+    const hasJoined = offer?.passenger.includes(userId);
     const noSeatsLeft = offer ? offer?.canTransport.seats <= 0 : undefined;
 
 
@@ -164,6 +168,18 @@ function DrivesOfferDetailPage() {
                 <div className="absolute top-0 right-0 mt-2 mr-2 flex gap-2">
                     {isDriver && (
                         <button
+                            onClick={() => {
+                                setEditedOffer({...offer});
+                                setShowEditDialog(true);
+                            }}
+                            className="px-4 py-2 rounded shadow bg-yellow-500 text-white hover:bg-yellow-600"
+                        >
+                            Bearbeiten
+                        </button>
+                    )}
+
+                    {isDriver && (
+                        <button
                             onClick={() => toggleTracking()}
                             className={`px-4 py-2 rounded shadow transition ${
                                 isTracking
@@ -176,15 +192,79 @@ function DrivesOfferDetailPage() {
                     )}
                     <button
                         onClick={() => setShowJoinDialog(true)}
-                        disabled={!isLoggedIn || hasJoined || noSeatsLeft}
+                        disabled={!isLoggedIn || hasJoined || noSeatsLeft||isDriver}
                         className={`px-4 py-2 rounded shadow transition ${
-                            !isLoggedIn || hasJoined || noSeatsLeft
+                            !isLoggedIn || hasJoined || noSeatsLeft||isDriver
                                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                                 : "bg-green-500 text-white hover:bg-green-600"
                         }`}
                     >
-                        {hasJoined ? "Bereits teilgenommen" : "Teilnehmen"}
+                        {hasJoined|| isDriver ? "Bereits teilgenommen" : "Teilnehmen"}
                     </button>
+                    {showEditDialog && editedOffer && (
+                        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Angebot bearbeiten</DialogTitle>
+                                    <DialogDescription>Ändere die Daten des Angebots.</DialogDescription>
+                                </DialogHeader>
+
+                                <div className="grid gap-4 py-4">
+                                    <Input
+                                        placeholder="Titel"
+                                        value={editedOffer.title}
+                                        onChange={(e) =>
+                                            setEditedOffer({ ...editedOffer, title: e.target.value })
+                                        }
+                                    />
+                                    <Input
+                                        placeholder="Beschreibung"
+                                        value={editedOffer.description}
+                                        onChange={(e) =>
+                                            setEditedOffer({ ...editedOffer, description: e.target.value })
+                                        }
+                                    />
+                                    <Input
+                                        placeholder="Von"
+                                        value={editedOffer.locationFrom}
+                                        onChange={(e) =>
+                                            setEditedOffer({ ...editedOffer, locationFrom: e.target.value })
+                                        }
+                                    />
+                                    <Input
+                                        placeholder="Nach"
+                                        value={editedOffer.locationTo}
+                                        onChange={(e) =>
+                                            setEditedOffer({ ...editedOffer, locationTo: e.target.value })
+                                        }
+                                    />
+                                    <Input
+                                        placeholder="Preis in €"
+                                        type="number"
+                                        value={editedOffer.price}
+                                        onChange={(e) =>
+                                            setEditedOffer({
+                                                ...editedOffer,
+                                                price: parseFloat(e.target.value),
+                                            })
+                                        }
+                                    />
+                                </div>
+
+                                <DialogFooter>
+                                    <Button
+                                        onClick={() => {
+                                            setOffer(editedOffer); // übernimmt die Änderungen ins Hauptobjekt
+                                            setShowEditDialog(false);
+                                        }}
+                                    >
+                                        Speichern
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+
                     {showJoinDialog && (
                         <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
                             <DialogContent>
@@ -303,10 +383,6 @@ function DrivesOfferDetailPage() {
                             </p>
                             <p>
                                 <strong>Ersteller:</strong> {offer.driver}
-                            </p>
-                            <p>
-                                <strong>Erstellt am:</strong>{" "}
-                                {offer.createdAt.toLocaleDateString()}
                             </p>
                         </div>
                     </div>

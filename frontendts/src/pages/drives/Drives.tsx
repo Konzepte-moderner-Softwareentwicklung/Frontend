@@ -35,7 +35,7 @@ import {
     fetchOffersWithFilter,
     type Filter,
     getMaxPrice,
-    type Offer, type OfferDialogFields, type SearchDialogFields, type Space
+    type Offer, type SearchDialogFields, type Space
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
 
@@ -61,10 +61,12 @@ function Drives() {
     const [price, setPrice] = useState("");
     const [restrictions, setRestrictions] = useState("");
     const [storageWidth, setStorageWidth] = useState<number | null>(null);
+    const [isChat, setIsChat] = useState(false);
+    const [isPhone, setIsPhone] = useState<boolean>(false);
+    const [isEmail, setIsEmail] = useState<boolean>(false);
     const [storageDepth, setStorageDepth] = useState<number | null>(null);
     const [storageWeight, setStorageWeight] = useState<number | null>(null);
     const [storageHeight, setStorageHeight] = useState<number | null>(null);
-
     const numericPrice = parseFloat(price);
 
     const seats: Space = {
@@ -82,44 +84,56 @@ function Drives() {
     };
 
     const createNewOffer = () => {
-        const offerData: OfferDialogFields = {
+
+        const offerData: Offer = {
+            id:"-1",
             title: title,
             description: description,
             price: numericPrice,
             locationFrom: fromLocation,
             locationTo: toLocation,
-            driver: "user1234", //TODO:Mit Eingeloggten User erstetzen
+            driver: "user789", //TODO:Mit Eingeloggten User erstetzen
             startDateTime: startDate,
             endDateTime: endDate,
             canTransport: seats,
             occupiedSpace: seats,
-            occupiedBy: [],
+            isPhone: isPhone,
+            isEmail: isEmail,
+            isChat: isChat,
+            passenger: [],
             restrictions: restrictions.split(";"),
             info: info.split(";"),
             infoCar: infoCar.split(";"),
-            car: car
+            car: car,
+            createdAt: new Date(),
+            chatId: "",
+            imageURL: ""
         };
 
-        createOffer(offerData).then();
+        createOffer(offerData).then(function (offer){
+            navigate(`/drives/${offer.id}`);
+        });
     };
 
     const createNewSearch = () => {
+        const userId = sessionStorage.getItem("userId") || "user124";
         const offerData: SearchDialogFields = {
             title: title,
             description: description,
             price: numericPrice,
+            creatorId:userId,
             locationFrom: fromLocation,
             locationTo: toLocation,
-            canTransport: seats,
-            occupiedSpace: seats,
-            occupiedBy: [],
+            passengers: seats.seats,
+            package: seats.items[0],
             restrictions: restrictions.split(";"),
             info: info.split(";"),
-            infoCar: infoCar.split(";"),
-            car: car
         };
 
-        createSearch(offerData).then();
+        createSearch(offerData).then(function (offer){
+
+            navigate(`/drives/${offer.id}/search`);
+        });
     };
 
 
@@ -149,6 +163,7 @@ function Drives() {
     }, [filter]);
 
     const isLoggedIn = true;
+
 
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
@@ -276,19 +291,25 @@ function Drives() {
                     </p>
                 ) : (
                     paginatedOffers.map((offer: Offer) => {
-                        const isOffer = offer.isOffer;
+                        const isGesuch = offer.isGesuch;
                         return (
                             <Card
                                 key={offer.id}
                                 className={`rounded-2xl shadow cursor-pointer transition hover:shadow-lg
-                        ${isOffer ? "bg-pink-100" : "border-2 border-green-400"}`}
-                                onClick={() => navigate(`/drives/${offer.id}`)}
+                        ${isGesuch ? "bg-pink-100" : "border-2 border-green-400"}`}
+                                onClick={() => {
+                                    if (!isGesuch) {
+                                        navigate(`/drives/${offer.id}`);
+                                    } else {
+                                        navigate(`/drives/${offer.id}/search`);
+                                    }
+                                }}
                             >
                                 <CardContent className="p-4">
-                                    {isOffer && (
+                                    {isGesuch && (
                                         <h3 className="text-pink-700 font-semibold mb-2">Suche Fahrt:</h3>
                                     )}
-                                    {!isOffer && (
+                                    {!isGesuch && (
                                         <h3 className="text-green-700 font-semibold mb-2">Biete an:</h3>
                                     )}
 
@@ -355,14 +376,13 @@ function Drives() {
                         </Button>
                     </DialogTrigger>
 
-                    <DialogContent className="sm:max-w-[800px] sm:max-h-[1000px] scroll">
+                    <DialogContent className="sm:max-w-[1000px]">
                         <DialogHeader>
                             <DialogTitle>Neue Fahrt erstellen</DialogTitle>
                             <DialogDescription>
                                 Fülle die Informationen aus, um eine neue Fahrt anzulegen.
                             </DialogDescription>
                         </DialogHeader>
-
 
                         <div className="grid gap-4 py-4">
                             <div className="col-span-full">
@@ -397,7 +417,6 @@ function Drives() {
                                         value={endDate ? endDate.toISOString().split("T")[0] : ""}
                                         onChange={(e) => setEndDate(new Date(e.target.value))}
                                     />
-
                                 </div>
                                 <Input
                                     placeholder="Sitzplätze"
@@ -412,11 +431,10 @@ function Drives() {
                                     onChange={(e) => setPrice(e.target.value)}
                                 />
                             </div>
-                            <div className="col-span-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug
-                                    (in Meter)</label>
-                                <div className="grid grid-cols-2 gap-4">
 
+                            <div className="col-span-full">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug (in Meter)</label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <Input
                                         placeholder="Breite"
                                         type="number"
@@ -430,48 +448,67 @@ function Drives() {
                                         onChange={(e) => setStorageHeight(e.target.value === "" ? null : parseFloat(e.target.value))}
                                     />
                                     <Input
-                                        placeholder="Gewicht in kg"
-                                        type="number"
-                                        value={storageWeight ?? ""}
-                                        onChange={(e) => setStorageWeight(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                    />
-                                    <Input
                                         placeholder="Tiefe"
                                         type="number"
                                         value={storageDepth ?? ""}
                                         onChange={(e) => setStorageDepth(e.target.value === "" ? null : parseFloat(e.target.value))}
                                     />
+                                    <Input
+                                        placeholder="Gewicht in kg"
+                                        type="number"
+                                        value={storageWeight ?? ""}
+                                        onChange={(e) => setStorageWeight(e.target.value === "" ? null : parseFloat(e.target.value))}
+                                    />
                                 </div>
                             </div>
-                            <Textarea
-                                placeholder="Beschreibung"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Infos/Hinweise(Einzelne Hinweise mit ; trennen)"
-                                value={info}
-                                onChange={(e) => setInfo(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Einschränkungen(Einzelne Einschränkungen mit ; trennen)"
-                                value={restrictions}
-                                onChange={(e) => setRestrictions(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Infos über Fahrzeug/Anhänger(Einzelne Infos mit ; trennen)"
-                                value={infoCar}
-                                onChange={(e) => setInfoCar(e.target.value)}
-                            />
-                            <Select
-                                onValueChange={(value) => setCar(value)}
-                            >
+
+
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2">
+                                    <input type="checkbox" checked={isPhone} onChange={(e) => setIsPhone(e.target.checked)} />
+                                    Handy
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input type="checkbox" checked={isEmail} onChange={(e) => setIsEmail(e.target.checked)} />
+                                    E-Mail
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input type="checkbox" checked={isChat} onChange={(e) => setIsChat(e.target.checked)} />
+                                    Chat
+                                </label>
+                            </div>
+
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Textarea
+                                    placeholder="Beschreibung"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                />
+                                <Textarea
+                                    placeholder="Infos/Hinweise (Einzelne Hinweise mit ; trennen)"
+                                    value={info}
+                                    onChange={(e) => setInfo(e.target.value)}
+                                />
+                                <Textarea
+                                    placeholder="Einschränkungen (Einzelne Einschränkungen mit ; trennen)"
+                                    value={restrictions}
+                                    onChange={(e) => setRestrictions(e.target.value)}
+                                />
+                                <Textarea
+                                    placeholder="Infos über Fahrzeug/Anhänger (Einzelne Infos mit ; trennen)"
+                                    value={infoCar}
+                                    onChange={(e) => setInfoCar(e.target.value)}
+                                />
+                            </div>
+
+                            <Select onValueChange={(value) => setCar(value)}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Fahrzeug auswählen"/>
+                                    <SelectValue placeholder="Fahrzeug auswählen" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {["Audi", " Mazda", " Mercedes Benz"].map((count) => (
-                                        <SelectItem key={count} value={count.toString()}>
+                                    {["Audi", "Mazda", "Mercedes Benz"].map((count) => (
+                                        <SelectItem key={count} value={count}>
                                             {count}
                                         </SelectItem>
                                     ))}
@@ -479,11 +516,13 @@ function Drives() {
                             </Select>
                         </div>
 
-
                         <DialogFooter>
-                            <Button onClick={createNewOffer} className="cursor-pointer" type="submit">Erstellen</Button>
+                            <Button onClick={createNewOffer} type="submit">
+                                Erstellen
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
+
                 </Dialog>
 
                 <Dialog>

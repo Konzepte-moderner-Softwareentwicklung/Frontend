@@ -15,43 +15,29 @@ export interface Offer {
     endDateTime: Date;
     canTransport: Space;
     occupiedSpace: Space;
-    occupiedBy: string[];
+    passenger: string[];
     restrictions: string[];
     info: string[];
     infoCar: string[];
     car: string;
     imageURL: string;
-    isOffer?: boolean;
+    isGesuch?: boolean;
+    ended?: boolean;
 }
 export interface SearchDialogFields {
     title: string;
     description: string;
+    creatorId: string;
     locationFrom: string;
     locationTo: string;
     passengers: number;
     price: number;
     package:Item;
-    infos: string;
+    info: string[];
     restrictions: string[];
 }
 
-export interface OfferDialogFields {
-    title: string;
-    description: string;
-    price: number;
-    locationFrom: string;
-    locationTo: string;
-    driver: string;
-    startDateTime: Date;
-    endDateTime: Date;
-    canTransport: Space;
-    occupiedSpace: Space;
-    occupiedBy: string[];
-    restrictions: string[];
-    info: string[];
-    infoCar: string[];
-    car: string;
-}
+
 
 
 export interface Filter {
@@ -82,7 +68,6 @@ export interface Size {
     height: number;
     depth: number;
 }
-
 export const mockOffers: Offer[] = [
     {
         id: "offer-001",
@@ -121,7 +106,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: ["user789"],
+        passenger: ["user789"],
         restrictions: ["Haustiere", "Rauchen"],
         info: ["Fahrt findet bei jedem Wetter statt"],
         infoCar: ["Transporter mit Rampe"],
@@ -161,7 +146,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: ["user789"],
+        passenger: ["user789"],
         restrictions: [],
         info: ["Bitte pünktlich sein"],
         infoCar: ["SUV"],
@@ -201,7 +186,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: [],
+        passenger: [],
         restrictions: [],
         info: ["Transportversicherung inklusive"],
         infoCar: ["Kleiner Van"],
@@ -245,7 +230,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: ["user002"],
+        passenger: ["user002"],
         restrictions: ["Keine Tiere"],
         info: ["Tragehilfe vorhanden"],
         infoCar: ["Großer Sprinter"],
@@ -280,7 +265,7 @@ export const mockOffers: Offer[] = [
             seats: 0,
             items: [],
         },
-        occupiedBy: [],
+        passenger: [],
         restrictions: [],
         info: ["Nachtruhe erwünscht"],
         infoCar: ["Limousine"],
@@ -324,7 +309,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: [],
+        passenger: [],
         restrictions: ["Kein Alkohol"],
         info: ["Sicher und pünktlich"],
         infoCar: ["Kombi"],
@@ -364,7 +349,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: ["user332"],
+        passenger: ["user332"],
         restrictions: [],
         info: ["Laderampe vorhanden"],
         infoCar: ["Offener Transporter"],
@@ -404,7 +389,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: [],
+        passenger: [],
         restrictions: ["Keine großen Hunde"],
         info: ["Kofferraum frei"],
         infoCar: ["Kompaktwagen"],
@@ -444,7 +429,7 @@ export const mockOffers: Offer[] = [
                 },
             ],
         },
-        occupiedBy: ["user789", "user999"],
+        passenger: ["user789", "user999"],
         restrictions: [],
         info: ["Gemütliche Fahrt mit Musik"],
         infoCar: ["VW Bus"],
@@ -452,48 +437,41 @@ export const mockOffers: Offer[] = [
         car:"Audi"
     },
     {
-        id: "offer-010",
-        title: "Täglicher Pendelservice Bonn ↔ Köln",
-        description: "Fahre täglich und kann kleine Pakete mitnehmen.",
-        price: 15,
-        locationFrom: "Bonn",
-        locationTo: "Köln",
-        driver: "user002",
+        id: "search-010",
+        title: "Möchte von Berlin nach München",
+        description: "Kann mich bitte wer von Berlin nach München fahren",
+        price: 0,
+        locationFrom: "Berlin",
+        locationTo: "München",
+        driver: "",
         createdAt: new Date("2025-06-20T09:00:00Z"),
-        isChat: true,
-        chatId: "chat-002",
-        isPhone: true,
+        isChat: false,
+        chatId: "",
+        isPhone: false,
+        isGesuch:true,
         isEmail: false,
         startDateTime: new Date("2025-07-02T07:00:00Z"),
         endDateTime: new Date("2025-07-02T08:00:00Z"),
         canTransport: {
-            seats: 1,
+            seats: 0,
             items: [
-                {
-                    size: { width: 60, height: 50, depth: 50 },
-                    weight: 30,
-                },
             ],
         },
         occupiedSpace: {
-            seats: 0,
+            seats: 1,
             items: [
-                {
-                    size: { width: 40, height: 30, depth: 20 },
-                    weight: 10,
-                },
             ],
         },
-        occupiedBy: [],
+        passenger: ["user789"],
         restrictions: [],
-        info: ["Tägliche Fahrten möglich"],
-        infoCar: ["Kleinwagen"],
+        info: [""],
+        infoCar: [""],
         imageURL: "https://example.com/images/offer10.jpg",
-        car:"Audi"
+        car:""
     },
 ];
 
-
+let idCount = 11;
 export async function fetchOffers(): Promise<Offer[]> {
     return new Promise((resolve) => {
         setTimeout(() => {
@@ -511,7 +489,7 @@ export async function fetchOffer(id: string | undefined): Promise<Offer | undefi
 }
 
 export async function getOffer(id:string|undefined): Promise<Offer | undefined> {
-    // In bereits vorhandenen offers suchen
+    // In bereits vorhandenen offers suchen ansonsten Servercall
 
     let foundOffer =  mockOffers.find(offer => offer.id === id);
     if(foundOffer == undefined){
@@ -536,7 +514,7 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
         setTimeout(() => {
             const filteredOffers = mockOffers.filter((offer) => {
                 const isOwn = userId === offer.driver;
-                if (filter.onlyOwn && !isOwn) return false;
+                if (filter.onlyOwn && !isOwn|| offer.ended) return false;
 
                 const matchesLocationFrom =
                     filter.locationFrom !== undefined &&
@@ -576,57 +554,63 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
     });
 }
 
-export async function createOffer(offer: OfferDialogFields): Promise<Offer> {
+export async function createOffer(offer: Offer): Promise<Offer> {
     return new Promise((resolve) => {
         setTimeout(() => {
-            const newOffer = offer as unknown as Offer;
-            newOffer.driver ="user1234";//TODO: user mit eingeloggten Benutzer ersetzen
-            newOffer.isOffer = true;
+            const newOffer = offer;
+            newOffer.driver ="user789";//TODO: user mit eingeloggten Benutzer ersetzen
+            newOffer.isGesuch = false;
+            newOffer.id = "offer-0"+idCount++;
+
             mockOffers.push(newOffer);
             resolve(newOffer);
         }, 500);
     });
 }
 
-export async function createSearch(fields:SearchDialogFields){
+
+export async function createSearch(fields:SearchDialogFields):Promise<Offer>{
     function convertSearchFieldsToOffer(fields: SearchDialogFields):Offer {
-        const offer: Offer = {
-            canTransport: { items:[],
-                seats:0},
+        return {
+            canTransport: {
+                items: [],
+                seats:0
+            },
             car: "",
             chatId: "",
             createdAt: new Date(),
             description: fields.description,
             driver: "",
             startDateTime: new Date(),
-            endDateTime:  new Date(),
+            endDateTime: new Date(),
             id: "",
             imageURL: "",
-            info: fields.infos.split(";"),
+            info: fields.info,
             infoCar: [],
             isChat: false,
             isEmail: false,
-            isOffer: false,
+            isGesuch: true,
             isPhone: false,
             locationFrom: fields.locationFrom,
             locationTo: fields.locationTo,
-            occupiedBy: [],
-            occupiedSpace: { items:[fields.package],
-                seats:fields.passengers},
+            passenger: [],
+            occupiedSpace: {
+                items: [fields.package],
+                seats: fields.passengers
+            },
             price: 0,
             restrictions: [],
             title: fields.title
-        };
-        return offer ;
+        }
     }
 
     return new Promise((resolve) => {
     setTimeout(() => {
             const newOffer =convertSearchFieldsToOffer(fields);
-            newOffer.occupiedBy.push("user1234");//TODO: user mit eingeloggten Benutzer ersetzen
-            newOffer.isOffer = false;
+            newOffer.passenger.push("user1234");//TODO: user mit eingeloggten Benutzer ersetzen
+            newOffer.id = "search-0"+idCount++;//remove wenn Servercall
             mockOffers.push(newOffer);
-            resolve(newOffer);
+            resolve(newOffer);//Servercall einfügen zum erstellen von Offer
     })
 })
 }
