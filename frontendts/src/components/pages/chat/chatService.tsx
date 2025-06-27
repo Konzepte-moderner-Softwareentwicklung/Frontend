@@ -2,6 +2,7 @@ import axios from "axios";
 import {getChats, getChatMessages, connectWebSocket, postMessage} from "@/api/chat_api";
 import {getUserByID} from "@/api/user_api.tsx";
 
+
 // Interfaces
 export interface ChatContact {
   id: string;
@@ -23,14 +24,33 @@ export interface ChatMessage {
   read: boolean;
 }
 
-function findLatestMessage(messages: ChatMessage[]): ChatMessage | null {
-  if (messages.length === 0) return null;
+export interface LiveLocationUpdate {
+  userId: string;
+  lat: number;
+  lon: number;
+}
 
-  return messages.reduce((latest, current) => {
-    return new Date(current.createdAt) > new Date(latest.createdAt)
-        ? current
-        : latest;
-  });
+
+export
+interface ChatMapProps {
+  lat: number;
+  lon: number;
+  maptilerKey: string;
+}
+
+function findLatestMessage(messages: ChatMessage[]): ChatMessage | null {
+  let latest: ChatMessage | null = null;
+  let latestTime = -Infinity;
+
+  for (const message of messages) {
+    const time = Date.parse(message.createdAt);
+    if (!isNaN(time) && time > latestTime) {
+      latest = message;
+      latestTime = time;
+    }
+  }
+  console.log(latest?.createdAt);
+  return latest;
 }
 
 export function transformMessages(messages: any[]): ChatMessage[] {
@@ -55,6 +75,23 @@ export function transformMessages(messages: any[]): ChatMessage[] {
   }
   else return [];
 }
+
+
+function formatMessageDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return ""; // Fehlerfall
+
+  return date.toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+
+
 // 🔹 Abrufen aller Chat-Kontakte
 export async function fetchChatContacts(){
 
@@ -84,8 +121,11 @@ export async function fetchChatContacts(){
               //todo: handler für lastMessage = null
               const messages = transformMessages(rawMessages);
               const lastMessage = findLatestMessage(messages)
-              newContact.lastMessage = lastMessage?.content;
-              newContact.lastMessageTime = lastMessage?.createdAt;
+              if(lastMessage){
+                newContact.lastMessage = lastMessage.content;
+                newContact.lastMessageTime = formatMessageDate(lastMessage.createdAt);
+
+              }
             }
 
             const otherUser = await getUserByID(otherUid);
@@ -145,6 +185,10 @@ export async function sendChatMessage(
 
 }
 
+export async function sendLiveLocation(lat:number, lng:number){
+
+}
+
 
 
 export async function subscribeToMessages(
@@ -170,4 +214,31 @@ const socket = await connectWebSocket(chatId);
   };
 
   return () => socket.close();
+}
+
+
+export async function subscribeToLiveLocations(
+    chatId: string,
+    onLocationReceived: (update: LiveLocationUpdate) => void
+): Promise<WebSocket> {
+  const socket = await connectWebSocket(`/tracking`,{});
+
+  socket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data) as LiveLocationUpdate;
+      onLocationReceived(data);
+    } catch (err) {
+      console.error("Fehler beim Parsen des Tracking-Updates:", err);
+    }
+  };
+
+  socket.onerror = (err) => {
+    console.error("Tracking-WebSocket-Fehler:", err);
+  };
+
+  socket.onclose = () => {
+    console.log("Tracking-WS getrennt:", chatId);
+  };
+
+  return socket;
 }

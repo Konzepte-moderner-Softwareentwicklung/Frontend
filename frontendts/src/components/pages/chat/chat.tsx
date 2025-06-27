@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { 
   fetchChatContacts, 
   fetchChatHistory, 
@@ -8,7 +10,7 @@ import {
   subscribeToMessages,
   transformMessages,
   type ChatContact, 
-  type ChatMessage 
+  type ChatMessage
 } from "./chatService";
 
 export default function Chat() {
@@ -19,6 +21,13 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userID] = useState<string>(localStorage.getItem("UserID") || "");
+
+
+  interface ChatMapProps {
+    lat: number;
+    lon: number;
+    maptilerKey: string;
+  }
 
 
   // Ref für das Scrollen zum Ende des Chats
@@ -87,14 +96,17 @@ export default function Chat() {
 
     const subscribe = async () => {
       try {
-        const unsubscribe = await subscribeToMessages(selectedContact.id, (newMsg) => {
+        const unsubscribe = await subscribeToMessages(selectedContact.id, async (newMsg) => {
           if (!isSubscribed) return;
 
          if (newMsg.senderId === selectedContact.receiverId) {
             newMsg = transformMessages([newMsg])[0]
             setMessages((prev) => [...prev, newMsg]);
-         } else {
          }
+
+          const data = await fetchChatHistory(selectedContact.id);
+
+          setMessages(data);
 
           setContacts((prev) =>
               prev.map((contact) => {
@@ -108,12 +120,14 @@ export default function Chat() {
                     ...contact,
                     unreadCount: (contact.unreadCount || 0) + 1,
                     lastMessage: newMsg.content,
-                    lastMessageTime: formatTime(new Date(newMsg.createdAt)),
+                    lastMessageTime: newMsg.createdAt,
                   };
                 }
                 return contact;
+
               })
-          );
+
+        );
         });
 
         socketCleanup = unsubscribe;
@@ -211,6 +225,45 @@ export default function Chat() {
     );
   };
 
+
+
+
+/*
+  Wir verwenden einen maptiler API key.
+  bis zu 100.000 Tile Requests pro Monat sind gratis
+  später kann man noch upgraden
+ */
+  function ChatMap({ maptilerKey,lat,lon }: ChatMapProps) {
+    return (
+        <div style={{ height: '300px', width: '100%', borderRadius: '0.5rem', overflow: 'hidden' }}>
+          <MapContainer
+              center={[lat, lon]}
+              zoom={14}
+              style={{ height: '100%', width: '100%' }}
+              scrollWheelZoom={false}
+          >
+            <TileLayer
+                url={`https://api.maptiler.com/maps/streets/256/{z}/{x}/{y}.png?key=${maptilerKey}`}
+                attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a>'
+            />
+            <Marker position={[lat, lon]}>
+              <Popup>Standort</Popup>
+            </Marker>
+          </MapContainer>
+        </div>
+    );
+  }
+
+
+  function isLocation(content: unknown): content is [number, number] {
+    return (
+        Array.isArray(content) &&
+        content.length === 2 &&
+        typeof content[0] === 'number' &&
+        typeof content[1] === 'number'
+    );
+  }
+
   return (
     <div className="p-4 h-[calc(100vh-4rem)] flex">
       {/* Kontaktliste (1/4 der Breite) */}
@@ -299,31 +352,38 @@ export default function Chat() {
             {/* Nachrichten-Bereich */}
             <div className="flex-grow overflow-y-auto px-4 py-3">
               {Array.isArray(messages) && messages.length > 0 ? (
-                  messages.map((message) => (
-                      <div
-                          key={message.id}
-                          className={`mb-4 flex ${
-                              message.senderId === userID ? "justify-end" : "justify-start"
-                          }`}
-                      >
+                  messages.map((message: Message) => {
+                    const location = isLocation(message.content);
+
+                    return (
                         <div
-                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                                message.senderId === userID
-                                    ? "bg-blue-500 text-white"
-                                    : "bg-gray-200 text-gray-800"
+                            key={message.id}
+                            className={`mb-4 flex ${
+                                message.senderId === userID ? "justify-end" : "justify-start"
                             }`}
                         >
-                          <p>{message.content}</p>
                           <div
-                              className={`text-xs mt-1 ${
-                                  message.senderId === userID ? "text-blue-100" : "text-gray-500"
+                              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                                  message.senderId === userID
+                                      ? "bg-blue-500 text-white"
+                                      : "bg-gray-200 text-gray-800"
                               }`}
                           >
-                            {formatMessageDate(message.createdAt)}
+                            {location ? (
+                                <ChatMap lat={50.123} lon={8.678} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
+                            ) : (
+                                <p>Kein Standort verfügbar</p>
+                            )}                            <div
+                                className={`text-xs mt-1 ${
+                                    message.senderId === userID ? "text-blue-100" : "text-gray-500"
+                                }`}
+                            >
+                              {formatMessageDate(message.createdAt)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                  ))
+                    );
+                  })
               ) : (
                   <div className="h-full flex items-center justify-center text-gray-500">
                     Beginne einen Chat mit {selectedContact?.name ?? "jemandem"}
@@ -360,3 +420,5 @@ export default function Chat() {
     </div>
   );
 }
+
+
