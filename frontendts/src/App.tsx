@@ -17,26 +17,26 @@ import "./i18next/config"
 import { Toaster } from 'react-hot-toast';
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/drives" element={<Drives />} />
-          <Route path="/drives/:id" element={<DrivesDetail />} />
-          <Route path="/drives/:id/search" element={<SearchDetail/>}/>
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/agb" element={<AGB />} />
-        <Route path="/impressum" element={<Impressum />} />
-        <Route path="/kontakt" element={<Kontakt />} />
-      </Routes>
-      <Toaster />
-      <Footer />
-    </BrowserRouter>
-  );
+    return (
+        <BrowserRouter>
+            <Navbar />
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/chat" element={<Chat />} />
+                <Route path="/drives" element={<Drives />} />
+                <Route path="/drives/:id" element={<DrivesDetail />} />
+                <Route path="/drives/:id/search" element={<SearchDetail/>}/>
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/agb" element={<AGB />} />
+                <Route path="/impressum" element={<Impressum />} />
+                <Route path="/kontakt" element={<Kontakt />} />
+            </Routes>
+            <Toaster />
+            <Footer />
+        </BrowserRouter>
+    );
 }
 
 export default App;
