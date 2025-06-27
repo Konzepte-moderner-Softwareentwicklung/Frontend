@@ -558,7 +558,7 @@ export async function createOffer(offer: Offer): Promise<Offer> {
     return new Promise((resolve) => {
         setTimeout(() => {
             const newOffer = offer;
-            newOffer.driver ="user789";//TODO: user mit eingeloggten Benutzer ersetzen
+            newOffer.driver =localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";//TODO: user mit eingeloggten Benutzer ersetzen
             newOffer.isGesuch = false;
             newOffer.id = "offer-0"+idCount++;
 
@@ -607,7 +607,7 @@ export async function createSearch(fields:SearchDialogFields):Promise<Offer>{
     return new Promise((resolve) => {
     setTimeout(() => {
             const newOffer =convertSearchFieldsToOffer(fields);
-            newOffer.passenger.push("user1234");//TODO: user mit eingeloggten Benutzer ersetzen
+            newOffer.passenger.push(localStorage.getItem("userId")||sessionStorage.getItem("userId")||"");//TODO: user mit eingeloggten Benutzer ersetzen
             newOffer.id = "search-0"+idCount++;//remove wenn Servercall
             mockOffers.push(newOffer);
             resolve(newOffer);//Servercall einfügen zum erstellen von Offer

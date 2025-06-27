@@ -92,7 +92,7 @@ function Drives() {
             price: numericPrice,
             locationFrom: fromLocation,
             locationTo: toLocation,
-            driver: "user789", //TODO:Mit Eingeloggten User erstetzen
+            driver: localStorage.getItem("User")||  sessionStorage.getItem("UserID")||"",
             startDateTime: startDate,
             endDateTime: endDate,
             canTransport: seats,
@@ -116,7 +116,7 @@ function Drives() {
     };
 
     const createNewSearch = () => {
-        const userId = sessionStorage.getItem("userId") || "user124";
+        const userId = localStorage.getItem("User")||  sessionStorage.getItem("UserID")||"";
         const offerData: SearchDialogFields = {
             title: title,
             description: description,
@@ -147,9 +147,10 @@ function Drives() {
 
     useEffect(() => {
         async function loadOffers() {
+            const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
             try {
                 const data = filter
-                    ? await fetchOffersWithFilter(filter, "user789")//TODO:eingeloggten Benutzer usen
+                    ? await fetchOffersWithFilter(filter, userId)
                     : await fetchOffers();
                 setOffers(data);
 
@@ -162,7 +163,7 @@ function Drives() {
         loadOffers();
     }, [filter]);
 
-    const isLoggedIn = true;
+    const isLoggedIn = sessionStorage.getItem("token") != null;
 
 
     return (

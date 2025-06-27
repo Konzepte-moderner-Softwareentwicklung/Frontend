@@ -9,7 +9,7 @@ import {DialogDescription} from "@radix-ui/react-dialog";
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
-    const userId = "user789";
+    const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
     const[isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editedOffer, setEditedOffer] = useState<Offer | null>(null);
@@ -127,8 +127,10 @@ function DrivesOfferDetailPage() {
 
 
     const goToChat = () => {
+
         // navigate(`/chat/${offer.chatId}`);
-        navigate(`/chat`);
+        if(isLoggedIn && !isDriver)
+            navigate(`/chat`);
     };
 
     if (!offer) {
@@ -330,7 +332,7 @@ function DrivesOfferDetailPage() {
                         onClick={goToChat}
                         disabled={!offer.chatId|| isSelfChat}
                         className={`px-4 py-2 rounded shadow transition ${
-                            (isLoggedIn || !offer.chatId) && !isSelfChat
+                            isLoggedIn && offer.chatId && !isSelfChat
                                 ? "bg-blue-500 text-white hover:bg-blue-600"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}

@@ -36,6 +36,7 @@ function DrivesSearchDetailPage() {
     const [isChat, setIsChat] = useState(false);
     const [isPhone, setIsPhone] = useState<boolean>(false);
 
+
     const [storageDepth, setStorageDepth] = useState<number | null>(null);
     const [storageWeight, setStorageWeight] = useState<number | null>(null);
 
@@ -43,8 +44,10 @@ function DrivesSearchDetailPage() {
     const {id} = useParams();
     const [storageWidth, setStorageWidth] = useState<number | null>(null);
     const navigate = useNavigate();
-    const userId = sessionStorage.getItem("userId") || "user124";
-
+    const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
+    const handleBack = () => {
+        navigate("/drives");
+    };
     const [fields, setFields] = useState<SearchDialogFields>({
         title: "",
         creatorId:"",
@@ -68,13 +71,16 @@ function DrivesSearchDetailPage() {
 
     useEffect(() => {
         if (id) {
-            getOffer(id).then(setOffer);
-            if (offer == undefined) {
-                createSearch(fields).then(setOffer);
-            }
-            console.log(offer?.passenger);
+            getOffer(id).then((fetchedOffer) => {
+                if (!fetchedOffer) {
+                    createSearch(fields).then(setOffer);
+                } else {
+                    setOffer(fetchedOffer);
+                }
+            });
         }
-    }, [fields, id, offer, userId]);
+    }, [fields, id]); 
+
 
 
     const handleFieldChange = (field: keyof SearchDialogFields, value: any) => {
@@ -128,9 +134,37 @@ function DrivesSearchDetailPage() {
             navigate(`/drives/${addedOffer.id}`);
         });
     };
+    if (!offer) {
+        return (
+            <div className="min-h-screen bg-cyan-100 p-8">
+                <div className="max-w-4xl mx-auto">
+                    <button
+                        onClick={handleBack}
+                        className="mb-6 px-4 py-2 bg-white text-blue-600 rounded shadow hover:bg-blue-50 transition"
+                    >
+                        ← Zurück
+                    </button>
 
+                    <div className="bg-white p-6 rounded-2xl shadow text-center">
+                        <h1 className="text-xl font-bold text-red-600 mb-4">
+                            Die Fahrt konnte nicht geladen werden.
+                        </h1>
+                        <p className="text-gray-600">
+                            Bitte überprüfe den Link oder versuche es später erneut.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
+                <button
+                    onClick={handleBack}
+                    className="mb-6 px-4 py-2 bg-white text-blue-600 rounded shadow hover:bg-blue-50 transition"
+                >
+                    ← Zurück
+                </button>
             <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow relative">
 
                 {offer?.isChat && offer.chatId && (
