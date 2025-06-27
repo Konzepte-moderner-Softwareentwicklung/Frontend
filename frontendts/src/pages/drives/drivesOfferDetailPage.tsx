@@ -121,7 +121,7 @@ function DrivesOfferDetailPage() {
     };
 
 
-    const isLoggedIn = true;
+    const isLoggedIn = sessionStorage.getItem("token") != null;
     const hasJoined = offer?.passenger.includes(userId);
     const noSeatsLeft = offer ? offer?.canTransport.seats <= 0 : undefined;
 
