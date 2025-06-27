@@ -1,3 +1,6 @@
+import {createOffer, searchOffersByFilter} from "@/api/offers_api.tsx";
+import toast from "react-hot-toast";
+
 export interface Offer {
     id: string;
     title: string;
@@ -24,6 +27,7 @@ export interface Offer {
     isGesuch?: boolean;
     ended?: boolean;
 }
+
 export interface SearchDialogFields {
     title: string;
     description: string;
@@ -32,12 +36,10 @@ export interface SearchDialogFields {
     locationTo: string;
     passengers: number;
     price: number;
-    package:Item;
+    package: Item;
     info: string[];
     restrictions: string[];
 }
-
-
 
 
 export interface Filter {
@@ -68,7 +70,8 @@ export interface Size {
     height: number;
     depth: number;
 }
-export const mockOffers: Offer[] = [
+
+const mockOffers: Offer[] = [
     {
         id: "offer-001",
         title: "Transport von Möbeln nach Berlin",
@@ -88,7 +91,7 @@ export const mockOffers: Offer[] = [
             seats: 2,
             items: [
                 {
-                    size: { width: 100, height: 120, depth: 80 },
+                    size: {width: 100, height: 120, depth: 80},
                     weight: 100,
                 },
             ],
@@ -97,11 +100,11 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 50, height: 60, depth: 40 },
+                    size: {width: 50, height: 60, depth: 40},
                     weight: 20,
                 },
                 {
-                    size: { width: 40, height: 50, depth: 30 },
+                    size: {width: 40, height: 50, depth: 30},
                     weight: 15,
                 },
             ],
@@ -111,7 +114,7 @@ export const mockOffers: Offer[] = [
         info: ["Fahrt findet bei jedem Wetter statt"],
         infoCar: ["Transporter mit Rampe"],
         imageURL: "https://example.com/images/offer1.jpg",
-        car:"Mazda"
+        car: "Mazda"
     },
     {
         id: "offer-002",
@@ -132,7 +135,7 @@ export const mockOffers: Offer[] = [
             seats: 3,
             items: [
                 {
-                    size: { width: 100, height: 50, depth: 50 },
+                    size: {width: 100, height: 50, depth: 50},
                     weight: 50,
                 },
             ],
@@ -141,7 +144,7 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 40, height: 40, depth: 30 },
+                    size: {width: 40, height: 40, depth: 30},
                     weight: 20,
                 },
             ],
@@ -151,7 +154,7 @@ export const mockOffers: Offer[] = [
         info: ["Bitte pünktlich sein"],
         infoCar: ["SUV"],
         imageURL: "https://example.com/images/offer2.jpg",
-        car:"Mercedes Benz"
+        car: "Mercedes Benz"
     },
     {
         id: "offer-003",
@@ -172,7 +175,7 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 80, height: 60, depth: 50 },
+                    size: {width: 80, height: 60, depth: 50},
                     weight: 40,
                 },
             ],
@@ -181,7 +184,7 @@ export const mockOffers: Offer[] = [
             seats: 0,
             items: [
                 {
-                    size: { width: 60, height: 40, depth: 40 },
+                    size: {width: 60, height: 40, depth: 40},
                     weight: 15,
                 },
             ],
@@ -191,7 +194,7 @@ export const mockOffers: Offer[] = [
         info: ["Transportversicherung inklusive"],
         infoCar: ["Kleiner Van"],
         imageURL: "https://example.com/images/offer3.jpg",
-        car:"Mazda"
+        car: "Mazda"
     },
     {
         id: "offer-004",
@@ -212,7 +215,7 @@ export const mockOffers: Offer[] = [
             seats: 2,
             items: [
                 {
-                    size: { width: 150, height: 120, depth: 100 },
+                    size: {width: 150, height: 120, depth: 100},
                     weight: 200,
                 },
             ],
@@ -221,11 +224,11 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 80, height: 70, depth: 60 },
+                    size: {width: 80, height: 70, depth: 60},
                     weight: 60,
                 },
                 {
-                    size: { width: 60, height: 50, depth: 40 },
+                    size: {width: 60, height: 50, depth: 40},
                     weight: 35,
                 },
             ],
@@ -235,7 +238,7 @@ export const mockOffers: Offer[] = [
         info: ["Tragehilfe vorhanden"],
         infoCar: ["Großer Sprinter"],
         imageURL: "https://example.com/images/offer4.jpg",
-        car:"Audi"
+        car: "Audi"
     },
     {
         id: "offer-005",
@@ -256,7 +259,7 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 70, height: 50, depth: 60 },
+                    size: {width: 70, height: 50, depth: 60},
                     weight: 40,
                 },
             ],
@@ -270,7 +273,7 @@ export const mockOffers: Offer[] = [
         info: ["Nachtruhe erwünscht"],
         infoCar: ["Limousine"],
         imageURL: "https://example.com/images/offer5.jpg",
-        car:"Audi"
+        car: "Audi"
     },
     {
         id: "offer-006",
@@ -291,7 +294,7 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 100, height: 60, depth: 60 },
+                    size: {width: 100, height: 60, depth: 60},
                     weight: 50,
                 },
             ],
@@ -300,11 +303,11 @@ export const mockOffers: Offer[] = [
             seats: 0,
             items: [
                 {
-                    size: { width: 40, height: 30, depth: 30 },
+                    size: {width: 40, height: 30, depth: 30},
                     weight: 10,
                 },
                 {
-                    size: { width: 30, height: 30, depth: 20 },
+                    size: {width: 30, height: 30, depth: 20},
                     weight: 5,
                 },
             ],
@@ -314,7 +317,7 @@ export const mockOffers: Offer[] = [
         info: ["Sicher und pünktlich"],
         infoCar: ["Kombi"],
         imageURL: "https://example.com/images/offer6.jpg",
-        car:"Audi"
+        car: "Audi"
     },
     {
         id: "offer-007",
@@ -335,7 +338,7 @@ export const mockOffers: Offer[] = [
             seats: 2,
             items: [
                 {
-                    size: { width: 160, height: 130, depth: 100 },
+                    size: {width: 160, height: 130, depth: 100},
                     weight: 300,
                 },
             ],
@@ -344,7 +347,7 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 100, height: 100, depth: 80 },
+                    size: {width: 100, height: 100, depth: 80},
                     weight: 120,
                 },
             ],
@@ -354,7 +357,7 @@ export const mockOffers: Offer[] = [
         info: ["Laderampe vorhanden"],
         infoCar: ["Offener Transporter"],
         imageURL: "https://example.com/images/offer7.jpg",
-        car:"Audi"
+        car: "Audi"
     },
     {
         id: "offer-008",
@@ -375,7 +378,7 @@ export const mockOffers: Offer[] = [
             seats: 1,
             items: [
                 {
-                    size: { width: 80, height: 40, depth: 50 },
+                    size: {width: 80, height: 40, depth: 50},
                     weight: 25,
                 },
             ],
@@ -384,7 +387,7 @@ export const mockOffers: Offer[] = [
             seats: 0,
             items: [
                 {
-                    size: { width: 40, height: 30, depth: 30 },
+                    size: {width: 40, height: 30, depth: 30},
                     weight: 8,
                 },
             ],
@@ -394,7 +397,7 @@ export const mockOffers: Offer[] = [
         info: ["Kofferraum frei"],
         infoCar: ["Kompaktwagen"],
         imageURL: "https://example.com/images/offer8.jpg",
-        car:"Audi"
+        car: "Audi"
     },
     {
         id: "offer-009",
@@ -415,7 +418,7 @@ export const mockOffers: Offer[] = [
             seats: 4,
             items: [
                 {
-                    size: { width: 150, height: 110, depth: 90 },
+                    size: {width: 150, height: 110, depth: 90},
                     weight: 250,
                 },
             ],
@@ -424,7 +427,7 @@ export const mockOffers: Offer[] = [
             seats: 2,
             items: [
                 {
-                    size: { width: 70, height: 60, depth: 50 },
+                    size: {width: 70, height: 60, depth: 50},
                     weight: 40,
                 },
             ],
@@ -434,7 +437,7 @@ export const mockOffers: Offer[] = [
         info: ["Gemütliche Fahrt mit Musik"],
         infoCar: ["VW Bus"],
         imageURL: "https://example.com/images/offer9.jpg",
-        car:"Audi"
+        car: "Audi"
     },
     {
         id: "search-010",
@@ -448,36 +451,33 @@ export const mockOffers: Offer[] = [
         isChat: false,
         chatId: "",
         isPhone: false,
-        isGesuch:true,
+        isGesuch: true,
         isEmail: false,
         startDateTime: new Date("2025-07-02T07:00:00Z"),
         endDateTime: new Date("2025-07-02T08:00:00Z"),
         canTransport: {
             seats: 0,
-            items: [
-            ],
+            items: [],
         },
         occupiedSpace: {
             seats: 1,
-            items: [
-            ],
+            items: [],
         },
         passenger: ["user789"],
         restrictions: [],
         info: [""],
         infoCar: [""],
         imageURL: "https://example.com/images/offer10.jpg",
-        car:""
+        car: ""
     },
 ];
+export let offers: Offer[] = [];
 
 let idCount = 11;
-export async function fetchOffers(): Promise<Offer[]> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(mockOffers);
-        }, 500);
-    });
+
+export async function getAllOffers(): Promise<Offer[]> {
+    offers = await searchOffersByFilter({});
+    return offers;
 }
 
 export async function fetchOffer(id: string | undefined): Promise<Offer | undefined> {
@@ -488,11 +488,11 @@ export async function fetchOffer(id: string | undefined): Promise<Offer | undefi
     });
 }
 
-export async function getOffer(id:string|undefined): Promise<Offer | undefined> {
+export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
     // In bereits vorhandenen offers suchen ansonsten Servercall
 
-    let foundOffer =  mockOffers.find(offer => offer.id === id);
-    if(foundOffer == undefined){
+    let foundOffer = mockOffers.find(offer => offer.id === id);
+    if (foundOffer == undefined) {
         await fetchOffer(id).then(offer => foundOffer = offer);
     }
     return foundOffer;
@@ -509,12 +509,12 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filter: Filter,  userId:string): Promise<Offer[]> {
+export async function fetchOffersWithFilter(filter: Filter, userId: string): Promise<Offer[]> {
     return new Promise((resolve) => {
         setTimeout(() => {
             const filteredOffers = mockOffers.filter((offer) => {
                 const isOwn = userId === offer.driver;
-                if (filter.onlyOwn && !isOwn|| offer.ended) return false;
+                if (filter.onlyOwn && !isOwn || offer.ended) return false;
 
                 const matchesLocationFrom =
                     filter.locationFrom !== undefined &&
@@ -554,27 +554,38 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
     });
 }
 
-export async function createOffer(offer: Offer): Promise<Offer> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const newOffer = offer;
-            newOffer.driver =localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";//TODO: user mit eingeloggten Benutzer ersetzen
-            newOffer.isGesuch = false;
-            newOffer.id = "offer-0"+idCount++;
+export async function createNewOffer(offer: Offer): Promise<Offer> {
+    // return new Promise((resolve) => {
+    //     setTimeout(() => {
+    //         const newOffer = offer;
+    //         newOffer.driver =localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";//TODO: user mit eingeloggten Benutzer ersetzen
+    //         newOffer.isGesuch = false;
+    //         newOffer.id = "offer-0"+idCount++;
+    //
+    //         mockOffers.push(newOffer);
+    //         resolve(newOffer);
+    //     }, 500);
+    // });} catch (error: any) {
 
-            mockOffers.push(newOffer);
-            resolve(newOffer);
-        }, 500);
-    });
+    try {
+        return await createOffer(offer)
+    }catch (error:any) {
+        if (error.response?.status === 500) {
+            toast("Server interner Fehler");
+        } else {
+            toast.error('Fahrt erstellen fehlgeschlagen');
+        }
+    }
+
 }
 
 
-export async function createSearch(fields:SearchDialogFields):Promise<Offer>{
-    function convertSearchFieldsToOffer(fields: SearchDialogFields):Offer {
+export async function createSearch(fields: SearchDialogFields): Promise<Offer> {
+    function convertSearchFieldsToOffer(fields: SearchDialogFields): Offer {
         return {
             canTransport: {
                 items: [],
-                seats:0
+                seats: 0
             },
             car: "",
             chatId: "",
@@ -603,20 +614,23 @@ export async function createSearch(fields:SearchDialogFields):Promise<Offer>{
             title: fields.title
         }
     }
-
-    return new Promise((resolve) => {
-    setTimeout(() => {
-            const newOffer =convertSearchFieldsToOffer(fields);
-            newOffer.passenger.push(localStorage.getItem("userId")||sessionStorage.getItem("userId")||"");//TODO: user mit eingeloggten Benutzer ersetzen
-            newOffer.id = "search-0"+idCount++;//remove wenn Servercall
-            mockOffers.push(newOffer);
-            resolve(newOffer);//Servercall einfügen zum erstellen von Offer
-    })
-})
+    try {
+        const newOffer = convertSearchFieldsToOffer(fields);
+        newOffer.passenger.push(localStorage.getItem("userId") || sessionStorage.getItem("userId") || "");//TODO: user mit eingeloggten Benutzer ersetzen
+        newOffer.id = "search-0" + idCount++;//remove wenn Servercall
+        mockOffers.push(newOffer);
+        return await createOffer(newOffer)
+    }catch (error:any) {
+        if (error.response?.status === 500) {
+            toast("Server interner Fehler");
+        } else {
+            toast.error('Gesuch erstellen fehlgeschlagen');
+        }
+    }
 }
 
 
-export function isSpaceAvailable (can: Space, occupied: Space, newItem: Item):boolean  {
+export function isSpaceAvailable(can: Space, occupied: Space, newItem: Item): boolean {
     const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
     const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
         newItem.size.width * newItem.size.height * newItem.size.depth;

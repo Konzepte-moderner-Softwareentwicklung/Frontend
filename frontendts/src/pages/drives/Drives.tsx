@@ -30,14 +30,15 @@ import {
 import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
-    createOffer, createSearch,
-    fetchOffers,
+    createNewOffer, createSearch,
+    getAllOffers,
     fetchOffersWithFilter,
     type Filter,
     getMaxPrice,
     type Offer, type SearchDialogFields, type Space
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
+import toast from "react-hot-toast";
 
 
 
@@ -83,7 +84,7 @@ function Drives() {
         ]
     };
 
-    const createNewOffer = () => {
+    const createOffer = () => {
 
         const offerData: Offer = {
             id:"-1",
@@ -110,9 +111,14 @@ function Drives() {
             imageURL: ""
         };
 
-        createOffer(offerData).then(function (offer){
+
+    createNewOffer(offerData).then(function (offer){
+        if(offer)
             navigate(`/drives/${offer.id}`);
-        });
+    });
+
+
+
     };
 
     const createNewSearch = () => {
@@ -137,13 +143,13 @@ function Drives() {
     };
 
 
-    const totalPages = Math.ceil(offers.length / entriesPerPage);
+    const totalPages = Math.ceil((offers?.length||1) / entriesPerPage);
     const navigate = useNavigate();
 
-    const paginatedOffers = offers.slice(
+    const paginatedOffers = offers?.slice(
         (currentPage - 1) * entriesPerPage,
         currentPage * entriesPerPage
-    );
+    )||[];
 
     useEffect(() => {
         async function loadOffers() {
@@ -151,7 +157,7 @@ function Drives() {
             try {
                 const data = filter
                     ? await fetchOffersWithFilter(filter, userId)
-                    : await fetchOffers();
+                    : await getAllOffers();
                 setOffers(data);
 
                 setCurrentPage(1);
@@ -286,7 +292,7 @@ function Drives() {
 
 
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                {offers.length === 0 ? (
+                {offers?.length === 0 ? (
                     <p className="col-span-full text-center text-gray-600">
                         Keine Angebote und Gesuche vorhanden.
                     </p>
@@ -518,7 +524,7 @@ function Drives() {
                         </div>
 
                         <DialogFooter>
-                            <Button onClick={createNewOffer} type="submit">
+                            <Button onClick={createOffer} type="submit">
                                 Erstellen
                             </Button>
                         </DialogFooter>

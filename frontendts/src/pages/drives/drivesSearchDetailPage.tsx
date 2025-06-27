@@ -10,7 +10,7 @@ import {DialogDescription} from "@radix-ui/react-dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {
-    createOffer,
+    createNewOffer,
     createSearch,
     getOffer,
     type Offer,
@@ -19,6 +19,7 @@ import {
 import {useNavigate, useParams} from "react-router-dom";
 import {Textarea} from "@/components/ui/textarea.tsx";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import toast from "react-hot-toast";
 
 function DrivesSearchDetailPage() {
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -126,13 +127,23 @@ function DrivesSearchDetailPage() {
             imageURL: ""
         };
         setShowDriverDialog(false);
-
-        createOffer(newOffer).then(function (addedOffer) {
-            if (offer) {
-                offer.ended = true;
+        try{
+            createNewOffer(newOffer).then(function (addedOffer) {
+                if (offer) {
+                    offer.ended = true;
+                }
+                navigate(`/drives/${addedOffer.id}`);
+            });
+        }
+        catch (error: any) {
+            if (error.response?.status === 500) {
+                toast("Server interner Fehler");
+            } else {
+                toast.error('Fahrt erstellen fehlgeschlagen');
             }
-            navigate(`/drives/${addedOffer.id}`);
-        });
+            setShowDriverDialog(false);
+        }
+
     };
     if (!offer) {
         return (
