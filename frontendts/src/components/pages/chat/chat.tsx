@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { 
   fetchChatContacts, 
   fetchChatHistory, 
-  sendChatMessage, 
+  sendChatMessage,
   subscribeToMessages,
-
+  transformMessages,
   type ChatContact, 
   type ChatMessage 
 } from "./chatService";
@@ -18,7 +18,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [userID] = useState<string>(localStorage.getItem("user") || "");
+  const [userID] = useState<string>(localStorage.getItem("UserID") || "");
 
 
   // Ref für das Scrollen zum Ende des Chats
@@ -56,7 +56,10 @@ export default function Chat() {
 
       setIsLoading(true);
       try {
-        const data = await fetchChatHistory();
+        const data = await fetchChatHistory(selectedContact.id);
+        for(const msg of data){
+          console.log("senderID "+ msg.senderId+"    userID: "+localStorage.getItem("UserID"));
+        }
         setMessages(data);
       } catch (error) {
         console.error("Fehler beim Laden des Chat-Verlaufs:", error);
@@ -73,79 +76,97 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Abonnieren von neuen Nachrichten über WebSockets/NATS
+
+
   useEffect(() => {
-    // Abonnieren von Nachrichten
-    try {
-      if (selectedContact) {
+    if (!selectedContact) return;
 
-        const unsubscribe = subscribeToMessages(selectedContact.chatId, (newMsg) => {
-          // Prüfen, ob die Nachricht zum aktuellen Chat gehört
-          if (selectedContact &&
-              (newMsg.senderId === selectedContact.chatId ||
-                  newMsg.chatId === selectedContact.chatId)) {
-            setMessages((prevMessages) => [...prevMessages, newMsg]);
-          }
+    let isSubscribed = true;
+    let socketCleanup = () => {};
 
-          // Aktualisiere ungelesene Nachrichten im Kontakt-Liste
-          setContacts((prevContacts) =>
-              prevContacts.map((contact) => {
-                if (contact.chatId === newMsg.senderId && contact.chatId !== selectedContact?.chatId) {
+
+    const subscribe = async () => {
+      try {
+        const unsubscribe = await subscribeToMessages(selectedContact.id, (newMsg) => {
+          if (!isSubscribed) return;
+
+         if (newMsg.senderId === selectedContact.receiverId) {
+            newMsg = transformMessages([newMsg])[0]
+            setMessages((prev) => [...prev, newMsg]);
+         } else {
+         }
+
+          setContacts((prev) =>
+              prev.map((contact) => {
+                if (
+                    contact.receiverId === newMsg.senderId &&
+                    contact.receiverId !== selectedContact.receiverId &&
+                    newMsg.createdAt &&
+                    !isNaN(Date.parse(newMsg.createdAt))
+                ) {
                   return {
                     ...contact,
                     unreadCount: (contact.unreadCount || 0) + 1,
                     lastMessage: newMsg.content,
-                    lastMessageTime: formatTime(new Date(newMsg.createdAt))
+                    lastMessageTime: formatTime(new Date(newMsg.createdAt)),
                   };
                 }
                 return contact;
               })
           );
         });
-        // Cleanup beim Unmount
-        return () => {
-          unsubscribe();
-        };
+
+        socketCleanup = unsubscribe;
+      } catch (err) {
+        console.error("WebSocket Subscribe-Fehler:", err);
       }
-    }
-      catch (err){
-      console.error(err);
-      }
-  }, [selectedContact]);
+    };
+
+    subscribe();
+
+    return () => {
+      isSubscribed = false;
+      socketCleanup?.(); // ✅ kann wieder rein!
+    };
+  }, [selectedContact?.id]); // 👈 Nur neu subscriben, wenn die Chat-ID sich ändert
+
 
   // Absenden einer neuen Nachricht
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedContact || !newMessage.trim()) return;
-
     setIsLoading(true);
+4
     try {
       // Optimistisches Update: Nachricht sofort anzeigen
+
       const tempMessage: ChatMessage = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${crypto.randomUUID()}`,
         senderId: userID, // Aktuelle Benutzer-ID
-        chatId: selectedContact.chatId,
+        chatId: selectedContact.id,
         content: newMessage,
         createdAt: new Date().toISOString(),
         read: false
       };
-
       setMessages((prev) => [...prev, tempMessage]);
       setNewMessage("");
 
       // Tatsächlich an Backend senden
-      const sentMessage = await sendChatMessage(newMessage, selectedContact.chatId,userID);
+      const sentMessage = await sendChatMessage(newMessage, selectedContact.id,userID);
+      if(sentMessage){
+        // Optimistisches Update mit tatsächlicher Nachricht ersetzen
+        setMessages((prev) =>
 
-      // Optimistisches Update mit tatsächlicher Nachricht ersetzen
-      setMessages((prev) =>
-        prev.map((msg) => msg.id === tempMessage.id ? sentMessage : msg)
-      );
+            prev.map((msg) => msg.id === tempMessage.id ? sentMessage : msg)
+        );
+      }
+
 
       // Kontaktliste aktualisieren
       setContacts((prev) =>
         prev.map((contact) => {
-          if (contact.chatId === selectedContact.chatId) {
+          if (contact.receiverId === selectedContact.receiverId) {
             return {
               ...contact,
               lastMessage: newMessage,
@@ -182,7 +203,7 @@ export default function Chat() {
     // Ungelesene Nachrichten zurücksetzen
     setContacts((prev) =>
       prev.map((c) => {
-        if (c.chatId === contact.chatId) {
+        if (c.receiverId === contact.receiverId) {
           return { ...c, unreadCount: 0 };
         }
         return c;
@@ -203,10 +224,10 @@ export default function Chat() {
             {
               contacts.map((contact) => (
               <li
-                key={contact.chatId}
+                key={contact.id}
                 onClick={() => handleContactSelect(contact)}
                 className={`flex items-center p-3 rounded-lg mb-2 cursor-pointer hover:bg-gray-100 transition ${
-                  selectedContact?.chatId === contact.chatId ? "bg-gray-100" : ""
+                  selectedContact?.id === contact.id ? "bg-gray-100" : ""
                 }`
             }
 
@@ -277,34 +298,36 @@ export default function Chat() {
 
             {/* Nachrichten-Bereich */}
             <div className="flex-grow overflow-y-auto px-4 py-3">
-              {messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  Beginne einen Chat mit {selectedContact.name}
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`mb-4 flex ${
-                      message.senderId === userID ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                        message.senderId === userID
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-800"
-                      }`}
-                    >
-                      <p>{message.content}</p>
-                      <div className={`text-xs mt-1 ${
-                        message.senderId === userID ? "text-blue-100" : "text-gray-500"
-                      }`}>
-                        {formatMessageDate(message.createdAt)}
+              {Array.isArray(messages) && messages.length > 0 ? (
+                  messages.map((message) => (
+                      <div
+                          key={message.id}
+                          className={`mb-4 flex ${
+                              message.senderId === userID ? "justify-end" : "justify-start"
+                          }`}
+                      >
+                        <div
+                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                                message.senderId === userID
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-gray-200 text-gray-800"
+                            }`}
+                        >
+                          <p>{message.content}</p>
+                          <div
+                              className={`text-xs mt-1 ${
+                                  message.senderId === userID ? "text-blue-100" : "text-gray-500"
+                              }`}
+                          >
+                            {formatMessageDate(message.createdAt)}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                  ))
+              ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500">
+                    Beginne einen Chat mit {selectedContact?.name ?? "jemandem"}
                   </div>
-                ))
               )}
               <div ref={messagesEndRef} />
             </div>

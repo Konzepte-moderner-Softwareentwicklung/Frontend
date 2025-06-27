@@ -19,8 +19,8 @@ export async function getUserByEmail() {
   return response.data;
 }
 
-export async function getUserByID() {
-  const response = await api.get("/user/{ID}");
+export async function getUserByID(id:string) {
+  const response = await api.get("/user/"+id);
   return response.data;
 }
 

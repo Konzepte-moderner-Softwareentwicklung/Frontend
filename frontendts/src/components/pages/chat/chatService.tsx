@@ -1,9 +1,12 @@
 import axios from "axios";
+import {getChats, getChatMessages, connectWebSocket, postMessage} from "@/api/chat_api";
+import {getUserByID} from "@/api/user_api.tsx";
 
 // Interfaces
 export interface ChatContact {
-  chatId: string;
-  userId: string; // Gegenüber im Chat
+  id: string;
+  receiverId: string;
+  senderID: string; // Gegenüber im Chat
   name: string;
   avatar?: string;
   lastMessage?: string;
@@ -20,42 +23,88 @@ export interface ChatMessage {
   read: boolean;
 }
 
+function findLatestMessage(messages: ChatMessage[]): ChatMessage | null {
+  if (messages.length === 0) return null;
 
+  return messages.reduce((latest, current) => {
+    return new Date(current.createdAt) > new Date(latest.createdAt)
+        ? current
+        : latest;
+  });
+}
 
+export function transformMessages(messages: any[]): ChatMessage[] {
+  if(messages.length > 0) {
+    return messages.map((message) => {
+      try {
+        const newMessage: ChatMessage = {
+          id: message.id,
+          chatId: message.chat_id,
+          senderId: message.sender_id,
+          content: message.content,
+          createdAt: message.created_at,
+          read: false,
+        };
+        return newMessage;
+      } catch (error) {
+        console.error("Failed to transform message:", error);
+        return null; // optional: du kannst auch `undefined` zurückgeben oder filtern
+      }
+    }).filter((msg): msg is ChatMessage => msg !== null);
 
+  }
+  else return [];
+}
 // 🔹 Abrufen aller Chat-Kontakte
 export async function fetchChatContacts(){
 
-
-
-
-
   try {
     const userID = localStorage.getItem("UserID");
-    const token = localStorage.getItem("token");
-    let contacts = [];
+    const contacts:ChatContact[] = [];
 
-    console.log(token);
-    await axios.post("/api/chat", {
-      userIds: ["2ff8ae97-42bb-46b3-8b34-e35ec6dd42f4"]
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
+    const chats = await getChats();
+    if(chats) {
+      for (const chat of chats) {
+        const newContact: ChatContact = {};
+        if (chat.user_ids.length === 2) {
+          //einzelchat
+
+          const userIDs: string[] = chat.user_ids;
+          const otherUid = userIDs.find(id => id !== userID);
+
+
+          const chatID = chat.id;
+          if (otherUid && userID && chat.id) {
+            newContact.receiverId = otherUid;
+            newContact.senderID = userID;
+            newContact.id = chatID;
+            const rawMessages = await getChatMessages(chatID);
+            if (rawMessages) {
+              //es gibt bereits nachrichten
+              //todo: handler für lastMessage = null
+              const messages = transformMessages(rawMessages);
+              const lastMessage = findLatestMessage(messages)
+              newContact.lastMessage = lastMessage?.content;
+              newContact.lastMessageTime = lastMessage?.createdAt;
+            }
+
+            const otherUser = await getUserByID(otherUid);
+            newContact.name = otherUser.firstName + " " + otherUser.lastName;
+            newContact.avatar = otherUser.profilePicture;
+            if(!(contacts.find(str => str.id === newContact.id))) {
+              contacts.push(newContact);
+            }
+            else{
+            }
+          }
+
+        } else if (chat.user_ids.length > 2) {
+          //gruppenchat
+        }
       }
-    });
+    }
 
-    const res = await axios.get(`/ws/chat/${userID}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
-    if(res.status !== 200) {
-      contacts = res.data;
-    }
-    else{
-      console.log("contacts kein array ");
-    }
+    
 
 
     return contacts;
@@ -65,24 +114,16 @@ export async function fetchChatContacts(){
 }
 
 // 🔹 Abrufen des Chat-Verlaufs
-export async function fetchChatHistory(): Promise<ChatMessage[]> {
+export async function fetchChatHistory(id:string): Promise<ChatMessage[]> {
+      const rawMessages = await getChatMessages(id);
+      if (rawMessages) {
+        const messages = transformMessages(rawMessages);
+        return messages;
+      }
+      return [];
 
 
-  try {
-    const token = localStorage.getItem("token");
-    const res = await axios.get(`/ws/chat/`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
-    const messages:ChatMessage[] = await res.data as ChatMessage[];
-    console.log(messages);
-    return messages;
-  } catch (err) {
-    console.error("Fehler beim Laden des Verlaufs:", err);
-    return [];
   }
-}
 
 // 🔹 Neue Nachricht senden
 export async function sendChatMessage(
@@ -98,39 +139,19 @@ export async function sendChatMessage(
     createdAt: new Date().toISOString(),
     read: false,
   };
+  const res = await postMessage(chatID, content);
 
-  try {
-    const token = localStorage.getItem("token");
-    console.log("ws/chat/"+chatID);
-    await axios.post(`/ws/chat/${chatID}`, newMessage, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
-  } catch (err) {
-    console.error("Fehler beim Senden der Nachricht:", err);
-    // TODO: Visuelle Fehlermeldung anzeigen
-  }
+  if(res)return newMessage;
 
-  return newMessage;
 }
 
 
 
-export function subscribeToMessages(
+export async function subscribeToMessages(
     chatId: string,
     onMessageReceived: (msg: ChatMessage) => void
-): () => void {
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const host = "localhost:80";
-  const token = localStorage.getItem("token");
-  const socket = new WebSocket(`${protocol}://${host}/ws/chat/${chatId}?token=${token}`);
-  console.log(`socket: ${protocol}://${host}/ws/chat/${chatId}?token=${token}`)
-  socket.onopen = () => {
-    console.log("✅ WebSocket verbunden:", chatId);
-  };
-
+): Promise<() => void> {
+const socket = await connectWebSocket(chatId);
   socket.onmessage = (event) => {
     try {
       const msg: ChatMessage = JSON.parse(event.data);
