@@ -35,11 +35,9 @@ import {
     fetchOffersWithFilter,
     type Filter,
     getMaxPrice,
-    type Offer, type SearchDialogFields, type Space
+    type Offer, type SearchDialogFields, type Space, setLocationName
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
-import toast from "react-hot-toast";
-
 
 
 function Drives() {
@@ -51,7 +49,6 @@ function Drives() {
     const [maxPrice, setMaxPrice] = useState([100]);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [car, setCar] = useState("");
     const [info, setInfo] = useState("");
     const [infoCar, setInfoCar] = useState("");
     const [fromLocation, setFromLocation] = useState("");
@@ -84,50 +81,47 @@ function Drives() {
         ]
     };
 
-    const createOffer = () => {
-
+    async function createOffer() {
+        const locationFrom = await setLocationName(fromLocation);
+        const locationTo = await setLocationName(toLocation)
         const offerData: Offer = {
-            id:"-1",
+            id: "-1",
             title: title,
             description: description,
             price: numericPrice,
-            locationFrom: fromLocation,
-            locationTo: toLocation,
-            driver: localStorage.getItem("User")||  sessionStorage.getItem("UserID")||"",
-            startDateTime: startDate,
-            endDateTime: endDate,
+            locationFrom: locationFrom,
+            locationTo: locationTo,
+            creator: localStorage.getItem("User") || sessionStorage.getItem("UserID") || "",
+            startDateTime: startDate.toISOString(),
+            endDateTime: endDate.toISOString(),
             canTransport: seats,
             occupiedSpace: seats,
             isPhone: isPhone,
             isEmail: isEmail,
             isChat: isChat,
-            passenger: [],
+            occupiedBy: [],
             restrictions: restrictions.split(";"),
             info: info.split(";"),
             infoCar: infoCar.split(";"),
-            car: car,
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
             chatId: "",
             imageURL: ""
         };
 
 
-    createNewOffer(offerData).then(function (offer){
-        if(offer)
-            navigate(`/drives/${offer.id}`);
-    });
-
-
-
-    };
+        createNewOffer(offerData).then(function (offer) {
+            if (offer)
+                navigate(`/drives/${offer.id}`);
+        });
+    }
 
     const createNewSearch = () => {
-        const userId = localStorage.getItem("User")||  sessionStorage.getItem("UserID")||"";
+        const userId = localStorage.getItem("User") || sessionStorage.getItem("UserID") || "";
         const offerData: SearchDialogFields = {
             title: title,
             description: description,
             price: numericPrice,
-            creatorId:userId,
+            creatorId: userId,
             locationFrom: fromLocation,
             locationTo: toLocation,
             passengers: seats.seats,
@@ -136,24 +130,24 @@ function Drives() {
             info: info.split(";"),
         };
 
-        createSearch(offerData).then(function (offer){
+        createSearch(offerData).then(function (offer) {
 
             navigate(`/drives/${offer.id}/search`);
         });
     };
 
 
-    const totalPages = Math.ceil((offers?.length||1) / entriesPerPage);
+    const totalPages = Math.ceil((offers?.length || 1) / entriesPerPage);
     const navigate = useNavigate();
 
     const paginatedOffers = offers?.slice(
         (currentPage - 1) * entriesPerPage,
         currentPage * entriesPerPage
-    )||[];
+    ) || [];
 
     useEffect(() => {
         async function loadOffers() {
-            const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
+            const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId") || "";
             try {
                 const data = filter
                     ? await fetchOffersWithFilter(filter, userId)
@@ -166,7 +160,7 @@ function Drives() {
             }
         }
 
-        loadOffers();
+        loadOffers().then();
     }, [filter]);
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
@@ -330,9 +324,9 @@ function Drives() {
                                         )}
                                     </div>
 
-                                    <p className="font-medium">
-                                        {offer.locationFrom} → {offer.locationTo}
-                                    </p>
+                                    {/*<p className="font-medium">*/}
+                                    {/*    {offer.locationFrom} → {offer.locationTo}*/}
+                                    {/*</p>*/}
                                     <p className="font-bold">{offer.price} Euro</p>
                                 </CardContent>
                             </Card>
@@ -440,7 +434,8 @@ function Drives() {
                             </div>
 
                             <div className="col-span-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug (in Meter)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug
+                                    (in Meter)</label>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <Input
                                         placeholder="Breite"
@@ -472,15 +467,18 @@ function Drives() {
 
                             <div className="flex gap-4">
                                 <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={isPhone} onChange={(e) => setIsPhone(e.target.checked)} />
+                                    <input type="checkbox" checked={isPhone}
+                                           onChange={(e) => setIsPhone(e.target.checked)}/>
                                     Handy
                                 </label>
                                 <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={isEmail} onChange={(e) => setIsEmail(e.target.checked)} />
+                                    <input type="checkbox" checked={isEmail}
+                                           onChange={(e) => setIsEmail(e.target.checked)}/>
                                     E-Mail
                                 </label>
                                 <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={isChat} onChange={(e) => setIsChat(e.target.checked)} />
+                                    <input type="checkbox" checked={isChat}
+                                           onChange={(e) => setIsChat(e.target.checked)}/>
                                     Chat
                                 </label>
                             </div>
@@ -508,19 +506,6 @@ function Drives() {
                                     onChange={(e) => setInfoCar(e.target.value)}
                                 />
                             </div>
-
-                            <Select onValueChange={(value) => setCar(value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Fahrzeug auswählen" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {["Audi", "Mazda", "Mercedes Benz"].map((count) => (
-                                        <SelectItem key={count} value={count}>
-                                            {count}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
 
                         <DialogFooter>
@@ -637,7 +622,8 @@ function Drives() {
 
 
                         <DialogFooter>
-                            <Button onClick={createNewSearch} className="cursor-pointer" type="submit">Erstellen</Button>
+                            <Button onClick={createNewSearch} className="cursor-pointer"
+                                    type="submit">Erstellen</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

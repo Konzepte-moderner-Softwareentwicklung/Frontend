@@ -14,18 +14,16 @@ import {
     createSearch,
     getOffer,
     type Offer,
-    type SearchDialogFields,
+    type SearchDialogFields, setLocationName,
 } from "@/pages/drives/drivesService.tsx";
 import {useNavigate, useParams} from "react-router-dom";
 import {Textarea} from "@/components/ui/textarea.tsx";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import toast from "react-hot-toast";
 
 function DrivesSearchDetailPage() {
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDriverDialog, setShowDriverDialog] = useState(false);
     const [description, setDescription] = useState("");
-    const [car, setCar] = useState("");
     const [info, setInfo] = useState("");
     const [infoCar, setInfoCar] = useState("");
     const [startDate, setStartDate] = useState(new Date());
@@ -89,22 +87,24 @@ function DrivesSearchDetailPage() {
     };
 
 
-    const handleDriverSubmit = () => {
+    async function handleDriverSubmit () {
+        const locationFrom = await setLocationName(fields.locationFrom);
+        const locationTo = await setLocationName(fields.locationTo)
         const newOffer: Offer = {
             id: "",
             title: fields.title,
             description: description,
             price: fields.price,
-            locationFrom: fields.locationFrom,
-            locationTo: fields.locationTo,
-            driver: userId,
-            createdAt: new Date(),
+            locationFrom: locationFrom,
+            locationTo: locationTo,
+            creator: userId,
+            createdAt: new Date().toISOString(),
             isChat: isChat,
             chatId: "",
             isPhone: isPhone,
             isEmail: isEmail,
-            startDateTime: startDate,
-            endDateTime: endDate,
+            startDateTime: startDate.toISOString(),
+            endDateTime: endDate.toISOString(),
             canTransport: {
                 seats: parseInt(seats),
                 items: [{
@@ -119,11 +119,10 @@ function DrivesSearchDetailPage() {
             occupiedSpace: {
                 seats: 1, items: [fields.package]
             },
-            passenger: offer?.passenger||[fields.creatorId],
+            occupiedBy: offer?.occupiedBy||[fields.creatorId],
             restrictions: fields.restrictions||restrictions||[],
             info: fields.info||info||[],
             infoCar: infoCar.split(";")||[],
-            car: car,
             imageURL: ""
         };
         setShowDriverDialog(false);
@@ -144,7 +143,7 @@ function DrivesSearchDetailPage() {
             setShowDriverDialog(false);
         }
 
-    };
+    }
     if (!offer) {
         return (
             <div className="min-h-screen bg-cyan-100 p-8">
@@ -233,12 +232,12 @@ function DrivesSearchDetailPage() {
 
                 <div className="flex gap-4">
 
-                    {offer && offer.passenger[0] === userId && (
+                    { offer?.occupiedBy?.[0] === userId && (
                         <Button onClick={() => setShowEditDialog(true)}>Bearbeiten</Button>
                     )}
 
 
-                    {offer && offer.passenger[0] !== userId && (
+                    {offer?.occupiedBy?.[0]  !== userId && (
                         <Button onClick={() => setShowDriverDialog(true)}>
                             Als Fahrer melden
                         </Button>
@@ -487,19 +486,7 @@ function DrivesSearchDetailPage() {
                                 onChange={(e) => setInfoCar(e.target.value)}
                             />
                         </div>
-
-                        <Select onValueChange={(value) => setCar(value)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Fahrzeug auswählen"/>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {["Audi", "Mazda", "Mercedes Benz"].map((count) => (
-                                    <SelectItem key={count} value={count}>
-                                        {count}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        
                     </div>
 
                     <DialogFooter>

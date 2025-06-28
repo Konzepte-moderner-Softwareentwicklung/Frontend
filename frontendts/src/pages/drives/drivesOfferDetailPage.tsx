@@ -1,10 +1,18 @@
 import {useNavigate, useParams} from "react-router-dom";
-import {getOffer, isSpaceAvailable, type Item, type Offer} from "@/pages/drives/drivesService.tsx";
+import {
+    DEFAULT_OFFER,
+    getOffer,
+    isSpaceAvailable,
+    type Item,
+    type Offer,
+    setLocationName
+} from "@/pages/drives/drivesService.tsx";
 import {useEffect, useRef, useState} from "react";
 import {Input} from "@/components/ui/input";
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button";
 import {DialogDescription} from "@radix-ui/react-dialog";
+import toast from "react-hot-toast";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -12,8 +20,9 @@ function DrivesOfferDetailPage() {
     const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
     const[isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
-    const [editedOffer, setEditedOffer] = useState<Offer | null>(null);
-
+    const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
+    const [FromLocationGeoName, setFromLocationGeoName] = useState('');
+    const [ToLocationGeoName, setToLocationGeoName] = useState('');
 
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
@@ -27,47 +36,47 @@ function DrivesOfferDetailPage() {
     useEffect(() => {
         window.scrollTo({top: 0, behavior: "smooth"});
         // change if the token is not saved in the localStorage
-        ws.current = new WebSocket(
-            `/api/tracking?token=${sessionStorage.getItem("token")}`,
-        );
-
-        ws.current.onopen = () => {
-            intervalRef.current = window.setInterval(() => {
-                if (navigator.geolocation && isTracking) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position: GeolocationPosition) => {
-                            const location = {
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                            };
-                            ws.current?.send(JSON.stringify(location));
-                        },
-                        (error: GeolocationPositionError) => {
-                            console.error("Geolocation error:", error.message);
-                        },
-                    );
-                }
-            }, 5000);
-        };
-
-        ws.current.onmessage = (event: MessageEvent) => {
-            console.log("Message from server:", event.data);
-        };
-
-        ws.current.onerror = (error: Event) => {
-            console.error("WebSocket error:", error);
-        };
-
-        ws.current.onclose = () => {
-            console.log("WebSocket connection closed");
-        };
-
-        // Cleanup
-        return () => {
-            if (ws.current?.readyState === WebSocket.OPEN) {
-                ws.current.close();
-            }
-        };
+        // ws.current = new WebSocket(
+        //     `/api/tracking?token=${sessionStorage.getItem("token")}`,
+        // );
+        //
+        // ws.current.onopen = () => {
+        //     intervalRef.current = window.setInterval(() => {
+        //         if (navigator.geolocation && isTracking) {
+        //             navigator.geolocation.getCurrentPosition(
+        //                 (position: GeolocationPosition) => {
+        //                     const location = {
+        //                         latitude: position.coords.latitude,
+        //                         longitude: position.coords.longitude,
+        //                     };
+        //                     ws.current?.send(JSON.stringify(location));
+        //                 },
+        //                 (error: GeolocationPositionError) => {
+        //                     console.error("Geolocation error:", error.message);
+        //                 },
+        //             );
+        //         }
+        //     }, 5000);
+        // };
+        //
+        // ws.current.onmessage = (event: MessageEvent) => {
+        //     console.log("Message from server:", event.data);
+        // };
+        //
+        // ws.current.onerror = (error: Event) => {
+        //     console.error("WebSocket error:", error);
+        // };
+        //
+        // ws.current.onclose = () => {
+        //     console.log("WebSocket connection closed");
+        // };
+        //
+        // // Cleanup
+        // return () => {
+        //     if (ws.current?.readyState === WebSocket.OPEN) {
+        //         ws.current.close();
+        //     }
+        // };
     });
 
     const toggleTracking = () => {
@@ -85,15 +94,15 @@ function DrivesOfferDetailPage() {
         if (id) {
             getOffer(id).then(setOffer);
 
-            if (offer?.driver == userId) {
+            if (offer?.creator == userId) {
                 setIsDriver(true);
                 setIsSelfChat(true);
             }
 
         }
-    }, [id, offer?.driver,isDriver]);
+    }, [id, offer?.creator, isDriver, userId]);
     const joinOffer = () => {
-        if (!offer || offer.passenger.includes(userId)) return;
+        if (!offer || offer?.occupiedBy?.includes(userId)) return;
 
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
@@ -113,7 +122,7 @@ function DrivesOfferDetailPage() {
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem))
             offer.occupiedSpace.items.push(newItem);
 
-        offer.passenger.push(userId);
+        offer?.occupiedBy?.push(userId);
 
 
         // Force re-render
@@ -122,8 +131,8 @@ function DrivesOfferDetailPage() {
 
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
-    const hasJoined = offer?.passenger.includes(userId);
-    const noSeatsLeft = offer ? offer?.canTransport.seats <= 0 : undefined;
+    const hasJoined = offer?.occupiedBy?.includes(userId);
+    const noSeatsLeft = offer ? offer?.canTransport?.seats <= 0 : undefined;
 
 
     const goToChat = () => {
@@ -228,17 +237,38 @@ function DrivesOfferDetailPage() {
                                     />
                                     <Input
                                         placeholder="Von"
-                                        value={editedOffer.locationFrom}
-                                        onChange={(e) =>
-                                            setEditedOffer({ ...editedOffer, locationFrom: e.target.value })
-                                        }
+                                        value={FromLocationGeoName}
+                                        onChange={(e) =>setFromLocationGeoName(e.target.value)}
+                                        onBlur={async () => {
+                                            try {
+                                                const coords = await setLocationName(FromLocationGeoName);
+                                                setEditedOffer((prev) => ({
+                                                    ...prev,
+                                                    locationFrom: coords,
+                                                }));
+                                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                            } catch (err) {
+                                                toast.error("Von Location konnte nicht gesetzt werden. Bitte geben sie einen gültigen Wert ein");
+                                            }
+                                        }}
                                     />
+
                                     <Input
                                         placeholder="Nach"
-                                        value={editedOffer.locationTo}
-                                        onChange={(e) =>
-                                            setEditedOffer({ ...editedOffer, locationTo: e.target.value })
-                                        }
+                                        value={ToLocationGeoName}
+                                        onChange={(e) =>setToLocationGeoName(e.target.value)}
+                                        onBlur={async () => {
+                                            try {
+                                                const coords = await setLocationName(ToLocationGeoName);
+                                                setEditedOffer((prev) => ({
+                                                    ...prev,
+                                                    locationFrom: coords,
+                                                }));
+                                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                            } catch (err) {
+                                                toast.error("Von Location konnte nicht gesetzt werden. Bitte geben sie einen gültigen Wert ein");
+                                            }
+                                        }}
                                     />
                                     <Input
                                         placeholder="Preis in €"
@@ -330,9 +360,9 @@ function DrivesOfferDetailPage() {
 
                     <button
                         onClick={goToChat}
-                        disabled={!offer.chatId|| isSelfChat}
+                        disabled={!offer?.chatId|| isSelfChat}
                         className={`px-4 py-2 rounded shadow transition ${
-                            isLoggedIn && offer.chatId && !isSelfChat
+                            isLoggedIn && offer?.chatId && !isSelfChat
                                 ? "bg-blue-500 text-white hover:bg-blue-600"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}
@@ -343,48 +373,49 @@ function DrivesOfferDetailPage() {
 
                 <div className="bg-white rounded-2xl shadow p-6 mt-2">
                     <img
-                        src={offer.imageURL}
+                        src={offer?.imageURL}
                         alt="Angebot"
                         className="w-full h-64 object-cover rounded mb-4"
                     />
 
-                    <h1 className="text-2xl font-bold mb-2">{offer.title}</h1>
-                    <p className="text-gray-600 mb-4">{offer.description}</p>
+                    <h1 className="text-2xl font-bold mb-2">{offer?.title}</h1>
+                    <p className="text-gray-600 mb-4">{offer?.description}</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
+                            {/*<p>*/}
+                            {/*    <strong>Von:</strong> {getLocationName(offer?.locationFrom?.latitude,offer?.locationFrom?.longitude)}*/}
+                            {/*</p>*/}
+                            {/*<p>*/}
+                            {/*    <strong>Nach:</strong> {getLocationName(offer?.locationTo?.latitude,offer?.locationTo?.longitude)}*/}
+                            {/*</p>*/}
                             <p>
-                                <strong>Von:</strong> {offer.locationFrom}
+                                <strong>Preis:</strong> {offer?.price} €
                             </p>
                             <p>
-                                <strong>Nach:</strong> {offer.locationTo}
+                                <strong>Start:</strong> {offer?.startDateTime ? new Date(offer.startDateTime).toLocaleString() : '–'}
                             </p>
                             <p>
-                                <strong>Preis:</strong> {offer.price} €
+                                <strong>Ende:</strong> {offer?.endDateTime ? new Date(offer.endDateTime).toLocaleString() : '–'}
                             </p>
-                            <p>
-                                <strong>Start:</strong> {offer.startDateTime.toLocaleString()}
-                            </p>
-                            <p>
-                                <strong>Ende:</strong> {offer.endDateTime.toLocaleString()}
-                            </p>
+
                         </div>
                         <div>
                             <p>
-                                <strong>Sitze frei:</strong> {offer.canTransport.seats}
+                                <strong>Sitze frei:</strong> {offer?.canTransport?.seats}
                             </p>
                             <p>
                                 <strong>Kommunikation:</strong>{" "}
                                 {[
-                                    offer.isChat && "Chat",
-                                    offer.isPhone && "Telefon",
-                                    offer.isEmail && "E-Mail",
+                                    offer?.isChat && "Chat",
+                                    offer?.isPhone && "Telefon",
+                                    offer?.isEmail && "E-Mail",
                                 ]
                                     .filter(Boolean)
                                     .join(", ")}
                             </p>
                             <p>
-                                <strong>Ersteller:</strong> {offer.driver}
+                                <strong>Ersteller:</strong> {offer?.creator}
                             </p>
                         </div>
                     </div>
@@ -393,7 +424,7 @@ function DrivesOfferDetailPage() {
                     <div className="mb-4">
                         <h2 className="font-semibold">Ladefläche des Fahrzeugs</h2>
                         <ul className="list-disc ml-5">
-                            {offer.canTransport.items.map((item, i) => (
+                            {offer?.canTransport?.items?.map((item, i) => (
                                 <li key={i}>
                                     Größe: {item.size.width}×{item.size.height}×{item.size.depth}
                                     cm, Maximalgewicht: {item.weight}kg
@@ -406,7 +437,7 @@ function DrivesOfferDetailPage() {
                     <div className="mb-4">
                         <h2 className="font-semibold">Einschränkungen</h2>
                         <ul className="list-disc ml-5">
-                            {offer.restrictions.map((r, i) => (
+                            {offer?.restrictions?.map((r, i) => (
                                 <li key={i}>{r}</li>
                             ))}
                         </ul>
@@ -416,7 +447,7 @@ function DrivesOfferDetailPage() {
                     <div className="mb-4">
                         <h2 className="font-semibold">Weitere Infos</h2>
                         <ul className="list-disc ml-5">
-                            {offer.info.map((info, i) => (
+                            {offer?.info?.map((info, i) => (
                                 <li key={i}>{info}</li>
                             ))}
                         </ul>
@@ -426,7 +457,7 @@ function DrivesOfferDetailPage() {
                     <div>
                         <h2 className="font-semibold">Fahrzeug</h2>
                         <ul className="list-disc ml-5">
-                            {offer.infoCar.map((info, i) => (
+                            {offer?.infoCar?.map((info, i) => (
                                 <li key={i}>{info}</li>
                             ))}
                         </ul>
