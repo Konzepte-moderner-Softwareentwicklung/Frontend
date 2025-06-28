@@ -41,6 +41,10 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
     const result = await register(firstName, lastName, email, password);
     console.log("Resultat:", result);
+    if (result.status === 409) {
+      toast("E-Mail bereits registriert");
+      return;
+    }
     toast("Registrierung erfolgreich");
     if (result?.id) {
         navigate("/login");
