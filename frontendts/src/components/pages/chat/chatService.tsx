@@ -205,6 +205,7 @@ const socket = await connectWebSocket(chatId);
 
   socket.onclose = () => {
     console.log("WebSocket getrennt:", chatId);
+    subscribeToMessages(chatId,onMessageReceived)
   };
 
   return () => socket.close();
