@@ -23,3 +23,7 @@ export async function getOfferDetails(id: string) {
   const response = await api.get(`/angebot/${id}`);
   return response.data;
 }
+
+export async function postRating(id: string, rating: any) {
+  const response = await api.post(`/angebot/${id}/rating`, {rating});
+}

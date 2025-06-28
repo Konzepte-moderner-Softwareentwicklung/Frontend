@@ -1,11 +1,9 @@
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
+
 } from "@/components/ui/navigation-menu"
 import { Link } from "@radix-ui/react-navigation-menu"
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg"

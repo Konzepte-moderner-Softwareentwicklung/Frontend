@@ -5,7 +5,7 @@ import {
     isSpaceAvailable,
     type Item,
     type Offer,
-    setLocationName, uploadImage
+    setLocationName, type Space, uploadImage
 } from "@/pages/drives/drivesService.tsx";
 import {useEffect, useRef, useState} from "react";
 import {Input} from "@/components/ui/input";
@@ -13,16 +13,18 @@ import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/
 import { Button } from "@/components/ui/button";
 import {DialogDescription} from "@radix-ui/react-dialog";
 import toast from "react-hot-toast";
+import {FeedbackDialog} from "@/pages/drives/FeedbackDialog";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
-    const userId = localStorage.getItem("UserId")||sessionStorage.getItem("UserId")||"";
+    const userId = localStorage.getItem("UserID")||sessionStorage.getItem("UserID")||"";
     const[isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
     const [FromLocationGeoName, setFromLocationGeoName] = useState('');
     const [ToLocationGeoName, setToLocationGeoName] = useState('');
+    const [showRatingDialog,setShowRaginDialog] = useState(false);
 
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
@@ -90,20 +92,21 @@ function DrivesOfferDetailPage() {
     const handleBack = () => {
         navigate("/drives");
     };
-    useEffect(() => {
+    useEffect(() => { //TODO: Wenn Auf Teilnehem gedrückt, muss Mitfahrer bezahlen
         if (id) {
             getOffer(id).then(setOffer);
-
+debugger;
             if (offer?.creator == userId) {
                 setIsDriver(true);
                 setIsSelfChat(true);
             }
-
+        if(new Date(offer?.endDateTime||"").getTime() >= new Date().getTime()){//Fahrt zuende
+            setShowRaginDialog(true);
         }
-    }, [id, offer?.creator, isDriver, userId]);
+        }
+    }, [id, offer?.creator, isDriver, userId, offer?.endDateTime]);
     const joinOffer = () => {
-        if (!offer || offer?.occupiedBy?.includes(userId)) return;
-
+        if (!offer ||  offer.occupiedSpace?.some(space => space.Occupier === userId)) return;
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
             offer.canTransport.seats -= 1;
@@ -118,11 +121,11 @@ function DrivesOfferDetailPage() {
                 depth: parseFloat(itemDepth),
             },
         };
+        const newSpace: Space = {Occupier:sessionStorage.getItem("UserID")||"",items:[newItem], seats:1}
 
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem))
-            offer.occupiedSpace.items.push(newItem);
+            offer.occupiedSpace.push(newSpace);
 
-        offer?.occupiedBy?.push(userId);
 
 
         // Force re-render
@@ -131,7 +134,7 @@ function DrivesOfferDetailPage() {
 
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
-    const hasJoined = offer?.occupiedBy?.includes(userId);
+    const hasJoined = offer?.occupiedSpace?.some(space => space.Occupier === userId);
     const noSeatsLeft = offer ? offer?.canTransport?.seats <= 0 : undefined;
 
 
@@ -166,6 +169,7 @@ function DrivesOfferDetailPage() {
         );
     }
 
+    // @ts-ignore
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
             <div className="max-w-4xl mx-auto relative">
@@ -357,6 +361,9 @@ function DrivesOfferDetailPage() {
                         </Dialog>
                     )}
 
+                    <FeedbackDialog
+                        isDriver={isDriver} targetId={isDriver?offer?.occupiedSpace?.[0].Occupier ?? "":offer?.creator}
+                    />
 
                     <button
                         onClick={goToChat}
@@ -406,9 +413,10 @@ function DrivesOfferDetailPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
+                            {/*TODO:Fix*/}
                             {/*<p>*/}
                             {/*    <strong>Von:</strong> {getLocationName(offer?.locationFrom?.latitude,offer?.locationFrom?.longitude)}*/}
-                            {/*</p>*/} //TODO:fix
+                            {/*</p>*/}
                             {/*<p>*/}
                             {/*    <strong>Nach:</strong> {getLocationName(offer?.locationTo?.latitude,offer?.locationTo?.longitude)}*/}
                             {/*</p>*/}

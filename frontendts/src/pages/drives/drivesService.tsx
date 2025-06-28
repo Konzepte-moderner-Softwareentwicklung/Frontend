@@ -7,6 +7,13 @@ export interface Coordinates {
     latitude: number;
 }
 
+export interface feedBackData {
+    answers: Record<string, number>;
+    comment: string,
+    targetName: string,
+
+}
+
 export const DEFAULT_OFFER: Offer = {
     id: '',
     title: '',
@@ -22,9 +29,11 @@ export const DEFAULT_OFFER: Offer = {
     isEmail: false,
     startDateTime: new Date().toISOString(),
     endDateTime: new Date().toISOString(),
-    canTransport: {items: [], seats: 0},
-    occupiedSpace: {items: [], seats: 0},
-    occupiedBy: [],
+    canTransport: {
+        items: [], seats: 0,
+        Occupier: ""
+    },
+    occupiedSpace: [],
     restrictions: [],
     info: [],
     infoCar: [],
@@ -49,8 +58,7 @@ export interface Offer {
     startDateTime: string; // ISO-String!
     endDateTime: string;   // ISO-String!
     canTransport: Space;
-    occupiedSpace: Space;
-    occupiedBy?: string[] | null;
+    occupiedSpace: Space[],
     restrictions?: string[] | null;
     info?: string[] | null;
     infoCar?: string[] | null;
@@ -78,7 +86,7 @@ export interface Filter {
     locationFrom?: string;
     locationTo?: string;
     locationFromDiff?: number;
-    date?: string;
+    dateTime?: string;
     user?: string;
     creator?: string;
     maxPrice?: number;
@@ -87,6 +95,7 @@ export interface Filter {
 }
 
 export interface Space {
+    Occupier:string,
     items: Item[];
     seats: number;
 }
@@ -126,7 +135,7 @@ export async function getOffer(id: string | undefined): Promise<Offer | undefine
 
 export function getMaxPrice(): number {
     let price = 0;
-    offers.forEach((offer: Offer) => {
+    offers?.forEach((offer: Offer) => {
         if (offer.price > price) {
             price = offer.price;
         }
@@ -140,18 +149,6 @@ export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
 }
 
 export async function createNewOffer(offer: Offer) {
-    // return new Promise((resolve) => {
-    //     setTimeout(() => {
-    //         const newOffer = offer;
-    //         newOffer.driver =localStorage.getItem("UserId")||sessionStorage.getItem("UserId")||"";//TODO: user mit eingeloggten Benutzer ersetzen
-    //         newOffer.isGesuch = false;
-    //         newOffer.id = "offer-0"+idCount++;
-    //
-    //         mockOffers.push(newOffer);
-    //         resolve(newOffer);
-    //     }, 500);
-    // });} catch (error: any) {
-
     try {
 
         return await createOffer(offer)
@@ -169,9 +166,8 @@ export async function createNewOffer(offer: Offer) {
 export async function createSearch(fields: SearchDialogFields) {
     try {
         const newOffer = await convertSearchFieldsToOffer(fields);
-        newOffer?.occupiedBy?.push(localStorage.getItem("UserId") || sessionStorage.getItem("UserId") || "");//TODO: user mit eingeloggten Benutzer ersetzen
         newOffer.id = "search-0" + idCount++;//remove wenn Servercall
-        newOffer.isGesuch = true;
+        newOffer.isGesuch = true;//TODO:test
         return await createOffer(newOffer).then(offer => {
             offers.push(newOffer);
             return offer;
@@ -190,6 +186,7 @@ async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<O
     const locationTo = await setLocationName(fields.locationTo);
     return {
         canTransport: {
+            Occupier:"",
             items: [],
             seats: 0
         },
@@ -207,31 +204,33 @@ async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<O
         isEmail: false,
         isGesuch: true,
         isPhone: false,
-        locationFrom: locationFrom||{latitude:0,longitude:0},
-        locationTo: locationTo||{latitude:0,longitude:0},
+        locationFrom: locationFrom || {latitude: 0, longitude: 0},
+        locationTo: locationTo || {latitude: 0, longitude: 0},
         occupiedBy: [],
-        occupiedSpace: {
+        occupiedSpace: [{
+            Occupier:sessionStorage.getItem("UserID")||"",
             items: [fields.package],
             seats: fields.passengers
-        },
+        }],
         price: 0,
         restrictions: [],
         title: fields.title
     }
 }
 
-export function isSpaceAvailable(can: Space, occupied: Space, newItem: Item): boolean {
-    const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-    const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
-        newItem.size.width * newItem.size.height * newItem.size.depth;
-
-    const maxItem = can.items[0];
-    const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
-
-    return (
-        totalWeight <= maxItem.weight &&
-        totalVolume <= maxVolume
-    );
+export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {//TODO:Fix
+    // const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+    // const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+    //     newItem.size.width * newItem.size.height * newItem.size.depth;
+    //
+    // const maxItem = can.items[0];
+    // const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
+    //
+    // return (
+    //     totalWeight <= maxItem.weight &&
+    //     totalVolume <= maxVolume
+    // );
+    return true
 }
 
 export async function getLocationName(latitude: number, longitude: number) {
@@ -276,3 +275,21 @@ export async function setLocationName(city: string) {
     return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
 }
 
+
+export async function sendFeedback(feedBack: {
+    answers: Record<string, number>;
+    comment: string;
+    targetId: string;
+    userId: string | null
+}) {
+
+}
+
+export async function getUserName(userId: string):Promise<{firstName:string,lastName:string}> {
+    return await getUserName(userId).then((user) => {
+        console.log(user.firstName, user.lastName);
+        return {firstName: user.firstName, lastName: user.lastName};
+    });
+
+
+}

@@ -106,6 +106,7 @@ function DrivesSearchDetailPage() {
             startDateTime: startDate.toISOString(),
             endDateTime: endDate.toISOString(),
             canTransport: {
+                Occupier:sessionStorage.getItem("UserID")||"",
                 seats: parseInt(seats),
                 items: [{
                     size: {
@@ -116,10 +117,10 @@ function DrivesSearchDetailPage() {
                     weight: storageWeight || 0
                 }]
             },
-            occupiedSpace: {
+            occupiedSpace: [{
+                Occupier:fields?.creatorId,
                 seats: 1, items: [fields.package]
-            },
-            occupiedBy: offer?.occupiedBy||[fields.creatorId],
+            }],
             restrictions: fields.restrictions||restrictions||[],
             info: fields.info||info||[],
             infoCar: infoCar.split(";")||[],
@@ -232,12 +233,12 @@ function DrivesSearchDetailPage() {
 
                 <div className="flex gap-4">
 
-                    { offer?.occupiedBy?.[0] === userId && (
+                    { offer?.creator === userId && (
                         <Button onClick={() => setShowEditDialog(true)}>Bearbeiten</Button>
                     )}
 
 
-                    {offer?.occupiedBy?.[0]  !== userId && (
+                    {offer?.creator !== userId && (
                         <Button onClick={() => setShowDriverDialog(true)}>
                             Als Fahrer melden
                         </Button>

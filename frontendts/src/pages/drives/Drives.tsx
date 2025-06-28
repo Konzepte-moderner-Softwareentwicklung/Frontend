@@ -31,13 +31,13 @@ import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
     createNewOffer, createSearch,
-    getAllOffers,
     fetchOffersWithFilter,
     type Filter,
     getMaxPrice,
     type Offer, type SearchDialogFields, type Space, setLocationName
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
+
 
 
 function Drives() {
@@ -68,6 +68,7 @@ function Drives() {
     const numericPrice = parseFloat(price);
 
     const seats: Space = {
+        Occupier:"",
         seats: parseInt(canTransport),
         items: [
             {
@@ -97,11 +98,10 @@ function Drives() {
             startDateTime: startDate.toISOString(),
             endDateTime: endDate.toISOString(),
             canTransport: seats,
-            occupiedSpace: seats,
+            occupiedSpace: [],
             isPhone: isPhone,
             isEmail: isEmail,
             isChat: isChat,
-            occupiedBy: [],
             restrictions: restrictions.split(";"),
             info: info.split(";"),
             infoCar: infoCar.split(";"),
@@ -110,7 +110,7 @@ function Drives() {
             imageURL: ""
         };
 
-    debugger;
+
         createNewOffer(offerData).then(function (offer) {
             if (offer)
                 navigate(`/drives/${offer.id}`);
@@ -149,7 +149,6 @@ function Drives() {
 
     useEffect(() => {
         async function loadOffers() {
-            const userId = localStorage.getItem("UserId") || sessionStorage.getItem("UserId") || "";
             try {
                 const data =  await fetchOffersWithFilter(filter||{});
                 setOffers(data);
@@ -189,7 +188,7 @@ function Drives() {
                         <label className="flex text-sm mb-1">Datum</label>
                         <Input
                             type="date"
-                            onChange={(e) => setFilter((prev) => ({...prev, date: e.target.value}))}
+                            onChange={(e) => setFilter((prev) => ({...prev, dateTime: e.target.value}))}
                         />
                     </div>
                     <div>
@@ -516,6 +515,7 @@ function Drives() {
                     </DialogContent>
 
                 </Dialog>
+
 
                 <Dialog>
                     <DialogTrigger asChild>
