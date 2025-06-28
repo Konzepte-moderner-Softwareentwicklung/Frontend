@@ -1,7 +1,8 @@
 import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
+import {downloadPicture, uploadPicture} from "@/api/media_api.tsx";
 
-export interface Coordinates{
+export interface Coordinates {
     longitude: number;
     latitude: number;
 }
@@ -11,8 +12,8 @@ export const DEFAULT_OFFER: Offer = {
     title: '',
     description: '',
     price: 0,
-    locationFrom: { latitude: 0, longitude: 0 },
-    locationTo: { latitude: 0, longitude: 0 },
+    locationFrom: {latitude: 0, longitude: 0},
+    locationTo: {latitude: 0, longitude: 0},
     creator: '',
     createdAt: new Date().toISOString(),
     isChat: false,
@@ -21,8 +22,8 @@ export const DEFAULT_OFFER: Offer = {
     isEmail: false,
     startDateTime: new Date().toISOString(),
     endDateTime: new Date().toISOString(),
-    canTransport: { items: [], seats: 0 },
-    occupiedSpace: { items: [], seats: 0 },
+    canTransport: {items: [], seats: 0},
+    occupiedSpace: {items: [], seats: 0},
     occupiedBy: [],
     restrictions: [],
     info: [],
@@ -37,7 +38,7 @@ export interface Offer {
     title: string;
     description: string;
     price: number;
-    locationFrom:Coordinates;
+    locationFrom: Coordinates;
     locationTo: Coordinates;
     creator: string;
     createdAt: string; // ISO-String!
@@ -143,12 +144,12 @@ export async function fetchOffersWithFilter(filter: Filter, userId: string): Pro
                 const matchesLocationFrom =
                     filter.locationFrom !== undefined &&
                     filter.locationFrom !== ""
-                    //offer.locationFrom.includes(filter.locationFrom);
+                //offer.locationFrom.includes(filter.locationFrom);
 
                 const matchesLocationTo =
                     filter.locationTo !== undefined &&
                     filter.locationTo !== ""
-                    //offer.locationTo.includes(filter.locationTo);
+                //offer.locationTo.includes(filter.locationTo);
 
                 const matchesDate =
                     filter.date !== undefined &&
@@ -210,7 +211,7 @@ export async function createSearch(fields: SearchDialogFields) {
         const newOffer = await convertSearchFieldsToOffer(fields);
         newOffer?.occupiedBy?.push(localStorage.getItem("userId") || sessionStorage.getItem("userId") || "");//TODO: user mit eingeloggten Benutzer ersetzen
         newOffer.id = "search-0" + idCount++;//remove wenn Servercall
-
+        newOffer.isGesuch = true;
         return await createOffer(newOffer).then(offer => {
             offers.push(newOffer);
             return offer;
@@ -237,7 +238,7 @@ async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<O
         description: fields.description,
         creator: "",
         startDateTime: "",
-        endDateTime:"",
+        endDateTime: "",
         id: "",
         imageURL: "",
         info: fields.info,
@@ -246,7 +247,7 @@ async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<O
         isEmail: false,
         isGesuch: true,
         isPhone: false,
-        locationFrom:locationFrom ,
+        locationFrom: locationFrom,
         locationTo: locationTo,
         occupiedBy: [],
         occupiedSpace: {
@@ -273,26 +274,44 @@ export function isSpaceAvailable(can: Space, occupied: Space, newItem: Item): bo
     );
 }
 
-export async function getLocationName(latitude: number, longitude: number){
-    if(latitude == 0|| longitude==0){
+export async function getLocationName(latitude: number, longitude: number) {
+    if (latitude == 0 || longitude == 0) {
         return "";
     }
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-        );
-        const data = await response.json();
-        return data?.city; // z.B. "Berlin"
+    const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+    );
+    const data = await response.json();
+    return data?.city; // z.B. "Berlin"
 }
 
-export async function setLocationName(city:string){
+export async function loadImage(id: string) {
+    return await downloadPicture(id);
+}
+
+export async function loadAllImages(id: string) {
+}
+
+export async function uploadImage(file: File) {
+    try {
+        await uploadPicture(file)
+    } catch (error) {
+        toast.error('Bild konnte nicht hochgeladen werden'); //TODO:Bilder hochladen
+    }
+}
+
+export async function setLocationName(city: string) {
+    if (city == null || city == "") {
+        return null;
+    }
     const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&city=${city}`
     );
     const data = await response.json();
     if (data.length === 0) throw new Error('Ort nicht gefunden');
-    const coordinate:Coordinates = {
-        latitude:parseFloat(data.lat),
-        longitude:parseFloat(data.lon),
+    const coordinate: Coordinates = {
+        latitude: parseFloat(data.lat),
+        longitude: parseFloat(data.lon),
     }
     return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
 }

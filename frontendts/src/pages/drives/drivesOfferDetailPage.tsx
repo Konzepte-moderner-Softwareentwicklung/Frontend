@@ -5,7 +5,7 @@ import {
     isSpaceAvailable,
     type Item,
     type Offer,
-    setLocationName
+    setLocationName, uploadImage
 } from "@/pages/drives/drivesService.tsx";
 import {useEffect, useRef, useState} from "react";
 import {Input} from "@/components/ui/input";
@@ -244,7 +244,7 @@ function DrivesOfferDetailPage() {
                                                 const coords = await setLocationName(FromLocationGeoName);
                                                 setEditedOffer((prev) => ({
                                                     ...prev,
-                                                    locationFrom: coords,
+                                                    locationFrom: coords||{latitude:0,longitude:0},
                                                 }));
                                                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                             } catch (err) {
@@ -262,7 +262,7 @@ function DrivesOfferDetailPage() {
                                                 const coords = await setLocationName(ToLocationGeoName);
                                                 setEditedOffer((prev) => ({
                                                     ...prev,
-                                                    locationFrom: coords,
+                                                    locationFrom: coords||{latitude:0,longitude:0},
                                                 }));
                                                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                                             } catch (err) {
@@ -372,14 +372,37 @@ function DrivesOfferDetailPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow p-6 mt-2">
-                    <img
-                        src={offer?.imageURL}
-                        alt="Angebot"
-                        className="w-full h-64 object-cover rounded mb-4"
+                    {offer?.imageURL && offer.imageURL !== "" && (
+                        <img
+                            src={offer.imageURL}
+                            alt="Angebot"
+                            className="w-full h-64 object-cover rounded mb-4"
+                        />
+                    )}
+
+                    <button
+                        onClick={() => document.getElementById('imageUploadInput')?.click()}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Bild hochladen
+                    </button>
+
+                    <input
+                        type="file"
+                        id="imageUploadInput"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                  await uploadImage(file);
+                            }
+                        }}
                     />
 
                     <h1 className="text-2xl font-bold mb-2">{offer?.title}</h1>
                     <p className="text-gray-600 mb-4">{offer?.description}</p>
+
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>

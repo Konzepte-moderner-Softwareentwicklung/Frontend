@@ -1,8 +1,10 @@
 import api from "./api";
 
 //post calls
-export async function uploadPicture() {
-  const response = await api.post(`/media/image`, {  });
+export async function uploadPicture(file: File) {
+  const response = await api.post(`/media/image`, {  headers: {
+      'Content-Type': file.type,
+    },body: file });
   return response.data;
 }
 
@@ -26,3 +28,4 @@ export async function getCompoundImageLink(id: string) {
   const response = await api.get(`/media/multi/${id}`);
   return response.data;
 }
+
