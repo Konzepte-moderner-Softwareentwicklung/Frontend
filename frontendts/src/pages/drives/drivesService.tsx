@@ -1,6 +1,7 @@
 import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
 import {downloadPicture, uploadPicture} from "@/api/media_api.tsx";
+import {getUserByID} from "@/api/user_api.tsx";
 
 export interface Coordinates {
     longitude: number;
@@ -285,8 +286,8 @@ export async function sendFeedback(feedBack: {
 
 }
 
-export async function getUserName(userId: string):Promise<{firstName:string,lastName:string}> {
-    return await getUserName(userId).then((user) => {
+export async function getUserNameFromUserId(userId: string):Promise<{firstName:string,lastName:string}> {
+    return await getUserByID(userId).then((user) => {
         console.log(user.firstName, user.lastName);
         return {firstName: user.firstName, lastName: user.lastName};
     });

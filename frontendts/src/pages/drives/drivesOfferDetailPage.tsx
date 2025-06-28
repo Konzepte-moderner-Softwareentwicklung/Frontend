@@ -95,7 +95,7 @@ function DrivesOfferDetailPage() {
     useEffect(() => { //TODO: Wenn Auf Teilnehem gedrückt, muss Mitfahrer bezahlen
         if (id) {
             getOffer(id).then(setOffer);
-debugger;
+
             if (offer?.creator == userId) {
                 setIsDriver(true);
                 setIsSelfChat(true);

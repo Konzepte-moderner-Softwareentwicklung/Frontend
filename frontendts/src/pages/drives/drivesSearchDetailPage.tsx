@@ -91,7 +91,7 @@ function DrivesSearchDetailPage() {
         const locationFrom = await setLocationName(fields.locationFrom);
         const locationTo = await setLocationName(fields.locationTo)
         const newOffer: Offer = {
-            id: "",
+            id: "0",
             title: fields.title,
             description: description,
             price: fields.price,

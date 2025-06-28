@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import {useEffect, useState} from "react";
-import {getUserName, sendFeedback} from "@/pages/drives/drivesService.tsx";
+import {getUserNameFromUserId, sendFeedback} from "@/pages/drives/drivesService.tsx";
 
 
 interface FeedbackDialogProps {
@@ -35,8 +35,7 @@ export function FeedbackDialog({
     useEffect(() => {
 
         if (targetId) {
-            getUserName(targetId).then(function (result){
-                console.log(result);
+            getUserNameFromUserId(targetId).then(function (result){
                 setTargetName({firstName: result.firstName, lastName: result.lastName});
             });
         }
