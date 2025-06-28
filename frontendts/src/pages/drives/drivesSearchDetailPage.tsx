@@ -43,7 +43,7 @@ function DrivesSearchDetailPage() {
     const {id} = useParams();
     const [storageWidth, setStorageWidth] = useState<number | null>(null);
     const navigate = useNavigate();
-    const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
+    const userId = localStorage.getItem("UserId")||sessionStorage.getItem("UserId")||"";
     const handleBack = () => {
         navigate("/drives");
     };

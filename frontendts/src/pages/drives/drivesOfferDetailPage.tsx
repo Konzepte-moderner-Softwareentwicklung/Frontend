@@ -17,7 +17,7 @@ import toast from "react-hot-toast";
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
-    const userId = localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";
+    const userId = localStorage.getItem("UserId")||sessionStorage.getItem("UserId")||"";
     const[isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);

@@ -134,56 +134,16 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filter: Filter, userId: string): Promise<Offer[]> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const filteredOffers = offers.filter((offer) => {
-                const isOwn = userId === offer.creator;
-                if (filter.onlyOwn && !isOwn || offer.ended) return false;
-
-                const matchesLocationFrom =
-                    filter.locationFrom !== undefined &&
-                    filter.locationFrom !== ""
-                //offer.locationFrom.includes(filter.locationFrom);
-
-                const matchesLocationTo =
-                    filter.locationTo !== undefined &&
-                    filter.locationTo !== ""
-                //offer.locationTo.includes(filter.locationTo);
-
-                const matchesDate =
-                    filter.date !== undefined &&
-                    filter.date !== "" &&
-                    new Date(offer.endDateTime).toDateString() === new Date(filter.date).toDateString();
-
-                const matchesFreeSpace =
-                    filter.freeSpace !== undefined &&
-                    offer.canTransport.seats === filter.freeSpace;
-
-                const matchesMaxPrice =
-                    filter.maxPrice !== undefined &&
-                    offer.price <= filter.maxPrice;
-
-
-                return (
-                    (!filter.locationFrom || matchesLocationFrom) &&
-                    (!filter.locationTo || matchesLocationTo) &&
-                    (!filter.date || matchesDate) &&
-                    (filter.freeSpace === undefined || matchesFreeSpace) &&
-                    (filter.maxPrice === undefined || matchesMaxPrice)
-                );
-            });
-
-            resolve(filteredOffers);
-        }, 500);
-    });
+export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
+    offers = await searchOffersByFilter(filter);
+    return offers;
 }
 
 export async function createNewOffer(offer: Offer) {
     // return new Promise((resolve) => {
     //     setTimeout(() => {
     //         const newOffer = offer;
-    //         newOffer.driver =localStorage.getItem("userId")||sessionStorage.getItem("userId")||"";//TODO: user mit eingeloggten Benutzer ersetzen
+    //         newOffer.driver =localStorage.getItem("UserId")||sessionStorage.getItem("UserId")||"";//TODO: user mit eingeloggten Benutzer ersetzen
     //         newOffer.isGesuch = false;
     //         newOffer.id = "offer-0"+idCount++;
     //
@@ -209,7 +169,7 @@ export async function createNewOffer(offer: Offer) {
 export async function createSearch(fields: SearchDialogFields) {
     try {
         const newOffer = await convertSearchFieldsToOffer(fields);
-        newOffer?.occupiedBy?.push(localStorage.getItem("userId") || sessionStorage.getItem("userId") || "");//TODO: user mit eingeloggten Benutzer ersetzen
+        newOffer?.occupiedBy?.push(localStorage.getItem("UserId") || sessionStorage.getItem("UserId") || "");//TODO: user mit eingeloggten Benutzer ersetzen
         newOffer.id = "search-0" + idCount++;//remove wenn Servercall
         newOffer.isGesuch = true;
         return await createOffer(newOffer).then(offer => {
@@ -247,8 +207,8 @@ async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<O
         isEmail: false,
         isGesuch: true,
         isPhone: false,
-        locationFrom: locationFrom,
-        locationTo: locationTo,
+        locationFrom: locationFrom||{latitude:0,longitude:0},
+        locationTo: locationTo||{latitude:0,longitude:0},
         occupiedBy: [],
         occupiedSpace: {
             items: [fields.package],
@@ -289,12 +249,11 @@ export async function loadImage(id: string) {
     return await downloadPicture(id);
 }
 
-export async function loadAllImages(id: string) {
-}
 
 export async function uploadImage(file: File) {
     try {
         await uploadPicture(file)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         toast.error('Bild konnte nicht hochgeladen werden'); //TODO:Bilder hochladen
     }
@@ -309,9 +268,10 @@ export async function setLocationName(city: string) {
     );
     const data = await response.json();
     if (data.length === 0) throw new Error('Ort nicht gefunden');
+
     const coordinate: Coordinates = {
-        latitude: parseFloat(data.lat),
-        longitude: parseFloat(data.lon),
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
     }
     return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
 }

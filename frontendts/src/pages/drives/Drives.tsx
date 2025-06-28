@@ -82,16 +82,18 @@ function Drives() {
     };
 
     async function createOffer() {
-        const locationFrom = await setLocationName(fromLocation);
-        const locationTo = await setLocationName(toLocation)
+        const [locationFrom, locationTo] = await Promise.all([
+            setLocationName(fromLocation),
+            setLocationName(toLocation)
+        ]);
         const offerData: Offer = {
             id: "-1",
             title: title,
             description: description,
             price: numericPrice,
-            locationFrom: locationFrom,
-            locationTo: locationTo,
-            creator: localStorage.getItem("User") || sessionStorage.getItem("UserID") || "",
+            locationFrom: locationFrom||{latitude:0,longitude:0},
+            locationTo: locationTo||{latitude:0,longitude:0},
+            creator:  sessionStorage.getItem("UserID") || "",
             startDateTime: startDate.toISOString(),
             endDateTime: endDate.toISOString(),
             canTransport: seats,
@@ -108,7 +110,7 @@ function Drives() {
             imageURL: ""
         };
 
-
+    debugger;
         createNewOffer(offerData).then(function (offer) {
             if (offer)
                 navigate(`/drives/${offer.id}`);
@@ -147,11 +149,9 @@ function Drives() {
 
     useEffect(() => {
         async function loadOffers() {
-            const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId") || "";
+            const userId = localStorage.getItem("UserId") || sessionStorage.getItem("UserId") || "";
             try {
-                const data = filter
-                    ? await fetchOffersWithFilter(filter, userId)
-                    : await getAllOffers();
+                const data =  await fetchOffersWithFilter(filter||{});
                 setOffers(data);
 
                 setCurrentPage(1);
