@@ -35,6 +35,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     const result = await register(firstName, lastName, email, password);
     console.log("Resultat:", result);
     toast("Registrierung erfolgreich");
+    //sessionStorage.setItem("UserId", result?.id);
     if (result?.id) {
         navigate("/login");
       }

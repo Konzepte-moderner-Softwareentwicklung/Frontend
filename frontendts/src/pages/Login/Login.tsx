@@ -29,7 +29,7 @@ export default function Login() {
     }
     try {
       const result = await getUserID();
-      sessionStorage.setItem("UserID", result);
+      //sessionStorage.setItem("UserID", result);
       if (result) {
         navigate("/");
       }

@@ -408,7 +408,7 @@ function DrivesOfferDetailPage() {
                         <div>
                             {/*<p>*/}
                             {/*    <strong>Von:</strong> {getLocationName(offer?.locationFrom?.latitude,offer?.locationFrom?.longitude)}*/}
-                            {/*</p>*/}
+                            {/*</p>*/} //TODO:fix
                             {/*<p>*/}
                             {/*    <strong>Nach:</strong> {getLocationName(offer?.locationTo?.latitude,offer?.locationTo?.longitude)}*/}
                             {/*</p>*/}
