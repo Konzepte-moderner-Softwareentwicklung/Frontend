@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 import {getChats, getChatMessages, connectWebSocket, postMessage, connectTrackingWebSocket} from "@/api/chat_api";
 import {getUserByID} from "@/api/user_api.tsx";
+=======
+import axios from "axios";
+import {getChats, getChatMessages, connectWebSocket, postMessage} from "@/api/chat_api";
+import {getUserByID} from "@/api/user_api";
+>>>>>>> 93303e3 (finished tests for chat)
 
 
 // Interfaces
