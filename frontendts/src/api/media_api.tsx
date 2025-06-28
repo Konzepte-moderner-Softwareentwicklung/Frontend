@@ -2,14 +2,18 @@ import api from "./api";
 
 //post calls
 export async function uploadPicture(file: File) {
+
   const response = await api.post(`/media/image`, {  headers: {
       'Content-Type': file.type,
     },body: file });
   return response.data;
 }
 
-export async function uploadPictureForCompound(id: string) {
-  const response = await api.post(`/media/multi/${id}`, {  });
+export async function uploadPictureForCompound(id: string,file: File) {
+  debugger;
+  const response = await api.post(`/media/multi/${id}`, {body:file},{  headers: {
+      'Content-Type': file.type,
+    }  });
   return response.data;
 }
 

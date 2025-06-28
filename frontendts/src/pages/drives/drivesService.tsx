@@ -1,6 +1,6 @@
 import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
-import {downloadPicture, uploadPicture} from "@/api/media_api.tsx";
+import {downloadPicture, uploadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
 
 export interface Coordinates {
@@ -22,7 +22,7 @@ export const DEFAULT_OFFER: Offer = {
     price: 0,
     locationFrom: {latitude: 0, longitude: 0},
     locationTo: {latitude: 0, longitude: 0},
-    creator: '',
+    driver: '',
     createdAt: new Date().toISOString(),
     isChat: false,
     chatId: '',
@@ -32,7 +32,7 @@ export const DEFAULT_OFFER: Offer = {
     endDateTime: new Date().toISOString(),
     canTransport: {
         items: [], seats: 0,
-        Occupier: ""
+        occupiedBy: ""
     },
     occupiedSpace: [],
     restrictions: [],
@@ -44,13 +44,14 @@ export const DEFAULT_OFFER: Offer = {
 };
 
 export interface Offer {
-    id: string;
+    id?: string;
     title: string;
     description: string;
     price: number;
     locationFrom: Coordinates;
     locationTo: Coordinates;
     creator: string;
+    driver: string;
     createdAt: string; // ISO-String!
     isChat: boolean;
     chatId?: string;
@@ -59,6 +60,7 @@ export interface Offer {
     startDateTime: string; // ISO-String!
     endDateTime: string;   // ISO-String!
     canTransport: Space;
+    paidSpaces?: Space[];
     occupiedSpace: Space[],
     restrictions?: string[] | null;
     info?: string[] | null;
@@ -88,15 +90,15 @@ export interface Filter {
     locationTo?: string;
     locationFromDiff?: number;
     dateTime?: string;
+    showPassed?:boolean;
     user?: string;
     creator?: string;
     maxPrice?: number;
-    type?: 'angebote' | 'gesuche' | 'beides';
     onlyOwn?: boolean;
 }
 
 export interface Space {
-    Occupier:string,
+    occupiedBy:string,
     items: Item[];
     seats: number;
 }
@@ -117,16 +119,14 @@ export let offers: Offer[] = [];
 
 let idCount = 11;
 
-export async function getAllOffers(): Promise<Offer[]> {
-    offers = await searchOffersByFilter({});
-    return offers;
-}
-
 
 export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
-    // In bereits vorhandenen offers suchen ansonsten Servercall
     let foundOffer;
-    // = offers.find(offer => offer.id === id);
+
+    // if(offers){
+    //     foundOffer = offers.find(offer => offer.id === id);
+    // }
+
     if (foundOffer == undefined) {
         await getOfferDetails(id || "").then(offer => foundOffer = offer);
     }
@@ -151,7 +151,6 @@ export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
 
 export async function createNewOffer(offer: Offer) {
     try {
-
         return await createOffer(offer)
     } catch (error: any) {
         if (error.response?.status === 500) {
@@ -167,12 +166,7 @@ export async function createNewOffer(offer: Offer) {
 export async function createSearch(fields: SearchDialogFields) {
     try {
         const newOffer = await convertSearchFieldsToOffer(fields);
-        newOffer.id = "search-0" + idCount++;//remove wenn Servercall
-        newOffer.isGesuch = true;//TODO:test
-        return await createOffer(newOffer).then(offer => {
-            offers.push(newOffer);
-            return offer;
-        })
+        return await createOffer(newOffer);
     } catch (error: any) {
         if (error.response?.status === 500) {
             toast("Server interner Fehler");
@@ -186,37 +180,41 @@ async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<O
     const locationFrom = await setLocationName(fields.locationFrom);
     const locationTo = await setLocationName(fields.locationTo);
     return {
+        creator: fields.creatorId,
         canTransport: {
-            Occupier:"",
+            occupiedBy: fields.creatorId,
             items: [],
-            seats: 0
+            seats: 10,
         },
-        chatId: "",
-        createdAt: "",
+        chatId: fields.creatorId,
+        createdAt: new Date().toISOString(),
         description: fields.description,
-        creator: "",
-        startDateTime: "",
-        endDateTime: "",
-        id: "",
-        imageURL: "",
+        paidSpaces: [],
+        driver: fields.creatorId,
+        startDateTime: new Date().toISOString(),
+        endDateTime: new Date().toISOString(),
+        id: fields.creatorId,
+        imageURL: fields.creatorId,
         info: fields.info,
         infoCar: [],
         isChat: false,
         isEmail: false,
         isGesuch: true,
         isPhone: false,
-        locationFrom: locationFrom || {latitude: 0, longitude: 0},
-        locationTo: locationTo || {latitude: 0, longitude: 0},
-        occupiedBy: [],
-        occupiedSpace: [{
-            Occupier:sessionStorage.getItem("UserID")||"",
-            items: [fields.package],
-            seats: fields.passengers
-        }],
-        price: 0,
-        restrictions: [],
-        title: fields.title
-    }
+        locationFrom: locationFrom || { latitude: 0, longitude: 0 },
+        locationTo: locationTo || { latitude: 0, longitude: 0 },
+        occupiedSpace: [
+            {
+                occupiedBy: sessionStorage.getItem("UserID") || "",
+                items: [fields.package],
+                seats: fields.passengers,
+            },
+        ],
+        price: fields.price,
+        restrictions: ["", ""],
+        title: fields.title,
+    };
+
 }
 
 export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {//TODO:Fix
@@ -250,9 +248,13 @@ export async function loadImage(id: string) {
 }
 
 
-export async function uploadImage(file: File) {
+export async function uploadImage(imgId:string,file: File) {
+console.log(imgId);
     try {
-        await uploadPicture(file)
+        if(imgId == null || imgId == ""){
+            throw "";
+        }
+        await uploadPictureForCompound(imgId,file)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         toast.error('Bild konnte nicht hochgeladen werden'); //TODO:Bilder hochladen
@@ -263,11 +265,21 @@ export async function setLocationName(city: string) {
     if (city == null || city == "") {
         return null;
     }
-    const response = await fetch(
+    const fetchPromise = fetch(
         `https://nominatim.openstreetmap.org/search?format=json&city=${city}`
+    ).then(res => res.json());
+
+
+    const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve([]), 10000) // nach 10 Sekunden leeres Array zurückgeben
     );
-    const data = await response.json();
-    if (data.length === 0) throw new Error('Ort nicht gefunden');
+
+    const data = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (data.length === 0) {
+    toast.error('Ort nicht gefunden');
+        throw new Error('Ort nicht gefunden');
+    }
 
     const coordinate: Coordinates = {
         latitude: parseFloat(data[0].lat),

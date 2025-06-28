@@ -24,7 +24,7 @@ function DrivesOfferDetailPage() {
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
     const [FromLocationGeoName, setFromLocationGeoName] = useState('');
     const [ToLocationGeoName, setToLocationGeoName] = useState('');
-    const [showRatingDialog,setShowRaginDialog] = useState(false);
+    const [showRatingDialog,setShowRatingDialog] = useState(false);
 
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
@@ -37,48 +37,48 @@ function DrivesOfferDetailPage() {
 
     useEffect(() => {
         window.scrollTo({top: 0, behavior: "smooth"});
-        // change if the token is not saved in the localStorage
-        // ws.current = new WebSocket(
-        //     `/api/tracking?token=${sessionStorage.getItem("token")}`,
-        // );
-        //
-        // ws.current.onopen = () => {
-        //     intervalRef.current = window.setInterval(() => {
-        //         if (navigator.geolocation && isTracking) {
-        //             navigator.geolocation.getCurrentPosition(
-        //                 (position: GeolocationPosition) => {
-        //                     const location = {
-        //                         latitude: position.coords.latitude,
-        //                         longitude: position.coords.longitude,
-        //                     };
-        //                     ws.current?.send(JSON.stringify(location));
-        //                 },
-        //                 (error: GeolocationPositionError) => {
-        //                     console.error("Geolocation error:", error.message);
-        //                 },
-        //             );
-        //         }
-        //     }, 5000);
-        // };
-        //
-        // ws.current.onmessage = (event: MessageEvent) => {
-        //     console.log("Message from server:", event.data);
-        // };
-        //
-        // ws.current.onerror = (error: Event) => {
-        //     console.error("WebSocket error:", error);
-        // };
-        //
-        // ws.current.onclose = () => {
-        //     console.log("WebSocket connection closed");
-        // };
-        //
-        // // Cleanup
-        // return () => {
-        //     if (ws.current?.readyState === WebSocket.OPEN) {
-        //         ws.current.close();
-        //     }
-        // };
+
+        ws.current = new WebSocket(
+            `/api/tracking?token=${sessionStorage.getItem("token")}`,
+        );
+
+        ws.current.onopen = () => {
+            intervalRef.current = window.setInterval(() => {
+                if (navigator.geolocation && isTracking) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position: GeolocationPosition) => {
+                            const location = {
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude,
+                            };
+                            ws.current?.send(JSON.stringify(location));
+                        },
+                        (error: GeolocationPositionError) => {
+                            console.error("Geolocation error:", error.message);
+                        },
+                    );
+                }
+            }, 5000);
+        };
+
+        ws.current.onmessage = (event: MessageEvent) => {
+            console.log("Message from server:", event.data);
+        };
+
+        ws.current.onerror = (error: Event) => {
+            console.error("WebSocket error:", error);
+        };
+
+        ws.current.onclose = () => {
+            console.log("WebSocket connection closed");
+        };
+
+        // Cleanup
+        return () => {
+            if (ws.current?.readyState === WebSocket.OPEN) {
+                ws.current.close();
+            }
+        };
     });
 
     const toggleTracking = () => {
@@ -96,17 +96,17 @@ function DrivesOfferDetailPage() {
         if (id) {
             getOffer(id).then(setOffer);
 
-            if (offer?.creator == userId) {
+            if (offer?.driver == userId) {
                 setIsDriver(true);
                 setIsSelfChat(true);
             }
         if(new Date(offer?.endDateTime||"").getTime() >= new Date().getTime()){//Fahrt zuende
-            setShowRaginDialog(true);
+            setShowRatingDialog(true);
         }
         }
-    }, [id, offer?.creator, isDriver, userId, offer?.endDateTime]);
+    }, [id, offer?.driver, isDriver, userId, offer?.endDateTime]);
     const joinOffer = () => {
-        if (!offer ||  offer.occupiedSpace?.some(space => space.Occupier === userId)) return;
+        if (!offer ||  offer.occupiedSpace?.some(space => space.occupiedBy === userId)) return;
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
             offer.canTransport.seats -= 1;
@@ -121,7 +121,7 @@ function DrivesOfferDetailPage() {
                 depth: parseFloat(itemDepth),
             },
         };
-        const newSpace: Space = {Occupier:sessionStorage.getItem("UserID")||"",items:[newItem], seats:1}
+        const newSpace: Space = {occupiedBy:sessionStorage.getItem("UserID")||"",items:[newItem], seats:1}
 
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem))
             offer.occupiedSpace.push(newSpace);
@@ -134,7 +134,9 @@ function DrivesOfferDetailPage() {
 
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
-    const hasJoined = offer?.occupiedSpace?.some(space => space.Occupier === userId);
+    const hasJoined = offer?.occupiedSpace?.some(function(space){
+        return space.occupiedBy === userId
+    });
     const noSeatsLeft = offer ? offer?.canTransport?.seats <= 0 : undefined;
 
 
@@ -362,7 +364,7 @@ function DrivesOfferDetailPage() {
                     )}
 
                     <FeedbackDialog
-                        isDriver={isDriver} targetId={isDriver?offer?.occupiedSpace?.[0].Occupier ?? "":offer?.creator}
+                        isDriver={isDriver} targetId={isDriver?offer?.occupiedSpace?.[0]?.occupiedBy ?? "":offer?.driver}
                     />
 
                     <button
@@ -402,7 +404,7 @@ function DrivesOfferDetailPage() {
                         onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                                  await uploadImage(file);
+                                  await uploadImage(offer?.imageURL||"",file);
                             }
                         }}
                     />
@@ -446,7 +448,7 @@ function DrivesOfferDetailPage() {
                                     .join(", ")}
                             </p>
                             <p>
-                                <strong>Ersteller:</strong> {offer?.creator}
+                                <strong>Ersteller:</strong> {offer?.driver}
                             </p>
                         </div>
                     </div>

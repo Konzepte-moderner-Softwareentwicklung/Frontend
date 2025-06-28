@@ -39,7 +39,6 @@ import {
 import {Textarea} from "@/components/ui/textarea.tsx";
 
 
-
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
@@ -68,7 +67,7 @@ function Drives() {
     const numericPrice = parseFloat(price);
 
     const seats: Space = {
-        Occupier:"",
+        occupiedBy: sessionStorage.getItem("UserID") || "",
         seats: parseInt(canTransport),
         items: [
             {
@@ -87,14 +86,17 @@ function Drives() {
             setLocationName(fromLocation),
             setLocationName(toLocation)
         ]);
+
+
         const offerData: Offer = {
-            id: "-1",
             title: title,
+            creator: sessionStorage.getItem("UserID") || "",
+            paidSpaces: [],
             description: description,
             price: numericPrice,
-            locationFrom: locationFrom||{latitude:0,longitude:0},
-            locationTo: locationTo||{latitude:0,longitude:0},
-            creator:  sessionStorage.getItem("UserID") || "",
+            locationFrom: locationFrom || {latitude: 0, longitude: 0},
+            locationTo: locationTo || {latitude: 0, longitude: 0},
+            driver: sessionStorage.getItem("UserID") || "",
             startDateTime: startDate.toISOString(),
             endDateTime: endDate.toISOString(),
             canTransport: seats,
@@ -102,11 +104,11 @@ function Drives() {
             isPhone: isPhone,
             isEmail: isEmail,
             isChat: isChat,
+            isGesuch: false,
             restrictions: restrictions.split(";"),
             info: info.split(";"),
             infoCar: infoCar.split(";"),
             createdAt: new Date().toISOString(),
-            chatId: "",
             imageURL: ""
         };
 
@@ -114,27 +116,52 @@ function Drives() {
         createNewOffer(offerData).then(function (offer) {
             if (offer)
                 navigate(`/drives/${offer.id}`);
+
         });
     }
 
     const createNewSearch = () => {
-        const userId = localStorage.getItem("User") || sessionStorage.getItem("UserID") || "";
-        const offerData: SearchDialogFields = {
+       // const userId = sessionStorage.getItem("UserID") || "";
+        // const offerData: SearchDialogFields = {
+        //     title: title,
+        //     description: description,
+        //     price: numericPrice,
+        //     creatorId: userId,
+        //     locationFrom: fromLocation,
+        //     locationTo: toLocation,
+        //     passengers: seats.seats,
+        //     package: seats.items[0],
+        //     restrictions: restrictions.split(";"),
+        //     info: info.split(";"),
+        // };
+
+
+        const offerData: Offer = {
             title: title,
+            creator: sessionStorage.getItem("UserID") || "",
+            paidSpaces: [],
             description: description,
             price: numericPrice,
-            creatorId: userId,
-            locationFrom: fromLocation,
-            locationTo: toLocation,
-            passengers: seats.seats,
-            package: seats.items[0],
+            locationFrom:  {latitude: 0, longitude: 0},
+            locationTo:  {latitude: 0, longitude: 0},
+            driver: sessionStorage.getItem("UserID") || "",
+            startDateTime: new Date(new Date().setFullYear(new Date().getFullYear() + 50)).toISOString(),
+            endDateTime: new Date(new Date().setFullYear(new Date().getFullYear() + 50)).toISOString(),
+            canTransport: seats,
+            occupiedSpace: [ seats],
+            isPhone: isPhone,
+            isEmail: isEmail,
+            isChat: isChat,
+            isGesuch: true,
             restrictions: restrictions.split(";"),
             info: info.split(";"),
+            infoCar: infoCar.split(";"),
+            createdAt: new Date().toISOString(),
+            imageURL: ""
         };
-
-        createSearch(offerData).then(function (offer) {
-
-            navigate(`/drives/${offer.id}/search`);
+        createNewOffer(offerData).then(function (offer) {
+            if (offer)
+                navigate(`/drives/${offer.id}/search`);
         });
     };
 
@@ -150,7 +177,7 @@ function Drives() {
     useEffect(() => {
         async function loadOffers() {
             try {
-                const data =  await fetchOffersWithFilter(filter||{});
+                const data = await fetchOffersWithFilter({});
                 setOffers(data);
 
                 setCurrentPage(1);
@@ -195,7 +222,7 @@ function Drives() {
                         <label className="block text-sm mb-1">Anzeigen</label>
                         <select
                             className="border rounded px-3 py-2 w-full"
-                            value={filter?.type || "beides"}
+                            value={"beides"}
                             onChange={(e) =>
                                 setFilter((prev) => ({
                                     ...prev,
