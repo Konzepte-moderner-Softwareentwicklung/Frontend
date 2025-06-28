@@ -11,10 +11,11 @@ import SearchDetail from "@/pages/drives/drivesSearchDetailPage.tsx"
 import AGB from "./pages/AGB";
 import Impressum from "./pages/Impressum";
 import Kontakt from "./pages/Kontakt";
-import Login from "./pages/Login/Login";
-import Register from './pages/Register/Register';
+
 import "./i18next/config"
 import { Toaster } from 'react-hot-toast';
+import Login from './pages/login/Login';
+import Register from './pages/register/Register';
 
 function App() {
     return (
