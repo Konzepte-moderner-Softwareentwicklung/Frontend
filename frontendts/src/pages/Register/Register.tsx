@@ -25,6 +25,13 @@ const handleSubmit = async (e: React.FormEvent) => {
     return;
   }
 
+  const today = new Date();
+  const eighteenYearsAgo = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  if (date && date > eighteenYearsAgo || date === undefined) {
+    toast("Sie müssen mindestens 18 Jahre alt sein");
+    return;
+  }
+
   const pwRegex = /^(?=.*[A-Z])(?=.*\d).+$/;
   if (!pwRegex.test(password)) {
     toast("Passwort muss mindestens einen Großbuchstaben und eine Ziffer enthalten");
@@ -116,7 +123,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
 
             <div>
-              <label className="text-base">Login Date:</label>
+              <label className="text-base">Geburtsdatum:</label>
               <DatePicker
                 date={date}
                 setDate={setDate}
