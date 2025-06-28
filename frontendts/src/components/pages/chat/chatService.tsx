@@ -1,5 +1,4 @@
-import axios from "axios";
-import {getChats, getChatMessages, connectWebSocket, postMessage} from "@/api/chat_api";
+import {getChats, getChatMessages, connectWebSocket, postMessage, connectTrackingWebSocket} from "@/api/chat_api";
 import {getUserByID} from "@/api/user_api.tsx";
 
 
@@ -25,18 +24,17 @@ export interface ChatMessage {
 }
 
 export interface LiveLocationUpdate {
-  userId: string;
-  lat: number;
-  lon: number;
+  location: {
+    lat: number;
+    lon: number;
+  };
 }
 
 
-export
-interface ChatMapProps {
-  lat: number;
-  lon: number;
-  maptilerKey: string;
-}
+
+
+
+
 
 function findLatestMessage(messages: ChatMessage[]): ChatMessage | null {
   let latest: ChatMessage | null = null;
@@ -134,8 +132,7 @@ export async function fetchChatContacts(){
             if(!(contacts.find(str => str.id === newContact.id))) {
               contacts.push(newContact);
             }
-            else{
-            }
+
           }
 
         } else if (chat.user_ids.length > 2) {
@@ -185,9 +182,6 @@ export async function sendChatMessage(
 
 }
 
-export async function sendLiveLocation(lat:number, lng:number){
-
-}
 
 
 
@@ -217,12 +211,40 @@ const socket = await connectWebSocket(chatId);
 }
 
 
+
+
+
+
 export async function subscribeToLiveLocations(
-    chatId: string,
     onLocationReceived: (update: LiveLocationUpdate) => void
 ): Promise<WebSocket> {
-  const socket = await connectWebSocket(`/tracking`,{});
 
+  const socket = await connectTrackingWebSocket();
+
+  function sendNow() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          sendLiveLocation(socket, pos.coords.latitude, pos.coords.longitude);
+        },
+        (error) => {
+          console.error("Error getting position:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
+        }
+    );
+  }
+
+  // 1️⃣ Sobald Socket offen → sofort senden
+  socket.onopen = () => {
+    console.log("Tracking WebSocket geöffnet – sofort erste Location senden");
+    sendNow();
+  };
+
+  // 2️⃣ Nachricht empfangen
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as LiveLocationUpdate;
@@ -232,13 +254,55 @@ export async function subscribeToLiveLocations(
     }
   };
 
+  // 3️⃣ Fehlerbehandlung
   socket.onerror = (err) => {
     console.error("Tracking-WebSocket-Fehler:", err);
   };
 
+  // 4️⃣ Automatisches Aufräumen bei Disconnect
   socket.onclose = () => {
-    console.log("Tracking-WS getrennt:", chatId);
+    console.log("Tracking-WS getrennt");
   };
 
   return socket;
 }
+
+
+
+export function sendLiveLocation(
+    socket: WebSocket,
+    lat: number,
+    lon: number
+) {
+  const payload = {
+    location: {
+      lat,
+      lon
+    }
+  };
+  socket.send(JSON.stringify(payload));
+}
+
+let trackingInterval: number | null = null;
+
+export function startLiveLocationBroadcast(socket: WebSocket) {
+  if (trackingInterval) return;
+
+  trackingInterval = window.setInterval(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          sendLiveLocation(socket, pos.coords.latitude, pos.coords.longitude);
+        }
+    );
+  }, 5000);
+}
+
+export function stopLiveLocationBroadcast() {
+  if (trackingInterval) {
+    clearInterval(trackingInterval);
+    trackingInterval = null;
+  }
+}
+
+

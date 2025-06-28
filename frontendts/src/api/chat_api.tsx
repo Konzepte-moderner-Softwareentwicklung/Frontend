@@ -30,3 +30,11 @@ export  function connectWebSocket(id: string) {
   return socket;
 
 }
+
+export  function connectTrackingWebSocket() {
+  const token = localStorage.getItem("token"); // oder aus deinem api-Modul holen
+  const socket = new WebSocket(`tracking/?token=${token}`);
+  console.log(socket)
+  return socket;
+
+}

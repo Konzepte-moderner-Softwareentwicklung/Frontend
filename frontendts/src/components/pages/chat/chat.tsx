@@ -3,14 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { 
-  fetchChatContacts, 
-  fetchChatHistory, 
+import {
+  fetchChatContacts,
+  fetchChatHistory,
   sendChatMessage,
   subscribeToMessages,
   transformMessages,
-  type ChatContact, 
-  type ChatMessage
+  type ChatContact,
+  type ChatMessage,
+  startLiveLocationBroadcast,
+  subscribeToLiveLocations
 } from "./chatService";
 
 export default function Chat() {
@@ -21,7 +23,8 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userID] = useState<string>(localStorage.getItem("UserID") || "");
-
+  const [liveLocationMessageId, setLiveLocationMessageId] = useState<string | null>(null);
+  const [trackingSocket, setTrackingSocket] = useState<WebSocket | null>(null);
 
   interface ChatMapProps {
     lat: number;
@@ -151,7 +154,7 @@ export default function Chat() {
 
     if (!selectedContact || !newMessage.trim()) return;
     setIsLoading(true);
-4
+
     try {
       // Optimistisches Update: Nachricht sofort anzeigen
 
@@ -255,6 +258,43 @@ export default function Chat() {
   }
 
 
+  const handleStartLiveLocation = async () => {
+    if (!selectedContact) return;
+
+    let currentId = liveLocationMessageId;
+
+    if (!currentId) {
+      currentId = `live-${crypto.randomUUID()}`;
+      const newMessage: ChatMessage = {
+        id: currentId,
+        senderId: userID,
+        chatId: selectedContact.id,
+        content: JSON.stringify([0, 0]),
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+      setMessages(prev => [...prev, newMessage]);
+      setLiveLocationMessageId(currentId);
+    }
+
+    if (!trackingSocket) {
+      const socket = await subscribeToLiveLocations((update) => {
+        setMessages(prev =>
+            prev.map(msg =>
+                msg.id === currentId
+                    ? { ...msg, content: JSON.stringify([update.location.lat, update.location.lon]) }
+                    : msg
+            )
+        );
+      });
+      setTrackingSocket(socket);
+
+      startLiveLocationBroadcast(socket);
+    }
+  };
+
+
+
   function isLocation(content: unknown): content is [number, number] {
     return (
         Array.isArray(content) &&
@@ -332,27 +372,36 @@ export default function Chat() {
         {selectedContact ? (
           <>
             {/* Header mit Kontaktinfo */}
-            <div className="flex items-center py-3 px-4 border-b">
-              <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
-                {selectedContact.avatar ? (
-                  <img
-                    src={selectedContact.avatar}
-                    alt={selectedContact.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white">
-                    {selectedContact.name.charAt(0)}
-                  </div>
-                )}
+            <div className="flex items-center justify-between py-3 px-4 border-b">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full overflow-hidden mr-3 flex-shrink-0">
+                  {selectedContact.avatar ? (
+                      <img
+                          src={selectedContact.avatar}
+                          alt={selectedContact.name}
+                          className="w-full h-full object-cover"
+                      />
+                  ) : (
+                      <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white">
+                        {selectedContact.name.charAt(0)}
+                      </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold">{selectedContact.name}</h3>
+                  <button
+                      onClick={handleStartLiveLocation}
+                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                  >
+                    📍 Standort teilen
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold">{selectedContact.name}</h3>
             </div>
-
             {/* Nachrichten-Bereich */}
             <div className="flex-grow overflow-y-auto px-4 py-3">
               {Array.isArray(messages) && messages.length > 0 ? (
-                  messages.map((message: Message) => {
+                  messages.map((message: ChatMessage) => {
                     const location = isLocation(message.content);
 
                     return (
