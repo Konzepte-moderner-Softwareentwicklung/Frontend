@@ -1,10 +1,10 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchProfile, updateProfile, fetchRatings, uploadProfileImage } from './profileService';
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { fetchProfile, updateProfile, fetchRatings, uploadProfileImage } from './profileService.tsx';
 
 // Typdefinition für Profile-Daten
 interface ProfileData {

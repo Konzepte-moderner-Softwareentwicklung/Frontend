@@ -4,10 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
 import { getUserID, login } from "@/api/user_api";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,18 +19,31 @@ export default function Login() {
     try {
       const result = await login(email, password);
       sessionStorage.setItem("token", result.token);
+<<<<<<< HEAD:frontendts/src/components/pages/login/Login.tsx
       console.log("Login erfolgreich, Token:", result.token);
+=======
+      toast("Login erfolgreich");
+
+>>>>>>> origin/main:frontendts/src/pages/Login/Login.tsx
     } catch (error: any) {
-      console.error("Login fehlgeschlagen:", error);
-      alert(error?.response?.data?.error || "Login fehlgeschlagen");
+      if (error.response?.status === 500) {
+      toast("Server interner Fehler");
+      } else {
+      toast.error('Login fehlgeschlagen');
+      }
     }
     try {
       const result = await getUserID();
       sessionStorage.setItem("UserID", result);
+<<<<<<< HEAD:frontendts/src/components/pages/login/Login.tsx
       console.log("Login erfolgreich, UserID:", result);
+=======
+      if (result) {
+        navigate("/");
+      }
+>>>>>>> origin/main:frontendts/src/pages/Login/Login.tsx
     } catch (error: any) {
-      console.error("Login fehlgeschlagen:", error);
-      alert(error?.response?.data?.error || "Login fehlgeschlagen");
+      toast("Server interner Fehler");
     }
   };
 

@@ -1,10 +1,12 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
-import { DatePicker } from "@/components/DatePicker";
-import { register } from "@/api/user_api";
+import { DatePicker } from "@/components/DatePicker.tsx";
+import { register } from "@/api/user_api.tsx";
+import toast from "react-hot-toast";
+import { Navigate, Router, useNavigate } from "react-router-dom";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -13,19 +15,40 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [date, setDate] = useState<Date>();
+  const navigate = useNavigate();
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
   if (password !== confirmPassword) {
-    alert("Passwords do not match");
+    toast("Passwörter stimmen nicht überein");
+    return;
+  }
+
+  const today = new Date();
+  const eighteenYearsAgo = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  if (date && date > eighteenYearsAgo || date === undefined) {
+    toast("Sie müssen mindestens 18 Jahre alt sein");
+    return;
+  }
+
+  const pwRegex = /^(?=.*[A-Z])(?=.*\d).+$/;
+  if (!pwRegex.test(password)) {
+    toast("Passwort muss mindestens einen Großbuchstaben und eine Ziffer enthalten");
     return;
   }
 
   try {
     const result = await register(firstName, lastName, email, password);
-    console.log("Registration successful:", result);
-    // Optionally redirect or clear the form here
+    console.log("Resultat:", result);
+    if (result.status === 409) {
+      toast("E-Mail bereits registriert");
+      return;
+    }
+    toast("Registrierung erfolgreich");
+    if (result?.id) {
+        navigate("/login");
+      }
   } catch (error: any) {
     if (error.response) {
       console.error("Server error:", error.response.status, error.response.data);
@@ -104,7 +127,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             </div>
 
             <div>
-              <label className="text-base">Login Date:</label>
+              <label className="text-base">Geburtsdatum:</label>
               <DatePicker
                 date={date}
                 setDate={setDate}
