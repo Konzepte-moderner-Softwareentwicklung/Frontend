@@ -51,6 +51,7 @@ export interface Filter {
     maxPrice?: number;
     type?: 'angebote' | 'gesuche' | 'beides';
     onlyOwn?: boolean;
+    hideEnded?: boolean; // NEU: Filter für beendete Fahrten
 }
 
 export interface Space {
@@ -111,7 +112,8 @@ export const mockOffers: Offer[] = [
         info: ["Fahrt findet bei jedem Wetter statt"],
         infoCar: ["Transporter mit Rampe"],
         imageURL: "https://example.com/images/offer1.jpg",
-        car:"Mazda"
+        car:"Mazda",
+        ended: true, // NEU: Diese Fahrt ist beendet
     },
     {
         id: "offer-002",
@@ -151,7 +153,8 @@ export const mockOffers: Offer[] = [
         info: ["Bitte pünktlich sein"],
         infoCar: ["SUV"],
         imageURL: "https://example.com/images/offer2.jpg",
-        car:"Mercedes Benz"
+        car:"Mercedes Benz",
+        ended: false, // NEU: Diese Fahrt ist aktiv
     },
     {
         id: "offer-003",
@@ -514,7 +517,12 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
         setTimeout(() => {
             const filteredOffers = mockOffers.filter((offer) => {
                 const isOwn = userId === offer.driver;
-                if (filter.onlyOwn && !isOwn|| offer.ended) return false;
+                
+                // Bestehende Filter-Logik bleibt gleich
+                if (filter.onlyOwn && !isOwn) return false;
+                
+                // NEU: Filter für beendete Fahrten
+                if (filter.hideEnded && offer.ended) return false;
 
                 const matchesLocationFrom =
                     filter.locationFrom !== undefined &&
@@ -538,7 +546,6 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
                 const matchesMaxPrice =
                     filter.maxPrice !== undefined &&
                     offer.price <= filter.maxPrice;
-
 
                 return (
                     (!filter.locationFrom || matchesLocationFrom) &&
