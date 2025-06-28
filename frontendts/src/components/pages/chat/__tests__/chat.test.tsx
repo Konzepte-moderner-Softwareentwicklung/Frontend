@@ -2,7 +2,23 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'; 
 import userEvent from '@testing-library/user-event';
 
-// Mocks MÜSSEN vor den Imports stehen
+// 🔥 LEAFLET MOCKS MÜSSEN GANZ OBEN STEHEN
+jest.mock('react-leaflet', () => ({
+  MapContainer: ({ children, ...props }: any) => (
+    <div data-testid="map-container" {...props}>{children}</div>
+  ),
+  TileLayer: (props: any) => <div data-testid="tile-layer" {...props} />,
+  Marker: ({ children, ...props }: any) => (
+    <div data-testid="marker" {...props}>{children}</div>
+  ),
+  Popup: ({ children, ...props }: any) => (
+    <div data-testid="popup" {...props}>{children}</div>
+  ),
+}));
+
+jest.mock('leaflet/dist/leaflet.css', () => ({}));
+
+// Andere Mocks
 jest.mock('../chatService');
 jest.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, ...props }: any) => (
