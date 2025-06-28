@@ -12,19 +12,13 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       const result = await login(email, password);
       sessionStorage.setItem("token", result.token);
-<<<<<<< HEAD:frontendts/src/components/pages/login/Login.tsx
-      console.log("Login erfolgreich, Token:", result.token);
-=======
       toast("Login erfolgreich");
-
->>>>>>> origin/main:frontendts/src/pages/Login/Login.tsx
     } catch (error: any) {
       if (error.response?.status === 500) {
       toast("Server interner Fehler");
@@ -35,13 +29,9 @@ export default function Login() {
     try {
       const result = await getUserID();
       sessionStorage.setItem("UserID", result);
-<<<<<<< HEAD:frontendts/src/components/pages/login/Login.tsx
-      console.log("Login erfolgreich, UserID:", result);
-=======
       if (result) {
         navigate("/");
       }
->>>>>>> origin/main:frontendts/src/pages/Login/Login.tsx
     } catch (error: any) {
       toast("Server interner Fehler");
     }
