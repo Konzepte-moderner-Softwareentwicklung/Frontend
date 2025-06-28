@@ -23,6 +23,7 @@ export interface Offer {
     imageURL: string;
     isGesuch?: boolean;
     ended?: boolean;
+    rating?: number; // NEU: Rating für Bewertungsfilter
 }
 export interface SearchDialogFields {
     title: string;
@@ -51,6 +52,9 @@ export interface Filter {
     maxPrice?: number;
     type?: 'angebote' | 'gesuche' | 'beides';
     onlyOwn?: boolean;
+    hideEnded?: boolean;
+    rating?: number; // NEU: Rating Filter
+    maxWeight?: number;
 }
 
 export interface Space {
@@ -111,7 +115,9 @@ export const mockOffers: Offer[] = [
         info: ["Fahrt findet bei jedem Wetter statt"],
         infoCar: ["Transporter mit Rampe"],
         imageURL: "https://example.com/images/offer1.jpg",
-        car:"Mazda"
+        car:"Mazda",
+        ended: true, // NEU: Diese Fahrt ist beendet
+        rating: 4.5, // NEU
     },
     {
         id: "offer-002",
@@ -151,7 +157,9 @@ export const mockOffers: Offer[] = [
         info: ["Bitte pünktlich sein"],
         infoCar: ["SUV"],
         imageURL: "https://example.com/images/offer2.jpg",
-        car:"Mercedes Benz"
+        car:"Mercedes Benz",
+        ended: false, // NEU: Diese Fahrt ist aktiv
+        rating: 3.8, // NEU
     },
     {
         id: "offer-003",
@@ -191,7 +199,8 @@ export const mockOffers: Offer[] = [
         info: ["Transportversicherung inklusive"],
         infoCar: ["Kleiner Van"],
         imageURL: "https://example.com/images/offer3.jpg",
-        car:"Mazda"
+        car:"Mazda",
+        rating: 4.2, // NEU
     },
     {
         id: "offer-004",
@@ -235,7 +244,8 @@ export const mockOffers: Offer[] = [
         info: ["Tragehilfe vorhanden"],
         infoCar: ["Großer Sprinter"],
         imageURL: "https://example.com/images/offer4.jpg",
-        car:"Audi"
+        car:"Audi",
+        rating: 4.0, // NEU
     },
     {
         id: "offer-005",
@@ -270,7 +280,8 @@ export const mockOffers: Offer[] = [
         info: ["Nachtruhe erwünscht"],
         infoCar: ["Limousine"],
         imageURL: "https://example.com/images/offer5.jpg",
-        car:"Audi"
+        car:"Audi",
+        rating: 3.5, // NEU
     },
     {
         id: "offer-006",
@@ -314,7 +325,8 @@ export const mockOffers: Offer[] = [
         info: ["Sicher und pünktlich"],
         infoCar: ["Kombi"],
         imageURL: "https://example.com/images/offer6.jpg",
-        car:"Audi"
+        car:"Audi",
+        rating: 4.7, // NEU
     },
     {
         id: "offer-007",
@@ -354,7 +366,8 @@ export const mockOffers: Offer[] = [
         info: ["Laderampe vorhanden"],
         infoCar: ["Offener Transporter"],
         imageURL: "https://example.com/images/offer7.jpg",
-        car:"Audi"
+        car:"Audi",
+        rating: 3.9, // NEU
     },
     {
         id: "offer-008",
@@ -394,7 +407,8 @@ export const mockOffers: Offer[] = [
         info: ["Kofferraum frei"],
         infoCar: ["Kompaktwagen"],
         imageURL: "https://example.com/images/offer8.jpg",
-        car:"Audi"
+        car:"Audi",
+        rating: 4.1, // NEU
     },
     {
         id: "offer-009",
@@ -434,7 +448,8 @@ export const mockOffers: Offer[] = [
         info: ["Gemütliche Fahrt mit Musik"],
         infoCar: ["VW Bus"],
         imageURL: "https://example.com/images/offer9.jpg",
-        car:"Audi"
+        car:"Audi",
+        rating: 4.8, // NEU
     },
     {
         id: "search-010",
@@ -514,17 +529,28 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
         setTimeout(() => {
             const filteredOffers = mockOffers.filter((offer) => {
                 const isOwn = userId === offer.driver;
-                if (filter.onlyOwn && !isOwn|| offer.ended) return false;
+                
+                // Filter für eigene Fahrten
+                if (filter.onlyOwn && !isOwn) return false;
+                
+                // Filter für beendete Fahrten
+                if (filter.hideEnded && offer.ended) return false;
+
+                // NEU: Filter für Angebote/Gesuche
+                if (filter.type && filter.type !== 'beides') {
+                    if (filter.type === 'angebote' && offer.isGesuch) return false;
+                    if (filter.type === 'gesuche' && !offer.isGesuch) return false;
+                }
 
                 const matchesLocationFrom =
                     filter.locationFrom !== undefined &&
                     filter.locationFrom !== "" &&
-                    offer.locationFrom.includes(filter.locationFrom);
+                    offer.locationFrom.toLowerCase().includes(filter.locationFrom.toLowerCase());
 
                 const matchesLocationTo =
                     filter.locationTo !== undefined &&
                     filter.locationTo !== "" &&
-                    offer.locationTo.includes(filter.locationTo);
+                    offer.locationTo.toLowerCase().includes(filter.locationTo.toLowerCase());
 
                 const matchesDate =
                     filter.date !== undefined &&
@@ -533,19 +559,28 @@ export async function fetchOffersWithFilter(filter: Filter,  userId:string): Pro
 
                 const matchesFreeSpace =
                     filter.freeSpace !== undefined &&
-                    offer.canTransport.seats === filter.freeSpace;
+                    offer.canTransport.seats >= filter.freeSpace;
 
                 const matchesMaxPrice =
                     filter.maxPrice !== undefined &&
                     offer.price <= filter.maxPrice;
 
+                // NEU: Rating Filter (Mock-Implementation)
+                const matchesRating = filter.rating !== undefined ? 
+                    (offer.rating || 4.0) >= filter.rating : true;
+
+                // NEU: Gewicht Filter
+                const matchesMaxWeight = filter.maxWeight !== undefined ?
+                    offer.canTransport.items.some(item => item.weight >= filter.maxWeight) : true;
 
                 return (
                     (!filter.locationFrom || matchesLocationFrom) &&
                     (!filter.locationTo || matchesLocationTo) &&
                     (!filter.date || matchesDate) &&
                     (filter.freeSpace === undefined || matchesFreeSpace) &&
-                    (filter.maxPrice === undefined || matchesMaxPrice)
+                    (filter.maxPrice === undefined || matchesMaxPrice) &&
+                    matchesRating &&
+                    matchesMaxWeight
                 );
             });
 

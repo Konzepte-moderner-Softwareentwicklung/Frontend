@@ -224,6 +224,24 @@ function Drives() {
                             Eigene Fahrten anzeigen
                         </label>
                     </div>
+                    
+                    {/* NEU: Filter für beendete Fahrten */}
+                    <div className="flex items-center gap-2 mt-6 md:mt-0">
+                        <input
+                            type="checkbox"
+                            id="hideEnded"
+                            className="w-4 h-4"
+                            onChange={(e) =>
+                                setFilter((prev) => ({
+                                    ...prev,
+                                    hideEnded: e.target.checked,
+                                }))
+                            }
+                        />
+                        <label htmlFor="hideEnded" className="text-sm">
+                            Beendete Fahrten ausblenden
+                        </label>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -292,11 +310,13 @@ function Drives() {
                 ) : (
                     paginatedOffers.map((offer: Offer) => {
                         const isGesuch = offer.isGesuch;
+                        const isEnded = offer.ended; // NEU
                         return (
                             <Card
                                 key={offer.id}
                                 className={`rounded-2xl shadow cursor-pointer transition hover:shadow-lg
-                        ${isGesuch ? "bg-pink-100" : "border-2 border-green-400"}`}
+                        ${isGesuch ? "bg-pink-100" : "border-2 border-green-400"}
+                        ${isEnded ? "opacity-50 grayscale" : ""}`} // NEU: Visuelle Kennzeichnung
                                 onClick={() => {
                                     if (!isGesuch) {
                                         navigate(`/drives/${offer.id}`);
@@ -306,6 +326,11 @@ function Drives() {
                                 }}
                             >
                                 <CardContent className="p-4">
+                                    {isEnded && ( // NEU: "Beendet" Label
+                                        <div className="bg-red-500 text-white text-xs px-2 py-1 rounded mb-2">
+                                            BEENDET
+                                        </div>
+                                    )}
                                     {isGesuch && (
                                         <h3 className="text-pink-700 font-semibold mb-2">Suche Fahrt:</h3>
                                     )}
