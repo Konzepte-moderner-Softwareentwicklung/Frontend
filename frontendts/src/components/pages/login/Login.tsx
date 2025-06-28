@@ -15,7 +15,7 @@ export default function Login() {
 
     try {
       const result = await login(email, password);
-      localStorage.setItem("token", result.token);
+      sessionStorage.setItem("token", result.token);
       console.log("Login erfolgreich, Token:", result.token);
     } catch (error: any) {
       console.error("Login fehlgeschlagen:", error);
@@ -23,7 +23,7 @@ export default function Login() {
     }
     try {
       const result = await getUserID();
-      localStorage.setItem("UserID", result);
+      sessionStorage.setItem("UserID", result);
       console.log("Login erfolgreich, UserID:", result);
     } catch (error: any) {
       console.error("Login fehlgeschlagen:", error);

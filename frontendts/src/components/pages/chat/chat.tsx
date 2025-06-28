@@ -22,7 +22,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [userID] = useState<string>(localStorage.getItem("UserID") || "");
+  const [userID] = useState<string>(sessionStorage.getItem("UserID") || "");
   const [liveLocationMessageId, setLiveLocationMessageId] = useState<string | null>(null);
   const [trackingSocket, setTrackingSocket] = useState<WebSocket | null>(null);
 
@@ -70,9 +70,10 @@ export default function Chat() {
       try {
         const data = await fetchChatHistory(selectedContact.id);
         for(const msg of data){
-          console.log("senderID "+ msg.senderId+"    userID: "+localStorage.getItem("UserID"));
+          console.log("senderID "+ msg.senderId+"    userID: "+sessionStorage.getItem("UserID"));
         }
         setMessages(data);
+        debugger;
       } catch (error) {
         console.error("Fehler beim Laden des Chat-Verlaufs:", error);
       } finally {
@@ -403,7 +404,7 @@ export default function Chat() {
               {Array.isArray(messages) && messages.length > 0 ? (
                   messages.map((message: ChatMessage) => {
                     const location = isLocation(message.content);
-
+debugger;
                     return (
                         <div
                             key={message.id}
@@ -421,7 +422,7 @@ export default function Chat() {
                             {location ? (
                                 <ChatMap lat={50.123} lon={8.678} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
                             ) : (
-                                <p>Kein Standort verfügbar</p>
+                                <p>{message.content}</p>
                             )}                            <div
                                 className={`text-xs mt-1 ${
                                     message.senderId === userID ? "text-blue-100" : "text-gray-500"

@@ -39,7 +39,7 @@ export default function Navbar() {
           </NavigationMenuItem>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
-              <a href="/chats" className="text-black hover:transition-colors">
+              <a href="/chat" className="text-black hover:transition-colors">
                 Chats
               </a>
             </NavigationMenuLink>

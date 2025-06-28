@@ -43,30 +43,30 @@ export const authService = {
             throw new Error(`Registrierung fehlgeschlagen: ${text}`);
         }
         const data: AuthResponse = await res.data();
-        localStorage.setItem(TOKEN_KEY, data.token);
+        sessionStorage.setItem(TOKEN_KEY, data.token);
 
         //get and save user id
-        const token = localStorage.getItem(TOKEN_KEY);
+        const token = sessionStorage.getItem(TOKEN_KEY);
 
         const uidRes = await axios.get(`/user/email?email=` + credentials.email, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
         });
-        localStorage.setItem("userID", uidRes.data.id);
-        //console.log("userID: ", localStorage.getItem("userID"));
+        sessionStorage.setItem("userID", uidRes.data.id);
+        //console.log("userID: ", sessionStorage.getItem("userID"));
     },
 
     logout: () => {
-        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
     },
 
     getToken: (): string | null => {
-        return localStorage.getItem(TOKEN_KEY);
+        return sessionStorage.getItem(TOKEN_KEY);
     },
 
     isLoggedIn: (): boolean => {
-        return !!localStorage.getItem(TOKEN_KEY);
+        return !!sessionStorage.getItem(TOKEN_KEY);
     },
 
 };

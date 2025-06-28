@@ -159,7 +159,7 @@ export default function Profile() {
       setIsLoading(true);
       try {
         // Beispiel - ersetze mit deiner User-ID-Quelle
-        const userId = localStorage.getItem('userId') || 'current';
+        const userId = sessionStorage.getItem('userId') || 'current';
         const data = await fetchProfile(userId);
         setProfileData(data);
       } catch (error) {
@@ -174,7 +174,7 @@ export default function Profile() {
 
   // Ähnliche Änderung für das Laden der Bewertungen...
   useEffect(() => {
-    console.log(localStorage.getItem("UserID"));
+    console.log(sessionStorage.getItem("UserID"));
     const fetchRatings = async () => {
       setIsLoading(true);
       try {
@@ -215,7 +215,7 @@ export default function Profile() {
     setIsLoading(true);
     
     try {
-      const userId = localStorage.getItem('userId') || 'current';
+      const userId = sessionStorage.getItem('userId') || 'current';
       
       // Profildaten aktualisieren
       await updateProfile(userId, profileData);

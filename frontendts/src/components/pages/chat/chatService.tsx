@@ -94,7 +94,7 @@ function formatMessageDate(dateStr: string): string {
 export async function fetchChatContacts(){
 
   try {
-    const userID = localStorage.getItem("UserID");
+    const userID = sessionStorage.getItem("UserID");
     const contacts:ChatContact[] = [];
 
     const chats = await getChats();

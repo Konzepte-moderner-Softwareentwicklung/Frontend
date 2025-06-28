@@ -7,7 +7,8 @@ export async function createChat(userIds: string[]) {
 }
 
 export async function postMessage(id: string, content: string) {
-  const response = await api.post(`/chat/${id}`, { content: content });
+
+  const response = await api.post(`/chat/${id}`, { content: content ,},);
   return response.data;
 }
 
@@ -24,7 +25,7 @@ export async function getChatMessages(id: string) {
 }
 
 export  function connectWebSocket(id: string) {
-  const token = localStorage.getItem("token"); // oder aus deinem api-Modul holen
+  const token = sessionStorage.getItem("token"); // oder aus deinem api-Modul holen
   const socket = new WebSocket(`api/ws/chat/${id}?token=${token}`);
   console.log(socket)
   return socket;
@@ -32,7 +33,7 @@ export  function connectWebSocket(id: string) {
 }
 
 export  function connectTrackingWebSocket() {
-  const token = localStorage.getItem("token"); // oder aus deinem api-Modul holen
+  const token = sessionStorage.getItem("token"); // oder aus deinem api-Modul holen
   const socket = new WebSocket(`tracking/?token=${token}`);
   console.log(socket)
   return socket;
