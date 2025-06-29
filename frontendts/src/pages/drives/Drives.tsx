@@ -304,7 +304,7 @@ function Drives() {
            
                 
                 const data = await fetchOffersWithFilter(serverFilter);
-                
+                console.log(JSON.stringify(data))
                
                 let filteredOffers = data;
             

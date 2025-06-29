@@ -7,7 +7,12 @@ import {
     createChat
 } from "@/api/chat_api";
 import {getUserByID} from "@/api/user_api.tsx";
-import toast from "react-hot-toast";
+
+export async function createIfNotExistChat(userID:string) {
+  if(!(contacts.find(contact => contact.receiverId === userID || contact.senderID === userID))){
+    await createChat([userID]);
+  }
+}
 
 
 // Interfaces
@@ -224,45 +229,22 @@ export async function subscribeToLiveLocations(
 
   const socket = await connectTrackingWebSocket();
 
-  function sendNow() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          sendLiveLocation(socket, pos.coords.latitude, pos.coords.longitude);
-        },
-        (error) => {
-          console.error("Error getting position:", error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5000
-        }
-    );
-  }
 
-  // 1️⃣ Sobald Socket offen → sofort senden
-  socket.onopen = () => {
-    console.log("Tracking WebSocket geöffnet – sofort erste Location senden");
-    sendNow();
-  };
-
-  // 2️⃣ Nachricht empfangen
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as LiveLocationUpdate;
+      console.log(JSON.stringify(data))
       onLocationReceived(data);
+
     } catch (err) {
       console.error("Fehler beim Parsen des Tracking-Updates:", err);
     }
   };
 
-  // 3️⃣ Fehlerbehandlung
   socket.onerror = (err) => {
     console.error("Tracking-WebSocket-Fehler:", err);
   };
 
-  // 4️⃣ Automatisches Aufräumen bei Disconnect
   socket.onclose = () => {
     console.log("Tracking-WS getrennt");
   };
@@ -272,52 +254,6 @@ export async function subscribeToLiveLocations(
 
 
 
-export function sendLiveLocation(
-    socket: WebSocket,
-    lat: number,
-    lon: number
-) {
-  const payload = {
-    location: {
-      lat,
-      lon
-    }
-  };
-  socket.send(JSON.stringify(payload));
-}
 
-let trackingInterval: number | null = null;
-
-export function startLiveLocationBroadcast(socket: WebSocket) {
-  if (trackingInterval) return;
-
-  trackingInterval = window.setInterval(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          sendLiveLocation(socket, pos.coords.latitude, pos.coords.longitude);
-        }
-    );
-  }, 5000);
-}
-
-export function stopLiveLocationBroadcast() {
-  if (trackingInterval) {
-    clearInterval(trackingInterval);
-    trackingInterval = null;
-  }
-}
-
-export async function createIfNotExistChat(userId: string) {
-    try {
-        if (userId && contacts.find(contact => contact.id !== userId)) {
-            await createChat([userId]);
-        }
-    
-    } catch (err:any) {
-        toast.error("Chat konnte nicht erstellt werden");
-    }
-
-}
 
 

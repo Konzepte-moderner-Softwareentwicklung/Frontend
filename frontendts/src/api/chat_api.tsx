@@ -3,6 +3,7 @@ import api from "./api";
 //post calls
 export async function createChat(userIds: string[]) {
   const response = await api.post(`/chat`, { userIds: userIds });
+  console.log("/chat:"+JSON.stringify(response));
   return response.data;
 }
 
@@ -33,9 +34,9 @@ export  function connectWebSocket(id: string) {
 }
 
 export  function connectTrackingWebSocket() {
-  const token = sessionStorage.getItem("token"); // oder aus deinem api-Modul holen
-  const socket = new WebSocket(`tracking/?token=${token}`);
+  const socket = new WebSocket(
+      `/api/tracking?token=${sessionStorage.getItem("token")}`,
+  );
   console.log(socket)
   return socket;
-
 }

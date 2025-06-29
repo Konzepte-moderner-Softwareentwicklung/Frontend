@@ -14,7 +14,9 @@ import { OfferEditDialog } from "@/components/drives/offer/OfferEditDialog";
 import { OfferJoinDialog } from "@/components/drives/offer/OfferJoinDialog";
 import { OfferImageUploader } from "@/components/drives/offer/OfferImageUploader.tsx";
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
-
+import {createChat} from "@/api/chat_api.tsx";
+import {DomEvent} from "leaflet";
+import off = DomEvent.off;
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
@@ -34,7 +36,7 @@ function DrivesOfferDetailPage() {
     const [itemHeight, setItemHeight] = useState("");
     const [itemDepth, setItemDepth] = useState("");
     const [itemWeight, setItemWeight] = useState("");
-
+    const [isPassenger, setIsPassenger] = useState(false);
 
     const navigate = useNavigate();
     const { id } = useParams();
@@ -56,6 +58,7 @@ function DrivesOfferDetailPage() {
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
                             };
+                            console.log("sending: "+location.latitude+ "   "+location.longitude);
                             ws.current?.send(JSON.stringify(location));
                         },
                         (error) => {
@@ -66,6 +69,9 @@ function DrivesOfferDetailPage() {
             }, 5000);
         };
 
+        ws.current.onmessage =(msg) =>{
+            console.log("Received message:", msg);
+        }
         ws.current.onclose = () => {
             console.log("WebSocket closed");
         };
@@ -77,23 +83,38 @@ function DrivesOfferDetailPage() {
         };
     }, [isTracking]);
 
+
     useEffect(() => {
         if (id) {
-            getOffer(id).then(setOffer);
+            const fetchOffer = async () => {
+                const data = await getOffer(id);
+                setOffer(data);
+                console.log(JSON.stringify(data));
+                console.log(isOccupiedSpaceUser);
+            };
+            fetchOffer();
         }
     }, [id]);
+
+    useEffect(() => {
+        if (!offer) return;
+
+        if (offer.driver === userId) {
+            setIsDriver(true);
+            setIsSelfChat(true);
+        } else {
+            setIsDriver(false);
+            setIsSelfChat(false);
+        }
+
+        if (new Date(offer.endDateTime || "").getTime() >= new Date().getTime()) {
+            // setShowRatingDialog(true);
+        }
+    }, [offer, userId]);
     
     const isLoggedIn = sessionStorage.getItem("token") != null && sessionStorage.getItem("token") !== "";
     
-    useEffect(() => {
-        if (offer?.driver === userId) {
-            setIsDriver(true);
-            setIsSelfChat(true);
-        }
-        if (new Date(offer?.endDateTime || "").getTime() >= new Date().getTime()) {
-            //setShowRatingDialog(true);
-        }
-    }, [offer, userId]);
+
 
     const toggleTracking = () => {
         setIsTracking(!isTracking);
@@ -133,18 +154,22 @@ function DrivesOfferDetailPage() {
     };
 
 
-    const goToChat = () => {
-        if (isLoggedIn && !isDriver && offer?.isChat) {
-            createIfNotExistChat(offer?.chatId||"");
+    const goToChat = async () => {
+        if (isLoggedIn) {
             navigate(`/chat`);
         }
     };
 
 
-    const isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
+
+
+    let isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
     const canGiveFeedback = isDriver || isOccupiedSpaceUser;
 
-    if (!offer) {
+
+
+
+        if (!offer) {
         return (
             <div className="min-h-screen bg-cyan-100 p-8">
                 <div className="max-w-4xl mx-auto">
@@ -163,6 +188,12 @@ function DrivesOfferDetailPage() {
             </div>
         );
     }
+
+    async function handleParticipation() {
+        setShowJoinDialog(true)
+        if(offer)await createChat([offer?.driver]);
+        else console.log("kein offer")
+        }
 
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
@@ -185,18 +216,18 @@ function DrivesOfferDetailPage() {
                             </Button>
                         )}
 
-                        {!isDriver && !isOccupiedSpaceUser && isLoggedIn && (
+                        {!isDriver && !isOccupiedSpaceUser && isLoggedIn && !isPassenger&& (
                             <Button
                                 variant="outline"
-                                onClick={() => setShowJoinDialog(true)}
-                            >
+                                onClick={() => handleParticipation()}
+                                    >
                                 An Fahrt teilnehmen
                             </Button>
                         )}
 
                         <Button
                             onClick={goToChat}
-                        disabled={isDriver ||offer?.isChat}
+                        disabled={localStorage.getItem("UserID")===offer?.driver ||!offer?.isChat}
                             className={
                                 isLoggedIn && offer?.isChat && isDriver
                                     ? ""

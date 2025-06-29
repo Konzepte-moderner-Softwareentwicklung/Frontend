@@ -2,6 +2,7 @@ import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_a
 import toast from "react-hot-toast";
 import {downloadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
+import {createChat} from "@/api/chat_api.tsx";
 
 export interface Coordinates {
     longitude: number;
@@ -246,7 +247,7 @@ export async function setLocationName(city: string) {
     );
 
     const data = await Promise.race([fetchPromise, timeoutPromise]);
-
+    console.log(JSON.stringify(data))
     if (data.length === 0) {
     toast.error('Ort nicht gefunden');
         throw new Error('Ort nicht gefunden');
@@ -360,7 +361,8 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 
 // Funktion zum Abrufen nur aktiver Offers (nicht archivierte)
 export function getActiveOffers(): Offer[] {
-    return offers.filter(offer => !offer.ended);
+    if(offers) return offers.filter(offer => !offer.ended);
+    else return [];
 }
 
 // Funktion zum Abrufen archivierter Offers
