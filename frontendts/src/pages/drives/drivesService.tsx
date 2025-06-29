@@ -1,6 +1,6 @@
 import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
-import {downloadPicture, uploadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
+import {downloadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
 
 export interface Coordinates {
@@ -41,7 +41,15 @@ export const DEFAULT_OFFER: Offer = {
     imageURL: '',
     isGesuch: false,
     ended: false,
+    creator: ""
 };
+
+interface placeList{
+    id: string,
+    coordinatesFrom: string,
+    coordinatesTo: string
+}
+
 
 export interface Offer {
     id?: string;
@@ -84,7 +92,7 @@ export interface SearchDialogFields {
 }
 
 
-export interface Filter {
+export interface clientFilter {
     freeSpace?: number;
     locationFrom?: string;
     locationTo?: string;
@@ -95,6 +103,22 @@ export interface Filter {
     creator?: string;
     maxPrice?: number;
     onlyOwn?: boolean;
+}
+
+export interface ServerFilter {
+    price: number;
+    includePassed: boolean;
+    dateTime: string; // ISO-String (z. B. new Date().toISOString())
+    nameStartsWith: string;
+    spaceNeeded: Space;
+    locationFrom: Location;
+    locationTo: Location;
+    locationFromDiff: number;
+    locationToDiff: number;
+    user: string;
+    creator: string;
+    currentTime: string; // ISO-String
+    id: string;
 }
 
 export interface Space {
@@ -116,8 +140,7 @@ export interface Size {
 
 
 export let offers: Offer[] = [];
-
-let idCount = 11;
+const locationCache:placeList[] = [];
 
 
 export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
@@ -144,7 +167,7 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filter: Filter): Promise<Offer[]> {
+export async function fetchOffersWithFilter(serverFilter:ServerFilter, filter: clientFilter): Promise<Offer[]> {
     offers = await searchOffersByFilter(filter);
     return offers;
 }
@@ -162,77 +185,23 @@ export async function createNewOffer(offer: Offer) {
 
 }
 
+export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {
+    let totalWeight = 0,totalVolume = 0;
+    const maxItem = can.items[0];
+    const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
+    occupied.forEach((space) => {
+         totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+         totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+            newItem.size.width * newItem.size.height * newItem.size.depth;
+    })
 
-export async function createSearch(fields: SearchDialogFields) {
-    try {
-        const newOffer = await convertSearchFieldsToOffer(fields);
-        return await createOffer(newOffer);
-    } catch (error: any) {
-        if (error.response?.status === 500) {
-            toast("Server interner Fehler");
-        } else {
-            toast.error('Gesuch erstellen fehlgeschlagen');
-        }
-    }
+    return (
+        totalWeight <= maxItem.weight &&
+        totalVolume <= maxVolume
+    );
 }
 
-async function convertSearchFieldsToOffer(fields: SearchDialogFields): Promise<Offer> {
-    const locationFrom = await setLocationName(fields.locationFrom);
-    const locationTo = await setLocationName(fields.locationTo);
-    return {
-        creator: fields.creatorId,
-        canTransport: {
-            occupiedBy: fields.creatorId,
-            items: [],
-            seats: 10,
-        },
-        chatId: fields.creatorId,
-        createdAt: new Date().toISOString(),
-        description: fields.description,
-        paidSpaces: [],
-        driver: fields.creatorId,
-        startDateTime: new Date().toISOString(),
-        endDateTime: new Date().toISOString(),
-        id: fields.creatorId,
-        imageURL: fields.creatorId,
-        info: fields.info,
-        infoCar: [],
-        isChat: false,
-        isEmail: false,
-        isGesuch: true,
-        isPhone: false,
-        locationFrom: locationFrom || { latitude: 0, longitude: 0 },
-        locationTo: locationTo || { latitude: 0, longitude: 0 },
-        occupiedSpace: [
-            {
-                occupiedBy: sessionStorage.getItem("UserID") || "",
-                items: [fields.package],
-                seats: fields.passengers,
-            },
-        ],
-        price: fields.price,
-        restrictions: ["", ""],
-        title: fields.title,
-    };
-
-}
-
-export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {//TODO:Fix
-    // const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-    // const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
-    //     newItem.size.width * newItem.size.height * newItem.size.depth;
-    //
-    // const maxItem = can.items[0];
-    // const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
-    //
-    // return (
-    //     totalWeight <= maxItem.weight &&
-    //     totalVolume <= maxVolume
-    // );
-    return true
-}
-
-export async function getLocationName(latitude: number, longitude: number) {
+export async function getLocationName(latitude: number, longitude: number):Promise<string> {
     if (latitude == 0 || longitude == 0) {
         return "";
     }
@@ -242,6 +211,7 @@ export async function getLocationName(latitude: number, longitude: number) {
     const data = await response.json();
     return data?.city; // z.B. "Berlin"
 }
+
 
 export async function loadImage(id: string) {
     return await downloadPicture(id);
@@ -295,7 +265,7 @@ export async function sendFeedback(feedBack: {
     targetId: string;
     userId: string | null
 }) {
-
+return null;
 }
 
 export async function getUserNameFromUserId(userId: string):Promise<{firstName:string,lastName:string}> {
@@ -304,5 +274,27 @@ export async function getUserNameFromUserId(userId: string):Promise<{firstName:s
         return {firstName: user.firstName, lastName: user.lastName};
     });
 
+}
 
+export async function getLocationFromList(
+    id: string,
+    locationFrom: Coordinates,
+    locationTo: Coordinates
+): Promise<{ coordinatesFrom: string; coordinatesTo: string }> {
+    const cached = locationCache.find((entry) => entry.id === id);
+
+    if (cached) {
+        return { coordinatesFrom: cached.coordinatesFrom, coordinatesTo: cached.coordinatesTo };
+    } else {
+
+        const fromLocation = await getLocationName( locationFrom.latitude,locationFrom.longitude);
+        const toLocation = await getLocationName(locationTo.latitude,locationTo.longitude);
+        locationCache.push({
+            id,
+            coordinatesFrom: fromLocation,
+            coordinatesTo: toLocation,
+        });
+
+        return {coordinatesFrom: fromLocation, coordinatesTo: toLocation};
+    }
 }

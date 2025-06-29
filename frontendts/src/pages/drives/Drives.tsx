@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {Button} from "@/components/ui/button.tsx";
-import {Card, CardContent} from "../../components/ui/card.tsx";
+
 import {useNavigate} from 'react-router-dom';
 import {
     Pagination,
@@ -30,20 +30,41 @@ import {
 import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
-    createNewOffer, createSearch,
-    fetchOffersWithFilter,
-    type Filter,
+    createNewOffer, fetchOffersWithFilter,
+    type clientFilter,
     getMaxPrice,
-    type Offer, type SearchDialogFields, type Space, setLocationName
+    type Offer, type Space, setLocationName, type ServerFilter, getLocationName
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
+import {DriveDetailCard} from "@/components/drives/DriveDetailCard.tsx";
 
+
+function getServerFilter() {
+    const serverFilter: ServerFilter = {
+        currentTime: "",
+        dateTime: "",
+        id: "",
+        includePassed: false,
+        locationFrom: undefined,
+        locationFromDiff: 0,
+        locationTo: undefined,
+        locationToDiff: 0,
+        nameStartsWith: "",
+        price: 0,
+        spaceNeeded: undefined,
+        user: ""
+    }
+}
+
+function getClientFilter() {
+
+}
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [filter, setFilter] = useState<Filter | undefined>(undefined);
+    const [filter, setFilter] = useState<clientFilter | undefined>(undefined);
     const maxOfferPrice = getMaxPrice();
     const [maxPrice, setMaxPrice] = useState([100]);
     const [title, setTitle] = useState("");
@@ -177,7 +198,9 @@ function Drives() {
     useEffect(() => {
         async function loadOffers() {
             try {
-                const data = await fetchOffersWithFilter({});
+                const serverFilter = getServerFilter();
+                const clientFilter = getClientFilter();
+                const data = await fetchOffersWithFilter(serverFilter,clientFilter);
                 setOffers(data);
 
                 setCurrentPage(1);
@@ -317,49 +340,12 @@ function Drives() {
                         Keine Angebote und Gesuche vorhanden.
                     </p>
                 ) : (
-                    paginatedOffers.map((offer: Offer) => {
-                        const isGesuch = offer.isGesuch;
-                        return (
-                            <Card
-                                key={offer.id}
-                                className={`rounded-2xl shadow cursor-pointer transition hover:shadow-lg
-                        ${isGesuch ? "bg-pink-100" : "border-2 border-green-400"}`}
-                                onClick={() => {
-                                    if (!isGesuch) {
-                                        navigate(`/drives/${offer.id}`);
-                                    } else {
-                                        navigate(`/drives/${offer.id}/search`);
-                                    }
-                                }}
-                            >
-                                <CardContent className="p-4">
-                                    {isGesuch && (
-                                        <h3 className="text-pink-700 font-semibold mb-2">Suche Fahrt:</h3>
-                                    )}
-                                    {!isGesuch && (
-                                        <h3 className="text-green-700 font-semibold mb-2">Biete an:</h3>
-                                    )}
-
-                                    <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
-                                        {offer.imageURL && (
-                                            <img
-                                                src={offer.imageURL}
-                                                alt="Angebot"
-                                                className="h-full w-full object-cover rounded"
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/*<p className="font-medium">*/}
-                                    {/*    {offer.locationFrom} → {offer.locationTo}*/}
-                                    {/*</p>*/}
-                                    <p className="font-bold">{offer.price} Euro</p>
-                                </CardContent>
-                            </Card>
-                        );
-                    })
+                    paginatedOffers.map((offer: Offer) => (
+                        <DriveDetailCard key={offer.id} offer={offer} />
+                    ))
                 )}
             </section>
+
 
 
             <div className="flex justify-between items-center mt-6">

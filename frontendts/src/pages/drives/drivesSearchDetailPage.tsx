@@ -1,15 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { DialogDescription } from "@radix-ui/react-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
     createNewOffer,
     getLocationName,
     getOffer,
@@ -18,8 +8,11 @@ import {
     setLocationName,
 } from "@/pages/drives/drivesService.tsx";
 import { useNavigate, useParams } from "react-router-dom";
-import { Textarea } from "@/components/ui/textarea.tsx";
 import toast from "react-hot-toast";
+import { OfferDetailCard } from "@/components/drives/search/OfferDetailCard";
+import { EditOfferDialog } from "@/components/drives/search/EditOfferDialog";
+import { DriverApplicationDialog } from "@/components/drives/search/DriverApplicationDialog";
+import { ErrorDisplay } from "@/components/drives/search/ErrorDisplay";
 
 function DrivesSearchDetailPage() {
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -47,9 +40,11 @@ function DrivesSearchDetailPage() {
         localStorage.getItem("UserId") ||
         sessionStorage.getItem("UserId") ||
         "";
+    
     const handleBack = () => {
         navigate("/drives");
     };
+    
     const [fields, setFields] = useState<SearchDialogFields>({
         title: "",
         creatorId: "",
@@ -114,13 +109,29 @@ function DrivesSearchDetailPage() {
         loadOffer();
     }, [id]);
 
-
     const handleFieldChange = (field: keyof SearchDialogFields, value: any) => {
         setFields((prev) => ({ ...prev, [field]: value }));
     };
 
+    const handlePackageChange = (field: string, value: number) => {
+        setFields((prev) => ({
+            ...prev,
+            package: {
+                ...prev.package,
+                ...(field === "weight" 
+                    ? { weight: value }
+                    : {
+                        size: {
+                            ...prev.package.size,
+                            [field]: value,
+                        },
+                    }
+                ),
+            },
+        }));
+    };
 
-    async function handleDriverSubmit () {
+    async function handleDriverSubmit() {
         const locationFrom = await setLocationName(fields.locationFrom);
         const locationTo = await setLocationName(fields.locationTo)
         const newOffer: Offer = {
@@ -165,7 +176,6 @@ function DrivesSearchDetailPage() {
             infoCar: infoCar.split(";"),
             createdAt: new Date().toISOString(),
             imageURL: ""
-
         };
 
         setShowDriverDialog(false);
@@ -187,601 +197,62 @@ function DrivesSearchDetailPage() {
     }
 
     if (!offer) {
-        return (
-            <div className="min-h-screen bg-cyan-100 p-8">
-                <div className="max-w-4xl mx-auto">
-                    <button
-                        onClick={handleBack}
-                        className="mb-6 px-4 py-2 bg-white text-blue-600 rounded shadow hover:bg-blue-50 transition"
-                    >
-                        ← Zurück
-                    </button>
-
-                    <div className="bg-white p-6 rounded-2xl shadow text-center">
-                        <h1 className="text-xl font-bold text-red-600 mb-4">
-                            Die Fahrt konnte nicht geladen werden.
-                        </h1>
-                        <p className="text-gray-600">
-                            Bitte überprüfe den Link oder versuche es später erneut.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
+        return <ErrorDisplay onBackClick={handleBack} />;
     }
 
     return (
-        <div className="min-h-screen bg-cyan-100 p-8">
-            <button
-                onClick={handleBack}
-                className="mb-6 px-4 py-2 bg-white text-blue-600 rounded shadow hover:bg-blue-50 transition"
-            >
-                ← Zurück
-            </button>
-            <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow relative">
-                {offer?.isChat && offer.chatId && (
-                    <Button
-                        className="absolute top-4 right-4"
-                        onClick={() => navigate(`/chat/${offer.chatId}`)}
-                    >
-                        Chat öffnen
-                    </Button>
-                )}
+        <>
+            <OfferDetailCard
+                offer={offer}
+                fields={fields}
+                userId={userId}
+                onEditClick={() => setShowEditDialog(true)}
+                onDriverApplicationClick={() => setShowDriverDialog(true)}
+                onBackClick={handleBack}
+            />
 
-                <h1 className="text-2xl font-bold mb-4">
-                    {offer.title || "Titel (noch leer)"}
-                </h1>
-                <p className="text-gray-600 mb-4">
-                    {offer.description || "Keine Beschreibung"}
-                </p>
+            <EditOfferDialog
+                open={showEditDialog}
+                onOpenChange={setShowEditDialog}
+                fields={fields}
+                onFieldChange={handleFieldChange}
+                onPackageChange={handlePackageChange}
+            />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <p>
-                            <strong>Von:</strong>{" "}
-                            {fields.locationFrom || "-"}
-                        </p>
-                        <p>
-                            <strong>Nach:</strong>{" "}
-                            {fields.locationTo || "-"}
-                        </p>
-                        <p>
-                            <strong>Preis:</strong> {offer?.price} €
-                        </p>
-                        <p>
-                            <strong>Sitze:</strong> {offer?.occupiedSpace[0]?.seats}
-                        </p>
-                    </div>
-                    <div>
-                        <p>
-                            <strong>Infos:</strong> {fields.info.join(", ") || "-"}
-                        </p>
-                        <p>
-                            <strong>Einschränkungen:</strong>{" "}
-                            {fields.restrictions.join(", ") || "-"}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="mb-6">
-                    <h2 className="font-semibold">Paketinformationen</h2>
-                    <ul className="list-disc ml-5">
-                        <li>
-                            Größe: {fields.package.size.width}×
-                            {fields.package.size.height}×
-                            {fields.package.size.depth} cm
-                        </li>
-                        <li>Gewicht: {fields.package.weight} kg</li>
-                    </ul>
-                </div>
-
-                <div className="flex gap-4">
-                    {offer?.driver === userId && (
-                        <Button onClick={() => setShowEditDialog(true)}>Bearbeiten</Button>
-                    )}
-
-                    {offer?.driver !== userId && (
-                        <Button onClick={() => setShowDriverDialog(true)}>
-                            Als Fahrer melden
-                        </Button>
-                    )}
-                </div>
-            </div>
-
-
-            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Felder bearbeiten</DialogTitle>
-                        <DialogDescription>
-                            Bearbeite die Informationen für dein Angebot.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="grid gap-4 py-4">
-                        <Input
-                            placeholder="Titel"
-                            value={fields.title}
-                            onChange={(e) => handleFieldChange("title", e.target.value)}
-                        />
-                        <Input
-                            placeholder="Beschreibung"
-                            value={fields.description}
-                            onChange={(e) =>
-                                handleFieldChange("description", e.target.value)
-                            }
-                        />
-                        <Input
-                            placeholder="Startort"
-                            value={fields.locationFrom}
-                            onChange={(e) =>
-                                handleFieldChange("locationFrom", e.target.value)
-                            }
-                        />
-                        <Input
-                            placeholder="Zielort"
-                            value={fields.locationTo}
-                            onChange={(e) => handleFieldChange("locationTo", e.target.value)}
-                        />
-                        <Input
-                            placeholder="Anzahl Passagiere"
-                            type="number"
-                            value={fields.passengers}
-                            onChange={(e) =>
-                                handleFieldChange("passengers", Number(e.target.value))
-                            }
-                        />
-                        <Input
-                            placeholder="Preis (€)"
-                            type="number"
-                            value={fields.price}
-                            onChange={(e) =>
-                                handleFieldChange("price", Number(e.target.value))
-                            }
-                        />
-
-                        <div className="font-semibold mt-2">Paketgröße & Gewicht</div>
-                        <Input
-                            placeholder="Breite (cm)"
-                            type="number"
-                            value={fields.package.size.width}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        size: {
-                                            ...prev.package.size,
-                                            width: parseFloat(e.target.value),
-                                        },
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Höhe (cm)"
-                            type="number"
-                            value={fields.package.size.height}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        size: {
-                                            ...prev.package.size,
-                                            height: parseFloat(e.target.value),
-                                        },
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Tiefe (cm)"
-                            type="number"
-                            value={fields.package.size.depth}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        size: {
-                                            ...prev.package.size,
-                                            depth: parseFloat(e.target.value),
-                                        },
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Gewicht (kg)"
-                            type="number"
-                            value={fields.package.weight}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        weight: parseFloat(e.target.value),
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Weitere Infos"
-                            value={fields.info}
-                            onChange={(e) => handleFieldChange("info", e.target.value)}
-                        />
-                    </div>
-
-                    <DialogFooter>
-                        <Button onClick={() => setShowEditDialog(false)}>Fertig</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-
-            <Dialog open={showDriverDialog} onOpenChange={setShowDriverDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Als Fahrer melden</DialogTitle>
-                        <DialogDescription>
-                            Bitte ergänze die fehlenden Angaben.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="grid gap-4 py-4">
-                        <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Allgemein</label>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    placeholder="StartDatum"
-                                    type="date"
-                                    value={startDate ? startDate.toISOString().split("T")[0] : ""}
-                                    onChange={(e) => setStartDate(new Date(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="EndDatum"
-                                    type="date"
-                                    value={endDate ? endDate.toISOString().split("T")[0] : ""}
-                                    onChange={(e) => setEndDate(new Date(e.target.value))}
-                                />
-                            </div>
-                            <Input
-                                placeholder="Sitzplätze"
-                                type="number"
-                                value={seats}
-                                onChange={(e) => setSeats(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug (in
-                                Meter)</label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <Input
-                                    placeholder="Breite"
-                                    type="number"
-                                    value={storageWidth ?? ""}
-                                    onChange={(e) => setStorageWidth(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="Höhe"
-                                    type="number"
-                                    value={storageHeight ?? ""}
-                                    onChange={(e) => setStorageHeight(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="Tiefe"
-                                    type="number"
-                                    value={storageDepth ?? ""}
-                                    onChange={(e) => setStorageDepth(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="Gewicht in kg"
-                                    type="number"
-                                    value={storageWeight ?? ""}
-                                    onChange={(e) => setStorageWeight(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                            </div>
-                        </div>
-
-
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2">
-                                <input type="checkbox" checked={isPhone}
-                                       onChange={(e) => setIsPhone(e.target.checked)}/>
-                                Handy
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input type="checkbox" checked={isEmail}
-                                       onChange={(e) => setIsEmail(e.target.checked)}/>
-                                E-Mail
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input type="checkbox" checked={isChat} onChange={(e) => setIsChat(e.target.checked)}/>
-                                Chat
-                            </label>
-                        </div>
-
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Textarea
-                                placeholder="Beschreibung"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Infos/Hinweise (Einzelne Hinweise mit ; trennen)"
-                                value={info}
-                                onChange={(e) => setInfo(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Einschränkungen (Einzelne Einschränkungen mit ; trennen)"
-                                value={restrictions}
-                                onChange={(e) => setRestrictions(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Infos über Fahrzeug/Anhänger (Einzelne Infos mit ; trennen)"
-                                value={infoCar}
-                                onChange={(e) => setInfoCar(e.target.value)}
-                            />
-                        </div>
-
-                    </div>
-
-                    <DialogFooter>
-                        <Button onClick={handleDriverSubmit}>Speichern</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Felder bearbeiten</DialogTitle>
-                        <DialogDescription>
-                            Bearbeite die Informationen für dein Angebot.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="grid gap-4 py-4">
-                        <Input
-                            placeholder="Titel"
-                            value={fields.title}
-                            onChange={(e) => handleFieldChange("title", e.target.value)}
-                        />
-                        <Input
-                            placeholder="Beschreibung"
-                            value={fields.description}
-                            onChange={(e) =>
-                                handleFieldChange("description", e.target.value)
-                            }
-                        />
-                        <Input
-                            placeholder="Startort"
-                            value={fields.locationFrom}
-                            onChange={(e) =>
-                                handleFieldChange("locationFrom", e.target.value)
-                            }
-                        />
-                        <Input
-                            placeholder="Zielort"
-                            value={fields.locationTo}
-                            onChange={(e) => handleFieldChange("locationTo", e.target.value)}
-                        />
-                        <Input
-                            placeholder="Anzahl Passagiere"
-                            type="number"
-                            value={fields.passengers}
-                            onChange={(e) =>
-                                handleFieldChange("passengers", Number(e.target.value))
-                            }
-                        />
-                        <Input
-                            placeholder="Preis (€)"
-                            type="number"
-                            value={fields.price}
-                            onChange={(e) =>
-                                handleFieldChange("price", Number(e.target.value))
-                            }
-                        />
-
-                        <div className="font-semibold mt-2">Paketgröße & Gewicht</div>
-                        <Input
-                            placeholder="Breite (cm)"
-                            type="number"
-                            value={fields.package.size.width}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        size: {
-                                            ...prev.package.size,
-                                            width: parseFloat(e.target.value),
-                                        },
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Höhe (cm)"
-                            type="number"
-                            value={fields.package.size.height}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        size: {
-                                            ...prev.package.size,
-                                            height: parseFloat(e.target.value),
-                                        },
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Tiefe (cm)"
-                            type="number"
-                            value={fields.package.size.depth}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        size: {
-                                            ...prev.package.size,
-                                            depth: parseFloat(e.target.value),
-                                        },
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Gewicht (kg)"
-                            type="number"
-                            value={fields.package.weight}
-                            onChange={(e) =>
-                                setFields((prev) => ({
-                                    ...prev,
-                                    package: {
-                                        ...prev.package,
-                                        weight: parseFloat(e.target.value),
-                                    },
-                                }))
-                            }
-                        />
-                        <Input
-                            placeholder="Weitere Infos"
-                            value={fields.info}
-                            onChange={(e) => handleFieldChange("info", e.target.value)}
-                        />
-                    </div>
-
-                    <DialogFooter>
-                        <Button onClick={() => setShowEditDialog(false)}>Fertig</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-
-            <Dialog open={showDriverDialog} onOpenChange={setShowDriverDialog}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Als Fahrer melden</DialogTitle>
-                        <DialogDescription>
-                            Bitte ergänze die fehlenden Angaben.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="grid gap-4 py-4">
-                        <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Allgemein</label>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    placeholder="StartDatum"
-                                    type="date"
-                                    value={startDate ? startDate.toISOString().split("T")[0] : ""}
-                                    onChange={(e) => setStartDate(new Date(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="EndDatum"
-                                    type="date"
-                                    value={endDate ? endDate.toISOString().split("T")[0] : ""}
-                                    onChange={(e) => setEndDate(new Date(e.target.value))}
-                                />
-                            </div>
-                            <Input
-                                placeholder="Sitzplätze"
-                                type="number"
-                                value={seats}
-                                onChange={(e) => setSeats(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="col-span-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug (in
-                                Meter)</label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <Input
-                                    placeholder="Breite"
-                                    type="number"
-                                    value={storageWidth ?? ""}
-                                    onChange={(e) => setStorageWidth(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="Höhe"
-                                    type="number"
-                                    value={storageHeight ?? ""}
-                                    onChange={(e) => setStorageHeight(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="Tiefe"
-                                    type="number"
-                                    value={storageDepth ?? ""}
-                                    onChange={(e) => setStorageDepth(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                                <Input
-                                    placeholder="Gewicht in kg"
-                                    type="number"
-                                    value={storageWeight ?? ""}
-                                    onChange={(e) => setStorageWeight(e.target.value === "" ? null : parseFloat(e.target.value))}
-                                />
-                            </div>
-                        </div>
-
-
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2">
-                                <input type="checkbox" checked={isPhone}
-                                       onChange={(e) => setIsPhone(e.target.checked)}/>
-                                Handy
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input type="checkbox" checked={isEmail}
-                                       onChange={(e) => setIsEmail(e.target.checked)}/>
-                                E-Mail
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input type="checkbox" checked={isChat} onChange={(e) => setIsChat(e.target.checked)}/>
-                                Chat
-                            </label>
-                        </div>
-
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Textarea
-                                placeholder="Beschreibung"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Infos/Hinweise (Einzelne Hinweise mit ; trennen)"
-                                value={info}
-                                onChange={(e) => setInfo(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Einschränkungen (Einzelne Einschränkungen mit ; trennen)"
-                                value={restrictions}
-                                onChange={(e) => setRestrictions(e.target.value)}
-                            />
-                            <Textarea
-                                placeholder="Infos über Fahrzeug/Anhänger (Einzelne Infos mit ; trennen)"
-                                value={infoCar}
-                                onChange={(e) => setInfoCar(e.target.value)}
-                            />
-                        </div>
-
-                    </div>
-
-                    <DialogFooter>
-                        <Button onClick={handleDriverSubmit}>Speichern</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+            <DriverApplicationDialog
+                open={showDriverDialog}
+                onOpenChange={setShowDriverDialog}
+                startDate={startDate}
+                endDate={endDate}
+                seats={seats}
+                storageWidth={storageWidth}
+                storageHeight={storageHeight}
+                storageDepth={storageDepth}
+                storageWeight={storageWeight}
+                description={description}
+                info={info}
+                restrictions={restrictions}
+                infoCar={infoCar}
+                isPhone={isPhone}
+                isEmail={isEmail}
+                isChat={isChat}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+                onSeatsChange={setSeats}
+                onStorageWidthChange={setStorageWidth}
+                onStorageHeightChange={setStorageHeight}
+                onStorageDepthChange={setStorageDepth}
+                onStorageWeightChange={setStorageWeight}
+                onDescriptionChange={setDescription}
+                onInfoChange={setInfo}
+                onRestrictionsChange={setRestrictions}
+                onInfoCarChange={setInfoCar}
+                onPhoneChange={setIsPhone}
+                onEmailChange={setIsEmail}
+                onChatChange={setIsChat}
+                onSubmit={handleDriverSubmit}
+            />
+        </>
     );
 }
 

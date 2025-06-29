@@ -6,7 +6,7 @@ import Home from "@/pages/Home.tsx";
 import Chat from "@/pages/chat/chat.tsx";
 import Drives from "@/pages/drives/Drives.tsx";
 import Profile from "@/pages/profile/profile.tsx";
-import DrivesDetail from "@/pages/drives/drivesOfferDetailPage.tsx"
+import DrivesDetail from "@/pages/drives/drivesOfferDetailPage"
 import SearchDetail from "@/pages/drives/drivesSearchDetailPage.tsx"
 import AGB from "./pages/AGB";
 import Impressum from "./pages/Impressum";
