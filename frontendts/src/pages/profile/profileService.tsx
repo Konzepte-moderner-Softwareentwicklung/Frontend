@@ -2,7 +2,7 @@
 
 export async function fetchProfile(userId: string) {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
@@ -26,7 +26,7 @@ export async function fetchProfile(userId: string) {
 
 export async function updateProfile(userId: string, profileData: any) {
   try {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await fetch(`/api/user/${userId}`, {
       method: 'PUT',
       headers: {
@@ -67,7 +67,7 @@ export async function uploadProfileImage(userId: string, file: File) {
     const formData = new FormData();
     formData.append('avatar', file);
     
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await fetch(`/api/user/${userId}/avatar`, {
       method: 'POST',
       headers: {

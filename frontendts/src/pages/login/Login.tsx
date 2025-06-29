@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
+import {useState} from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
@@ -19,7 +19,6 @@ export default function Login() {
       const result = await login(email, password);
       sessionStorage.setItem("token", result.token);
       toast("Login erfolgreich");
-
     } catch (error: any) {
       if (error.response?.status === 500) {
       toast("Server interner Fehler");
