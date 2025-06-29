@@ -24,102 +24,77 @@ import {
 import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
-    type clientFilter,
+    type serverFilter,
     createNewOffer,
     fetchOffersWithFilter,
     getMaxPrice,
     type Offer,
-    type ServerFilter,
+    type clientFilter,
     getLocationByCity,
-    type Space
+    type Space, type filterMessage
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
 import {DriveDetailCard} from "@/components/drives/DriveDetailCard.tsx";
 
 
-function getServerFilter(): ServerFilter {
-    return {
-        currentTime: new Date().toISOString(),
-        dateTime: new Date().toISOString(),
-        id: "",
-        includePassed: false,
-        locationFrom: { latitude: 0, longitude: 0 },
-        locationFromDiff: 0,
-        locationTo: { latitude: 0, longitude: 0 },
-        locationToDiff: 0,
-        nameStartsWith: "",
-        price: 0,
-        spaceNeeded: {
-            occupiedBy: "",
-            seats: 0,
-            items: []
-        },
-        user: "",
-        creator: ""
-    };
-}
-
-function getClientFilter(filter: clientFilter | undefined): clientFilter {
+function getServerFilter(filter: filterMessage): serverFilter {
     if (!filter) return {};
-    
     return {
         freeSpace: filter.freeSpace,
         locationFrom: filter.locationFrom,
         locationTo: filter.locationTo,
         locationFromDiff: filter.locationFromDiff,
         dateTime: filter.dateTime,
-        showPassed: filter.showPassed,
+        includePassed: filter.includePassed,
         user: filter.user,
         creator: filter.creator,
         maxPrice: filter.maxPrice,
         onlyOwn: filter.onlyOwn,
-        // Zusätzliche Felder die in der UI verwendet werden
-        type: filter.type,
-        rating: filter.rating,
-        maxWeight: filter.maxWeight
     };
 }
 
-// Neue Funktion um ServerFilter aus clientFilter zu erstellen
-async function createServerFilterFromClientFilter(filter: clientFilter | undefined): Promise<ServerFilter> {
-    const baseServerFilter = getServerFilter();
-    
+
+function getClientFilter(filter: filterMessage | undefined):clientFilter {
+    return {
+        type: filter?.type,
+        maxWeight: filter?.maxWeight,
+    }
+}
+
+async function createServerFilterFromClientFilter(filter: filterMessage| undefined): Promise<filterMessage> {
+    const baseServerFilter = getClientFilter(filter);
+
     if (!filter) return baseServerFilter;
-    
+
     // Location-Konvertierung für Server-Filter
-    let locationFrom = { latitude: 0, longitude: 0 };
-    let locationTo = { latitude: 0, longitude: 0 };
-    
+    let locationFrom = {latitude: 0, longitude: 0};
+    let locationTo = {latitude: 0, longitude: 0};
+
     if (filter.locationFrom) {
         try {
-            const coords = await getLocationByCity(filter.locationFrom);
+            const coords = await getLocationByCity(filter.locationFrom.toString());
             if (coords) locationFrom = coords;
         } catch (error) {
             console.error("Fehler beim Konvertieren von locationFrom:", error);
         }
     }
-    
+
     if (filter.locationTo) {
         try {
-            const coords = await getLocationByCity(filter.locationTo);
+            const coords = await getLocationByCity(filter.locationTo.toString());
             if (coords) locationTo = coords;
         } catch (error) {
             console.error("Fehler beim Konvertieren von locationTo:", error);
         }
     }
-    
+
     return {
-        ...baseServerFilter,
-        // Server-seitige Filter die aus clientFilter abgeleitet werden können
         price: filter.maxPrice || 0,
-        includePassed: filter.showPassed || false,
-        dateTime: filter.dateTime || new Date().toISOString(),
-        nameStartsWith: "", // Könnte aus einem Titel-Filter kommen
-        user: filter.user || "",
-        creator: filter.creator || "",
-        // Location-Filter konvertiert
-        locationFrom,
-        locationTo,
+        includePassed: filter.includePassed || false,
+        dateTime: filter.dateTime || "",
+        nameStartsWith: "",
+        locationFrom:locationFrom,
+        locationTo:locationTo,
         locationFromDiff: filter.locationFromDiff || 0,
         locationToDiff: 0,
         // Space-Filter basierend auf freeSpace
@@ -131,36 +106,14 @@ async function createServerFilterFromClientFilter(filter: clientFilter | undefin
     };
 }
 
-// Hilfsfunktion um zu dokumentieren welche Filter Server- vs Client-seitig verarbeitet werden
-function getFilterInfo(filter: clientFilter | undefined) {
-    if (!filter) return { server: [], client: [] };
-    
-    const serverFilters = [];
-    const clientFilters = [];
-    
-    if (filter.locationFrom) serverFilters.push("locationFrom (Server)");
-    if (filter.locationTo) serverFilters.push("locationTo (Server)");
-    if (filter.dateTime) serverFilters.push("dateTime (Server)");
-    if (filter.maxPrice) serverFilters.push("maxPrice (Server)");
-    if (filter.freeSpace) serverFilters.push("freeSpace (Server)");
-    if (filter.showPassed !== undefined) serverFilters.push("showPassed (Server)");
-    if (filter.user) serverFilters.push("user (Server)");
-    if (filter.creator) serverFilters.push("creator (Server)");
-    
-    if (filter.type) clientFilters.push("type (Client)");
-    if (filter.maxWeight) clientFilters.push("maxWeight (Client)");
-    if (filter.onlyOwn) clientFilters.push("onlyOwn (Client)");
-    
-    return { server: serverFilters, client: clientFilters };
-}
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [filter, setFilter] = useState<clientFilter | undefined>({
+    const [filter, setFilter] = useState<filterMessage | undefined>({
         type: "beides", // Standard-Wert setzen
-        showPassed: true // Standardmäßig alte Fahrten anzeigen
+        includePassed: true // Standardmäßig alte Fahrten anzeigen
     });
     const maxOfferPrice = getMaxPrice();
     const [maxPrice, setMaxPrice] = useState([100]);
@@ -185,7 +138,7 @@ function Drives() {
     const numericPrice = parseFloat(price);
 
     // Debouncing für Filter
-    const [debouncedFilter, setDebouncedFilter] = useState<clientFilter | undefined>(filter);
+    const [debouncedFilter, setDebouncedFilter] = useState<filterMessage | undefined>(filter);
 
     // Debounce-Effekt: Verzögert die Filter-Ausführung um 500ms
     useEffect(() => {
@@ -251,7 +204,7 @@ function Drives() {
     }
 
     const createNewSearch = () => {
-       // const userId = sessionStorage.getItem("UserID") || "";
+        // const userId = sessionStorage.getItem("UserID") || "";
         // const offerData: SearchDialogFields = {
         //     title: title,
         //     description: description,
@@ -272,13 +225,13 @@ function Drives() {
             paidSpaces: [],
             description: description,
             price: numericPrice,
-            locationFrom:  {latitude: 0, longitude: 0},
-            locationTo:  {latitude: 0, longitude: 0},
+            locationFrom: {latitude: 0, longitude: 0},
+            locationTo: {latitude: 0, longitude: 0},
             driver: sessionStorage.getItem("UserID") || "",
             startDateTime: new Date(new Date().setFullYear(new Date().getFullYear() + 50)).toISOString(),
             endDateTime: new Date(new Date().setFullYear(new Date().getFullYear() + 50)).toISOString(),
             canTransport: seats,
-            occupiedSpace: [ seats],
+            occupiedSpace: [seats],
             isPhone: isPhone,
             isEmail: isEmail,
             isChat: isChat,
@@ -308,43 +261,42 @@ function Drives() {
         async function loadOffers() {
             try {
                 const serverFilter = await createServerFilterFromClientFilter(debouncedFilter);
-                const clientFilterData = getClientFilter(debouncedFilter);
 
                 let filteredOffers = await fetchOffersWithFilter(serverFilter);
+                const clientFilterData = getServerFilter(debouncedFilter || {});
 
                 if (debouncedFilter && clientFilterData) {
-                    
-                    // Filter nach Typ (Angebote/Gesuche)
+
+
                     if (debouncedFilter.type && debouncedFilter.type !== "beides") {
-                       // console.log("Filtere nach Typ:", debouncedFilter.type);
-                        filteredOffers = filteredOffers.filter(offer => {
-                            if (debouncedFilter.type === "angebote") return !offer.isGesuch;
-                            if (debouncedFilter.type === "gesuche") return offer.isGesuch;
-                            return true;
-                        });
-                 
-                    } 
-                    
+                        filteredOffers = filteredOffers.filter(offer =>
+                            debouncedFilter.type === "angebote"
+                                ? !offer.isGesuch
+                                : offer.isGesuch
+                        );
+                    }
+
+
                     // Filter nach Maximalgewicht
                     if (debouncedFilter.maxWeight) {
                         filteredOffers = filteredOffers.filter(offer => {
                             return offer.canTransport.items.every(item => item.weight <= debouncedFilter.maxWeight!);
                         });
                     }
-                    
+
                     // Filter nach eigenen Fahrten
                     if (debouncedFilter.onlyOwn) {
                         const userId = sessionStorage.getItem("UserID") || "";
                         console.log("userId", userId);
-                     
+
                         filteredOffers = filteredOffers.filter(offer => {
-                            return offer.creator === userId || offer.driver === userId
-                        }                           
+                                return offer.creator === userId || offer.driver === userId
+                            }
                         );
                     }
                 }
-                
-               
+
+
                 setOffers(filteredOffers);
                 setCurrentPage(1);
             } catch (error) {
@@ -425,11 +377,11 @@ function Drives() {
                             type="checkbox"
                             id="oldTrips"
                             className="w-4 h-4"
-                            checked={filter?.showPassed ?? true}
+                            checked={filter?.includePassed ?? true}
                             onChange={(e) =>
                                 setFilter((prev) => ({
                                     ...prev,
-                                    showPassed: e.target.checked,
+                                    includePassed: e.target.checked,
                                 }))
                             }
                         />
@@ -441,7 +393,7 @@ function Drives() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm mb-1">Freie Plätze</label>
+                        <label className="block text-sm mb-1"> Min. Freie Plätze</label>
                         <Input
                             placeholder="z.B. 3"
                             type="number"
@@ -492,11 +444,10 @@ function Drives() {
                     </p>
                 ) : (
                     paginatedOffers.map((offer: Offer) => (
-                        <DriveDetailCard key={offer.id} offer={offer} />
+                        <DriveDetailCard key={offer.id} offer={offer}/>
                     ))
                 )}
             </section>
-
 
 
             <div className="flex justify-between items-center mt-6">

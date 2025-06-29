@@ -38,11 +38,6 @@ export const DEFAULT_OFFER: Offer = {
     creator: ""
 };
 
-interface placeList{
-    id: string,
-    coordinatesFrom: string,
-    coordinatesTo: string
-}
 
 
 interface LocationCache {
@@ -91,38 +86,29 @@ export interface SearchDialogFields {
 }
 
 
-export interface clientFilter {
-    freeSpace?: number;
-    locationFrom?: string;
-    locationTo?: string;
-    locationFromDiff?: number;
+export interface serverFilter {
+    maxPrice?: number;
+    includePassed?: boolean;
     dateTime?: string;
-    showPassed?:boolean;
+    nameStartsWith?: string;
+    freeSpace?: number;
+    locationFrom?: Coordinates|string|number;
+    locationTo?: Coordinates|string|number;
+    locationFromDiff?: number;
+    locationToDiff?: number;
     user?: string;
     creator?: string;
-    maxPrice?: number;
-    onlyOwn?: boolean;
-    // Zusätzliche Felder für erweiterte Filterung
+    currentTime?: string;
+    id?: string;
+}
+
+
+export interface clientFilter {
     type?: "angebote" | "gesuche" | "beides";
-    rating?: number;
     maxWeight?: number;
 }
 
-export interface ServerFilter {
-    price: number;
-    includePassed: boolean;
-    dateTime: string; // ISO-String (z. B. new Date().toISOString())
-    nameStartsWith: string;
-    spaceNeeded: Space;
-    locationFrom: Coordinates;
-    locationTo: Coordinates;
-    locationFromDiff: number;
-    locationToDiff: number;
-    user: string;
-    creator: string;
-    currentTime: string; // ISO-String
-    id: string;
-}
+export type filterMessage = serverFilter & clientFilter;
 
 export interface Space {
     occupiedBy:string,
@@ -144,12 +130,12 @@ export interface Size {
 
 export let offers: Offer[] = [];
 export const archivedOffers: Offer[] = [];
-const locationCache:placeList[] = [];
 
-// Einheitlicher Cache für alle Location-Abfragen
+
+
 const unifiedLocationCache: LocationCache[] = [];
 
-// Globaler Flag für Rate Limiting
+
 let isRateLimited = false;
 
 
@@ -174,8 +160,9 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(serverFilter:ServerFilter): Promise<Offer[]> {
-    offers = await searchOffersByFilter(serverFilter);
+export async function fetchOffersWithFilter(filterMessage:serverFilter): Promise<Offer[]> {
+
+    offers = await searchOffersByFilter(filterMessage);
 
     return getActiveOffers();
 }
@@ -221,13 +208,12 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
     }
 
     // Prüfe Cache
-    const cachedEntry = unifiedLocationCache.find(
+    let cachedEntry = unifiedLocationCache.find(
         entry => entry.coordinates.latitude === latitude && entry.coordinates.longitude === longitude
     );
     if (cachedEntry) {
         return cachedEntry.city;
     }
-
     // 1 Sekunde warten, wenn die letzte Anfrage < 1 Sekunde her ist
     const now = Date.now();
     const timeSinceLastRequest = now - lastNominatimRequestTime;
@@ -256,13 +242,20 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
             "";
 
         if (city) {
-            unifiedLocationCache.push({
-                city,
-                coordinates: { latitude, longitude },
-            });
+            cachedEntry = unifiedLocationCache.find(
+                entry => entry.coordinates.latitude === latitude && entry.coordinates.longitude === longitude
+            );
+
+            if(!cachedEntry){
+                unifiedLocationCache.push({
+                    city,
+                    coordinates: { latitude, longitude },
+                });
+            }
         }
 
         return city || `Koordinaten: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         isRateLimited = true;
         return `Koordinaten: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
@@ -292,15 +285,15 @@ export async function getLocationByCity(city: string) {
     }
     
     // Wenn bereits Rate Limited, direkt null zurückgeben
-    if (isRateLimited) {
-        return null;
-    }
+
     
     // Suche im Cache (case-insensitive)
     const cachedEntry = unifiedLocationCache.find(
         entry => entry.city.toLowerCase() === city.toLowerCase()
     );
-    
+    if (isRateLimited) {
+        return null;
+    }
     if (cachedEntry) {
         return cachedEntry.coordinates;
     }
@@ -334,6 +327,7 @@ export async function getLocationByCity(city: string) {
         });
         
         return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         // Bei Fehlern Rate Limiting annehmen
         isRateLimited = true;

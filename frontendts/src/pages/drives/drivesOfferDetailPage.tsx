@@ -19,7 +19,6 @@ function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
     const userId = localStorage.getItem("UserID") || sessionStorage.getItem("UserID") || "";
-    const [isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
     const [FromLocationGeoName, setFromLocationGeoName] = useState('');
@@ -109,7 +108,7 @@ function DrivesOfferDetailPage() {
             }
         };
 
-        fetchLocations();
+        fetchLocations().then();
     }, [offer]);
 
 
@@ -118,7 +117,6 @@ function DrivesOfferDetailPage() {
     useEffect(() => {
         if (offer?.driver === userId) {
             setIsDriver(true);
-            setIsSelfChat(true);
         }
         if (new Date(offer?.endDateTime || "").getTime() >= new Date().getTime()) {
             //setShowRatingDialog(true);
@@ -165,7 +163,7 @@ function DrivesOfferDetailPage() {
 
     const goToChat = () => {
         if (isLoggedIn && !isDriver && offer?.isChat) {
-            createIfNotExistChat(offer?.chatId||"");
+            createIfNotExistChat(offer?.chatId || "").then();
             navigate(`/chat`);
         }
     };

@@ -1,5 +1,5 @@
 import api from "./api";
-import type {clientFilter, Offer} from "@/pages/drives/drivesService.tsx";
+import type {serverFilter, Offer} from "@/pages/drives/drivesService.tsx";
 
 
 //post calls
