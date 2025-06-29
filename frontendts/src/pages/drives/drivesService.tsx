@@ -2,8 +2,6 @@ import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_a
 import toast from "react-hot-toast";
 import {downloadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
-import {createChat} from "@/api/chat_api.tsx";
-
 export interface Coordinates {
     longitude: number;
     latitude: number;
