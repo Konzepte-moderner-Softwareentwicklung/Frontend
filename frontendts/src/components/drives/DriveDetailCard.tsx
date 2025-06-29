@@ -2,12 +2,14 @@ import {Card, CardContent} from "@/components/ui/card.tsx";
 import {useEffect, useState} from "react";
 import {getLocationFromList, type Offer} from "@/pages/drives/drivesService.tsx";
 import {useNavigate} from "react-router-dom";
+import {getCompoundImageLink} from "@/api/media_api";
 
 export function DriveDetailCard({ offer }: { offer: Offer }) {
     const navigate = useNavigate();
     const [fromLocation, setFromLocation] = useState<string | null>(null);
     const [toLocation, setToLocation] = useState<string | null>(null);
     const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -43,12 +45,29 @@ export function DriveDetailCard({ offer }: { offer: Offer }) {
             }
         }
 
+        async function fetchImage() {
+            if (offer?.imageURL) {
+                try {
+                    const imageArray = await getCompoundImageLink(offer.imageURL);
+                    if (imageArray && imageArray.length > 0 && isMounted) {
+                        setImageUrl(imageArray[0]);
+                    }  else if (imageArray && imageArray.length == 0 || !imageArray) {
+                        // image does not exist on server so that the server returns a default image
+                        setImageUrl('/media/image/d6968fa0-7670-4fb1-a580-add195d92271')
+                    }
+                } catch (error) {
+                    console.error('Error fetching image:', error);
+                }
+            }
+        }
+
         fetchLocations();
+        fetchImage();
 
         return () => {
             isMounted = false;
         };
-    }, [offer?.id, offer?.locationFrom, offer?.locationTo]);
+    }, [offer?.id, offer?.locationFrom, offer?.locationTo, offer?.imageURL]);
 
     const isGesuch = offer.isGesuch;
 
@@ -84,9 +103,9 @@ export function DriveDetailCard({ offer }: { offer: Offer }) {
                 )}
                 <p>{offer.title}</p>
                 <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
-                    {offer.imageURL && (
+                    {imageUrl && (
                         <img
-                            src={offer.imageURL}
+                            src={"/api" + imageUrl}
                             alt="Angebot"
                             className="h-full w-full object-cover rounded"
                         />
