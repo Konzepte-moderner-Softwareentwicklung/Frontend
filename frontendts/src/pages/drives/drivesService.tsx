@@ -111,8 +111,8 @@ export interface ServerFilter {
     dateTime: string; // ISO-String (z. B. new Date().toISOString())
     nameStartsWith: string;
     spaceNeeded: Space;
-    locationFrom: Location;
-    locationTo: Location;
+    locationFrom: Coordinates;
+    locationTo: Coordinates;
     locationFromDiff: number;
     locationToDiff: number;
     user: string;
@@ -140,6 +140,7 @@ export interface Size {
 
 
 export let offers: Offer[] = [];
+export let archivedOffers: Offer[] = []; // Neue Archiv-Liste für bearbeitete Offers
 const locationCache:placeList[] = [];
 
 
@@ -169,7 +170,8 @@ export function getMaxPrice(): number {
 
 export async function fetchOffersWithFilter(serverFilter:ServerFilter, filter: clientFilter): Promise<Offer[]> {
     offers = await searchOffersByFilter(filter);
-    return offers;
+    // Nur aktive Offers zurückgeben (nicht archivierte)
+    return getActiveOffers();
 }
 
 export async function createNewOffer(offer: Offer) {
@@ -182,7 +184,6 @@ export async function createNewOffer(offer: Offer) {
             toast.error('Fahrt erstellen fehlgeschlagen');
         }
     }
-
 }
 
 export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {
@@ -297,4 +298,77 @@ export async function getLocationFromList(
 
         return {coordinatesFrom: fromLocation, coordinatesTo: toLocation};
     }
+}
+
+// Neue Funktion zum Erstellen eines bearbeiteten Offers
+export async function createEditedOffer(originalOffer: Offer, editedFields: SearchDialogFields): Promise<Offer | undefined> {
+    try {
+        // Das ursprüngliche Offer als "ended" markieren und ins Archiv verschieben
+        originalOffer.ended = true;
+        archivedOffers.push(originalOffer);
+        
+        // Neues Offer mit den bearbeiteten Feldern erstellen
+        const locationFrom = await setLocationName(editedFields.locationFrom);
+        const locationTo = await setLocationName(editedFields.locationTo);
+        
+        const newOffer: Offer = {
+            id: "0", // Wird vom Server generiert
+            title: editedFields.title,
+            creator: originalOffer.creator,
+            paidSpaces: originalOffer.paidSpaces || [],
+            description: editedFields.description,
+            price: editedFields.price,
+            locationFrom: locationFrom || {latitude: 0, longitude: 0},
+            locationTo: locationTo || {latitude: 0, longitude: 0},
+            driver: originalOffer.driver,
+            startDateTime: originalOffer.startDateTime,
+            endDateTime: originalOffer.endDateTime,
+            canTransport: originalOffer.canTransport,
+            occupiedSpace: [
+                {
+                    occupiedBy: editedFields.creatorId,
+                    seats: editedFields.passengers,
+                    items: [editedFields.package],
+                },
+            ],
+            isPhone: originalOffer.isPhone,
+            isEmail: originalOffer.isEmail,
+            isChat: originalOffer.isChat,
+            isGesuch: originalOffer.isGesuch || false,
+            restrictions: editedFields.restrictions,
+            info: editedFields.info,
+            infoCar: originalOffer.infoCar || [],
+            createdAt: new Date().toISOString(),
+            imageURL: originalOffer.imageURL
+        };
+
+        const createdOffer = await createOffer(newOffer);
+        
+        // Das neue Offer zur aktiven Liste hinzufügen
+        offers.push(createdOffer);
+        
+        return createdOffer;
+    } catch (error: any) {
+        if (error.response?.status === 500) {
+            toast("Server interner Fehler");
+        } else {
+            toast.error('Fahrt bearbeiten fehlgeschlagen');
+        }
+        return undefined;
+    }
+}
+
+// Funktion zum Abrufen nur aktiver Offers (nicht archivierte)
+export function getActiveOffers(): Offer[] {
+    return offers.filter(offer => !offer.ended);
+}
+
+// Funktion zum Abrufen archivierter Offers
+export function getArchivedOffers(): Offer[] {
+    return archivedOffers;
+}
+
+// Funktion zum Abrufen aller Offers (aktive + archivierte)
+export function getAllOffers(): Offer[] {
+    return [...offers, ...archivedOffers];
 }

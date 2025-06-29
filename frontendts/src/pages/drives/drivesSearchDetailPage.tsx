@@ -6,6 +6,7 @@ import {
     type Offer,
     type SearchDialogFields,
     setLocationName,
+    createEditedOffer,
 } from "@/pages/drives/drivesService.tsx";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -37,8 +38,7 @@ function DrivesSearchDetailPage() {
     const [storageWidth, setStorageWidth] = useState<number | null>(null);
     const navigate = useNavigate();
     const userId =
-        localStorage.getItem("UserId") ||
-        sessionStorage.getItem("UserId") ||
+        sessionStorage.getItem("UserID") ||
         "";
     
     const handleBack = () => {
@@ -131,6 +131,26 @@ function DrivesSearchDetailPage() {
         }));
     };
 
+    // Neue Funktion zum Bearbeiten eines Offers
+    async function handleEditSubmit() {
+        if (!offer) return;
+        
+        setShowEditDialog(false);
+        try {
+            const newOffer = await createEditedOffer(offer, fields);
+            if (newOffer) {
+                toast.success("Angebot erfolgreich bearbeitet!");
+                navigate(`/drives/${newOffer.id}`);
+            }
+        } catch (error: any) {
+            if (error.response?.status === 500) {
+                toast("Server interner Fehler");
+            } else {
+                toast.error("Angebot bearbeiten fehlgeschlagen");
+            }
+        }
+    }
+
     async function handleDriverSubmit() {
         const locationFrom = await setLocationName(fields.locationFrom);
         const locationTo = await setLocationName(fields.locationTo)
@@ -217,6 +237,7 @@ function DrivesSearchDetailPage() {
                 fields={fields}
                 onFieldChange={handleFieldChange}
                 onPackageChange={handlePackageChange}
+                onSubmit={handleEditSubmit}
             />
 
             <DriverApplicationDialog

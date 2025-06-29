@@ -33,31 +33,36 @@ import {
     createNewOffer, fetchOffersWithFilter,
     type clientFilter,
     getMaxPrice,
-    type Offer, type Space, setLocationName, type ServerFilter, getLocationName
+    type Offer, type Space, setLocationName, type ServerFilter, getLocationName, getActiveOffers
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
 import {DriveDetailCard} from "@/components/drives/DriveDetailCard.tsx";
 
 
-function getServerFilter() {
-    const serverFilter: ServerFilter = {
-        currentTime: "",
-        dateTime: "",
+function getServerFilter(): ServerFilter {
+    return {
+        currentTime: new Date().toISOString(),
+        dateTime: new Date().toISOString(),
         id: "",
         includePassed: false,
-        locationFrom: undefined,
+        locationFrom: { latitude: 0, longitude: 0 },
         locationFromDiff: 0,
-        locationTo: undefined,
+        locationTo: { latitude: 0, longitude: 0 },
         locationToDiff: 0,
         nameStartsWith: "",
         price: 0,
-        spaceNeeded: undefined,
-        user: ""
-    }
+        spaceNeeded: {
+            occupiedBy: "",
+            seats: 0,
+            items: []
+        },
+        user: "",
+        creator: ""
+    };
 }
 
-function getClientFilter() {
-
+function getClientFilter(): clientFilter {
+    return {};
 }
 
 function Drives() {
@@ -200,9 +205,8 @@ function Drives() {
             try {
                 const serverFilter = getServerFilter();
                 const clientFilter = getClientFilter();
-                const data = await fetchOffersWithFilter(serverFilter,clientFilter);
+                const data = await fetchOffersWithFilter(serverFilter, clientFilter);
                 setOffers(data);
-
                 setCurrentPage(1);
             } catch (error) {
                 console.error("Fehler beim Laden der Angebote:", error);
