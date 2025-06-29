@@ -11,8 +11,12 @@ const api = axios.create({
 // Request Interceptor – attach token
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('token');
+  const userId = sessionStorage.getItem('UserID');
   if (token && config.headers) {
     config.headers['Authorization'] = `${token}`;
+  }
+  if(userId&& token) {
+    config.headers['UserId'] = `${userId}`;
   }
   return config;
 }, (error) => {

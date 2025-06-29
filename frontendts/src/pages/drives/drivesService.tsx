@@ -1,30 +1,83 @@
+import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
+import toast from "react-hot-toast";
+import {downloadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
+import {getUserByID} from "@/api/user_api.tsx";
+
+export interface Coordinates {
+    longitude: number;
+    latitude: number;
+}
+
+export interface feedBackData {
+    answers: Record<string, number>;
+    comment: string,
+    targetName: string,
+
+}
+
+export const DEFAULT_OFFER: Offer = {
+    id: '',
+    title: '',
+    description: '',
+    price: 0,
+    locationFrom: {latitude: 0, longitude: 0},
+    locationTo: {latitude: 0, longitude: 0},
+    driver: '',
+    createdAt: new Date().toISOString(),
+    isChat: false,
+    chatId: '',
+    isPhone: false,
+    isEmail: false,
+    startDateTime: new Date().toISOString(),
+    endDateTime: new Date().toISOString(),
+    canTransport: {
+        items: [], seats: 0,
+        occupiedBy: ""
+    },
+    occupiedSpace: [],
+    restrictions: [],
+    info: [],
+    infoCar: [],
+    imageURL: '',
+    isGesuch: false,
+    ended: false,
+    creator: ""
+};
+
+interface placeList{
+    id: string,
+    coordinatesFrom: string,
+    coordinatesTo: string
+}
+
+
 export interface Offer {
-    id: string;
+    id?: string;
     title: string;
     description: string;
     price: number;
-    locationFrom: string;
-    locationTo: string;
+    locationFrom: Coordinates;
+    locationTo: Coordinates;
+    creator: string;
     driver: string;
-    createdAt: Date;
+    createdAt: string; // ISO-String!
     isChat: boolean;
-    chatId: string;
+    chatId?: string;
     isPhone: boolean;
     isEmail: boolean;
-    startDateTime: Date;
-    endDateTime: Date;
+    startDateTime: string; // ISO-String!
+    endDateTime: string;   // ISO-String!
     canTransport: Space;
-    occupiedSpace: Space;
-    passenger: string[];
-    restrictions: string[];
-    info: string[];
-    infoCar: string[];
-    car: string;
+    paidSpaces?: Space[];
+    occupiedSpace: Space[],
+    restrictions?: string[] | null;
+    info?: string[] | null;
+    infoCar?: string[] | null;
     imageURL: string;
     isGesuch?: boolean;
     ended?: boolean;
-    rating?: number; // NEU: Rating für Bewertungsfilter
 }
+
 export interface SearchDialogFields {
     title: string;
     description: string;
@@ -33,31 +86,47 @@ export interface SearchDialogFields {
     locationTo: string;
     passengers: number;
     price: number;
-    package:Item;
+    package: Item;
     info: string[];
     restrictions: string[];
 }
 
 
-
-
-export interface Filter {
+export interface clientFilter {
     freeSpace?: number;
     locationFrom?: string;
     locationTo?: string;
     locationFromDiff?: number;
-    date?: string;
+    dateTime?: string;
+    showPassed?:boolean;
     user?: string;
     creator?: string;
     maxPrice?: number;
-    type?: 'angebote' | 'gesuche' | 'beides';
     onlyOwn?: boolean;
-    hideEnded?: boolean;
-    rating?: number; // NEU: Rating Filter
+    // Zusätzliche Felder für erweiterte Filterung
+    type?: "angebote" | "gesuche" | "beides";
+    rating?: number;
     maxWeight?: number;
 }
 
+export interface ServerFilter {
+    price: number;
+    includePassed: boolean;
+    dateTime: string; // ISO-String (z. B. new Date().toISOString())
+    nameStartsWith: string;
+    spaceNeeded: Space;
+    locationFrom: Coordinates;
+    locationTo: Coordinates;
+    locationFromDiff: number;
+    locationToDiff: number;
+    user: string;
+    creator: string;
+    currentTime: string; // ISO-String
+    id: string;
+}
+
 export interface Space {
+    occupiedBy:string,
     items: Item[];
     seats: number;
 }
@@ -72,443 +141,18 @@ export interface Size {
     height: number;
     depth: number;
 }
-export const mockOffers: Offer[] = [
-    {
-        id: "offer-001",
-        title: "Transport von Möbeln nach Berlin",
-        description: "Ich biete eine Fahrt von München nach Berlin am Wochenende an.",
-        price: 120,
-        locationFrom: "München",
-        locationTo: "Berlin",
-        driver: "user789",
-        createdAt: new Date("2025-06-10T10:00:00Z"),
-        isChat: true,
-        chatId: "chat-001",
-        isPhone: true,
-        isEmail: false,
-        startDateTime: new Date("2025-06-22T08:00:00Z"),
-        endDateTime: new Date("2025-06-22T16:00:00Z"),
-        canTransport: {
-            seats: 2,
-            items: [
-                {
-                    size: { width: 100, height: 120, depth: 80 },
-                    weight: 100,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 50, height: 60, depth: 40 },
-                    weight: 20,
-                },
-                {
-                    size: { width: 40, height: 50, depth: 30 },
-                    weight: 15,
-                },
-            ],
-        },
-        passenger: ["user789"],
-        restrictions: ["Haustiere", "Rauchen"],
-        info: ["Fahrt findet bei jedem Wetter statt"],
-        infoCar: ["Transporter mit Rampe"],
-        imageURL: "https://example.com/images/offer1.jpg",
-        car:"Mazda",
-        ended: true, // NEU: Diese Fahrt ist beendet
-        rating: 4.5, // NEU
-    },
-    {
-        id: "offer-002",
-        title: "Mitfahrgelegenheit nach Hamburg",
-        description: "Fahre mit einem SUV von Köln nach Hamburg. 3 Sitzplätze verfügbar.",
-        price: 50,
-        locationFrom: "Köln",
-        locationTo: "Hamburg",
-        driver: "user456",
-        createdAt: new Date("2025-06-12T09:30:00Z"),
-        isChat: false,
-        chatId: "",
-        isPhone: false,
-        isEmail: true,
-        startDateTime: new Date("2025-06-18T07:00:00Z"),
-        endDateTime: new Date("2025-06-18T13:00:00Z"),
-        canTransport: {
-            seats: 3,
-            items: [
-                {
-                    size: { width: 100, height: 50, depth: 50 },
-                    weight: 50,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 40, height: 40, depth: 30 },
-                    weight: 20,
-                },
-            ],
-        },
-        passenger: ["user789"],
-        restrictions: [],
-        info: ["Bitte pünktlich sein"],
-        infoCar: ["SUV"],
-        imageURL: "https://example.com/images/offer2.jpg",
-        car:"Mercedes Benz",
-        ended: false, // NEU: Diese Fahrt ist aktiv
-        rating: 3.8, // NEU
-    },
-    {
-        id: "offer-003",
-        title: "Kleintransporte Stuttgart → Nürnberg",
-        description: "Perfekt für kleine Möbel oder 1-2 Kartons.",
-        price: 70,
-        locationFrom: "Stuttgart",
-        locationTo: "Nürnberg",
-        driver: "user238",
-        createdAt: new Date("2025-06-14T12:00:00Z"),
-        isChat: true,
-        chatId: "chat-238",
-        isPhone: true,
-        isEmail: true,
-        startDateTime: new Date("2025-06-21T09:00:00Z"),
-        endDateTime: new Date("2025-06-21T12:00:00Z"),
-        canTransport: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 80, height: 60, depth: 50 },
-                    weight: 40,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 0,
-            items: [
-                {
-                    size: { width: 60, height: 40, depth: 40 },
-                    weight: 15,
-                },
-            ],
-        },
-        passenger: [],
-        restrictions: [],
-        info: ["Transportversicherung inklusive"],
-        infoCar: ["Kleiner Van"],
-        imageURL: "https://example.com/images/offer3.jpg",
-        car:"Mazda",
-        rating: 4.2, // NEU
-    },
-    {
-        id: "offer-004",
-        title: "Umzugshilfe von Leipzig nach Dresden",
-        description: "Habe einen großen Sprinter, kann Möbel transportieren.",
-        price: 90,
-        locationFrom: "Leipzig",
-        locationTo: "Dresden",
-        driver: "user315",
-        createdAt: new Date("2025-06-13T15:20:00Z"),
-        isChat: true,
-        chatId: "chat-315",
-        isPhone: false,
-        isEmail: true,
-        startDateTime: new Date("2025-06-24T08:00:00Z"),
-        endDateTime: new Date("2025-06-24T10:00:00Z"),
-        canTransport: {
-            seats: 2,
-            items: [
-                {
-                    size: { width: 150, height: 120, depth: 100 },
-                    weight: 200,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 80, height: 70, depth: 60 },
-                    weight: 60,
-                },
-                {
-                    size: { width: 60, height: 50, depth: 40 },
-                    weight: 35,
-                },
-            ],
-        },
-        passenger: ["user002"],
-        restrictions: ["Keine Tiere"],
-        info: ["Tragehilfe vorhanden"],
-        infoCar: ["Großer Sprinter"],
-        imageURL: "https://example.com/images/offer4.jpg",
-        car:"Audi",
-        rating: 4.0, // NEU
-    },
-    {
-        id: "offer-005",
-        title: "Nachts nach Frankfurt",
-        description: "Fahre nachts mit leerem Kofferraum nach Frankfurt.",
-        price: 40,
-        locationFrom: "Nürnberg",
-        locationTo: "Frankfurt",
-        driver: "user998",
-        createdAt: new Date("2025-06-11T20:00:00Z"),
-        isChat: false,
-        chatId: "",
-        isPhone: true,
-        isEmail: false,
-        startDateTime: new Date("2025-06-25T22:00:00Z"),
-        endDateTime: new Date("2025-06-26T01:00:00Z"),
-        canTransport: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 70, height: 50, depth: 60 },
-                    weight: 40,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 0,
-            items: [],
-        },
-        passenger: [],
-        restrictions: [],
-        info: ["Nachtruhe erwünscht"],
-        infoCar: ["Limousine"],
-        imageURL: "https://example.com/images/offer5.jpg",
-        car:"Audi",
-        rating: 3.5, // NEU
-    },
-    {
-        id: "offer-006",
-        title: "Pick-up Service Berlin – Rostock",
-        description: "Fahre regelmäßig und kann kleine Pakete mitnehmen.",
-        price: 30,
-        locationFrom: "Berlin",
-        locationTo: "Rostock",
-        driver: "user744",
-        createdAt: new Date("2025-06-15T08:30:00Z"),
-        isChat: true,
-        chatId: "chat-744",
-        isPhone: true,
-        isEmail: true,
-        startDateTime: new Date("2025-06-27T09:00:00Z"),
-        endDateTime: new Date("2025-06-27T12:00:00Z"),
-        canTransport: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 100, height: 60, depth: 60 },
-                    weight: 50,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 0,
-            items: [
-                {
-                    size: { width: 40, height: 30, depth: 30 },
-                    weight: 10,
-                },
-                {
-                    size: { width: 30, height: 30, depth: 20 },
-                    weight: 5,
-                },
-            ],
-        },
-        passenger: [],
-        restrictions: ["Kein Alkohol"],
-        info: ["Sicher und pünktlich"],
-        infoCar: ["Kombi"],
-        imageURL: "https://example.com/images/offer6.jpg",
-        car:"Audi",
-        rating: 4.7, // NEU
-    },
-    {
-        id: "offer-007",
-        title: "Transporter mit Ladefläche",
-        description: "Platz für sperrige Gegenstände, z. B. Fahrräder oder Kühlschränke.",
-        price: 100,
-        locationFrom: "Bremen",
-        locationTo: "Hannover",
-        driver: "user111",
-        createdAt: new Date("2025-06-17T14:10:00Z"),
-        isChat: true,
-        chatId: "chat-111",
-        isPhone: true,
-        isEmail: false,
-        startDateTime: new Date("2025-06-28T10:00:00Z"),
-        endDateTime: new Date("2025-06-28T12:30:00Z"),
-        canTransport: {
-            seats: 2,
-            items: [
-                {
-                    size: { width: 160, height: 130, depth: 100 },
-                    weight: 300,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 100, height: 100, depth: 80 },
-                    weight: 120,
-                },
-            ],
-        },
-        passenger: ["user332"],
-        restrictions: [],
-        info: ["Laderampe vorhanden"],
-        infoCar: ["Offener Transporter"],
-        imageURL: "https://example.com/images/offer7.jpg",
-        car:"Audi",
-        rating: 3.9, // NEU
-    },
-    {
-        id: "offer-008",
-        title: "Fahrt zum Flughafen Stuttgart",
-        description: "Reise früh morgens, Gepäck kann mitgenommen werden.",
-        price: 25,
-        locationFrom: "Ulm",
-        locationTo: "Stuttgart",
-        driver: "user007",
-        createdAt: new Date("2025-06-16T06:15:00Z"),
-        isChat: false,
-        chatId: "",
-        isPhone: false,
-        isEmail: true,
-        startDateTime: new Date("2025-06-29T04:30:00Z"),
-        endDateTime: new Date("2025-06-29T06:00:00Z"),
-        canTransport: {
-            seats: 1,
-            items: [
-                {
-                    size: { width: 80, height: 40, depth: 50 },
-                    weight: 25,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 0,
-            items: [
-                {
-                    size: { width: 40, height: 30, depth: 30 },
-                    weight: 8,
-                },
-            ],
-        },
-        passenger: [],
-        restrictions: ["Keine großen Hunde"],
-        info: ["Kofferraum frei"],
-        infoCar: ["Kompaktwagen"],
-        imageURL: "https://example.com/images/offer8.jpg",
-        car:"Audi",
-        rating: 4.1, // NEU
-    },
-    {
-        id: "offer-009",
-        title: "Wochenendfahrt München → Salzburg",
-        description: "Gemütliche Fahrt mit VW Bus, viel Platz.",
-        price: 60,
-        locationFrom: "München",
-        locationTo: "Salzburg",
-        driver: "user303",
-        createdAt: new Date("2025-06-19T17:45:00Z"),
-        isChat: true,
-        chatId: "chat-303",
-        isPhone: true,
-        isEmail: true,
-        startDateTime: new Date("2025-07-01T10:00:00Z"),
-        endDateTime: new Date("2025-07-01T13:00:00Z"),
-        canTransport: {
-            seats: 4,
-            items: [
-                {
-                    size: { width: 150, height: 110, depth: 90 },
-                    weight: 250,
-                },
-            ],
-        },
-        occupiedSpace: {
-            seats: 2,
-            items: [
-                {
-                    size: { width: 70, height: 60, depth: 50 },
-                    weight: 40,
-                },
-            ],
-        },
-        passenger: ["user789", "user999"],
-        restrictions: [],
-        info: ["Gemütliche Fahrt mit Musik"],
-        infoCar: ["VW Bus"],
-        imageURL: "https://example.com/images/offer9.jpg",
-        car:"Audi",
-        rating: 4.8, // NEU
-    },
-    {
-        id: "search-010",
-        title: "Möchte von Berlin nach München",
-        description: "Kann mich bitte wer von Berlin nach München fahren",
-        price: 0,
-        locationFrom: "Berlin",
-        locationTo: "München",
-        driver: "",
-        createdAt: new Date("2025-06-20T09:00:00Z"),
-        isChat: false,
-        chatId: "",
-        isPhone: false,
-        isGesuch:true,
-        isEmail: false,
-        startDateTime: new Date("2025-07-02T07:00:00Z"),
-        endDateTime: new Date("2025-07-02T08:00:00Z"),
-        canTransport: {
-            seats: 0,
-            items: [
-            ],
-        },
-        occupiedSpace: {
-            seats: 1,
-            items: [
-            ],
-        },
-        passenger: ["user789"],
-        restrictions: [],
-        info: [""],
-        infoCar: [""],
-        imageURL: "https://example.com/images/offer10.jpg",
-        car:""
-    },
-];
 
-let idCount = 11;
-export async function fetchOffers(): Promise<Offer[]> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(mockOffers);
-        }, 500);
-    });
-}
 
-export async function fetchOffer(id: string | undefined): Promise<Offer | undefined> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(mockOffers.find(offer => offer.id === id));
-        }, 500);
-    });
-}
+export let offers: Offer[] = [];
+export const archivedOffers: Offer[] = [];
+const locationCache:placeList[] = [];
 
-export async function getOffer(id:string|undefined): Promise<Offer | undefined> {
-    // In bereits vorhandenen offers suchen ansonsten Servercall
 
-    let foundOffer =  mockOffers.find(offer => offer.id === id);
-    if(foundOffer == undefined){
-        await fetchOffer(id).then(offer => foundOffer = offer);
+export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
+    let foundOffer;
+
+    if (foundOffer == undefined) {
+        await getOfferDetails(id || "").then(offer => foundOffer = offer);
     }
     return foundOffer;
 
@@ -516,7 +160,7 @@ export async function getOffer(id:string|undefined): Promise<Offer | undefined> 
 
 export function getMaxPrice(): number {
     let price = 0;
-    mockOffers.forEach((offer: Offer) => {
+    offers?.forEach((offer: Offer) => {
         if (offer.price > price) {
             price = offer.price;
         }
@@ -524,140 +168,33 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filter: Filter,  userId:string): Promise<Offer[]> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const filteredOffers = mockOffers.filter((offer) => {
-                const isOwn = userId === offer.driver;
-                
-                // Filter für eigene Fahrten
-                if (filter.onlyOwn && !isOwn) return false;
-                
-                // Filter für beendete Fahrten
-                if (filter.hideEnded && offer.ended) return false;
+export async function fetchOffersWithFilter(serverFilter:ServerFilter): Promise<Offer[]> {
+    offers = await searchOffersByFilter(serverFilter);
 
-                // NEU: Filter für Angebote/Gesuche
-                if (filter.type && filter.type !== 'beides') {
-                    if (filter.type === 'angebote' && offer.isGesuch) return false;
-                    if (filter.type === 'gesuche' && !offer.isGesuch) return false;
-                }
-
-                const matchesLocationFrom =
-                    filter.locationFrom !== undefined &&
-                    filter.locationFrom !== "" &&
-                    offer.locationFrom.toLowerCase().includes(filter.locationFrom.toLowerCase());
-
-                const matchesLocationTo =
-                    filter.locationTo !== undefined &&
-                    filter.locationTo !== "" &&
-                    offer.locationTo.toLowerCase().includes(filter.locationTo.toLowerCase());
-
-                const matchesDate =
-                    filter.date !== undefined &&
-                    filter.date !== "" &&
-                    new Date(offer.endDateTime).toDateString() === new Date(filter.date).toDateString();
-
-                const matchesFreeSpace =
-                    filter.freeSpace !== undefined &&
-                    offer.canTransport.seats >= filter.freeSpace;
-
-                const matchesMaxPrice =
-                    filter.maxPrice !== undefined &&
-                    offer.price <= filter.maxPrice;
-
-                // NEU: Rating Filter (Mock-Implementation)
-                const matchesRating = filter.rating !== undefined ? 
-                    (offer.rating || 4.0) >= filter.rating : true;
-
-                // NEU: Gewicht Filter
-                const matchesMaxWeight = filter.maxWeight !== undefined ?
-                    offer.canTransport.items.some(item => item.weight >= filter.maxWeight) : true;
-
-                return (
-                    (!filter.locationFrom || matchesLocationFrom) &&
-                    (!filter.locationTo || matchesLocationTo) &&
-                    (!filter.date || matchesDate) &&
-                    (filter.freeSpace === undefined || matchesFreeSpace) &&
-                    (filter.maxPrice === undefined || matchesMaxPrice) &&
-                    matchesRating &&
-                    matchesMaxWeight
-                );
-            });
-
-            resolve(filteredOffers);
-        }, 500);
-    });
+    return getActiveOffers();
 }
 
-export async function createOffer(offer: Offer): Promise<Offer> {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const newOffer = offer;
-            newOffer.driver ="user789";//TODO: user mit eingeloggten Benutzer ersetzen
-            newOffer.isGesuch = false;
-            newOffer.id = "offer-0"+idCount++;
-
-            mockOffers.push(newOffer);
-            resolve(newOffer);
-        }, 500);
-    });
-}
-
-
-export async function createSearch(fields:SearchDialogFields):Promise<Offer>{
-    function convertSearchFieldsToOffer(fields: SearchDialogFields):Offer {
-        return {
-            canTransport: {
-                items: [],
-                seats:0
-            },
-            car: "",
-            chatId: "",
-            createdAt: new Date(),
-            description: fields.description,
-            driver: "",
-            startDateTime: new Date(),
-            endDateTime: new Date(),
-            id: "",
-            imageURL: "",
-            info: fields.info,
-            infoCar: [],
-            isChat: false,
-            isEmail: false,
-            isGesuch: true,
-            isPhone: false,
-            locationFrom: fields.locationFrom,
-            locationTo: fields.locationTo,
-            passenger: [],
-            occupiedSpace: {
-                items: [fields.package],
-                seats: fields.passengers
-            },
-            price: 0,
-            restrictions: [],
-            title: fields.title
+export async function createNewOffer(offer: Offer) {
+    try {
+        return await createOffer(offer)
+    } catch (error: any) {
+        if (error.response?.status === 500) {
+            toast("Server interner Fehler");
+        } else {
+            toast.error('Fahrt erstellen fehlgeschlagen');
         }
     }
-
-    return new Promise((resolve) => {
-    setTimeout(() => {
-            const newOffer =convertSearchFieldsToOffer(fields);
-            newOffer.passenger.push("user1234");//TODO: user mit eingeloggten Benutzer ersetzen
-            newOffer.id = "search-0"+idCount++;//remove wenn Servercall
-            mockOffers.push(newOffer);
-            resolve(newOffer);//Servercall einfügen zum erstellen von Offer
-    })
-})
 }
 
-
-export function isSpaceAvailable (can: Space, occupied: Space, newItem: Item):boolean  {
-    const totalWeight = occupied.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-    const totalVolume = occupied.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
-        newItem.size.width * newItem.size.height * newItem.size.depth;
-
+export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {
+    let totalWeight = 0,totalVolume = 0;
     const maxItem = can.items[0];
     const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
+    occupied.forEach((space) => {
+         totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+         totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+            newItem.size.width * newItem.size.height * newItem.size.depth;
+    })
 
     return (
         totalWeight <= maxItem.weight &&
@@ -665,3 +202,173 @@ export function isSpaceAvailable (can: Space, occupied: Space, newItem: Item):bo
     );
 }
 
+export async function getLocationName(latitude: number, longitude: number):Promise<string> {
+    if (latitude == 0 || longitude == 0) {
+        return "";
+    }
+    const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+    );
+    const data = await response.json();
+    return data?.city; // z.B. "Berlin"
+}
+
+
+export async function loadImage(id: string) {
+    return await downloadPicture(id);
+}
+
+
+export async function uploadImage(imgId:string,file: File) {
+console.log(imgId);
+    try {
+        if(imgId == null || imgId == ""){
+            throw "";
+        }
+        await uploadPictureForCompound(imgId,file)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+        toast.error('Bild konnte nicht hochgeladen werden'); //TODO:Bilder hochladen
+    }
+}
+
+export async function setLocationName(city: string) {
+    if (city == null || city == "") {
+        return null;
+    }
+    const fetchPromise = fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&city=${city}`
+    ).then(res => res.json());
+
+
+    const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve([]), 10000) // nach 10 Sekunden leeres Array zurückgeben
+    );
+
+    const data = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (data.length === 0) {
+    toast.error('Ort nicht gefunden');
+        throw new Error('Ort nicht gefunden');
+    }
+
+    const coordinate: Coordinates = {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+    }
+    return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
+}
+
+
+export async function sendFeedback(feedBack: {
+    answers: Record<string, number>;
+    comment: string;
+    targetId: string;
+    userId: string | null
+}) {
+return null;
+}
+
+export async function getUserNameFromUserId(userId: string):Promise<{firstName:string,lastName:string}> {
+    return await getUserByID(userId).then((user) => {
+        console.log(user.firstName, user.lastName);
+        return {firstName: user.firstName, lastName: user.lastName};
+    });
+
+}
+
+export async function getLocationFromList(
+    id: string,
+    locationFrom: Coordinates,
+    locationTo: Coordinates
+): Promise<{ coordinatesFrom: string; coordinatesTo: string }> {
+    const cached = locationCache.find((entry) => entry.id === id);
+
+    if (cached) {
+        return { coordinatesFrom: cached.coordinatesFrom, coordinatesTo: cached.coordinatesTo };
+    } else {
+
+        const fromLocation = await getLocationName( locationFrom.latitude,locationFrom.longitude);
+        const toLocation = await getLocationName(locationTo.latitude,locationTo.longitude);
+        locationCache.push({
+            id,
+            coordinatesFrom: fromLocation,
+            coordinatesTo: toLocation,
+        });
+
+        return {coordinatesFrom: fromLocation, coordinatesTo: toLocation};
+    }
+}
+
+// Neue Funktion zum Erstellen eines bearbeiteten Offers
+export async function createEditedOffer(originalOffer: Offer, editedFields: SearchDialogFields): Promise<Offer | undefined> {
+    try {
+        // Das ursprüngliche Offer als "ended" markieren und ins Archiv verschieben
+        originalOffer.ended = true;
+        archivedOffers.push(originalOffer);
+        
+        // Neues Offer mit den bearbeiteten Feldern erstellen
+        const locationFrom = await setLocationName(editedFields.locationFrom);
+        const locationTo = await setLocationName(editedFields.locationTo);
+        
+        const newOffer: Offer = {
+            id: "0", // Wird vom Server generiert
+            title: editedFields.title,
+            creator: originalOffer.creator,
+            paidSpaces: originalOffer.paidSpaces || [],
+            description: editedFields.description,
+            price: editedFields.price,
+            locationFrom: locationFrom || {latitude: 0, longitude: 0},
+            locationTo: locationTo || {latitude: 0, longitude: 0},
+            driver: originalOffer.driver,
+            startDateTime: originalOffer.startDateTime,
+            endDateTime: originalOffer.endDateTime,
+            canTransport: originalOffer.canTransport,
+            occupiedSpace: [
+                {
+                    occupiedBy: editedFields.creatorId,
+                    seats: editedFields.passengers,
+                    items: [editedFields.package],
+                },
+            ],
+            isPhone: originalOffer.isPhone,
+            isEmail: originalOffer.isEmail,
+            isChat: originalOffer.isChat,
+            isGesuch: originalOffer.isGesuch || false,
+            restrictions: editedFields.restrictions,
+            info: editedFields.info,
+            infoCar: originalOffer.infoCar || [],
+            createdAt: new Date().toISOString(),
+            imageURL: originalOffer.imageURL
+        };
+
+        const createdOffer = await createOffer(newOffer);
+        
+        // Das neue Offer zur aktiven Liste hinzufügen
+        offers.push(createdOffer);
+        
+        return createdOffer;
+    } catch (error: any) {
+        if (error.response?.status === 500) {
+            toast("Server interner Fehler");
+        } else {
+            toast.error('Fahrt bearbeiten fehlgeschlagen');
+        }
+        return undefined;
+    }
+}
+
+// Funktion zum Abrufen nur aktiver Offers (nicht archivierte)
+export function getActiveOffers(): Offer[] {
+    return offers.filter(offer => !offer.ended);
+}
+
+// Funktion zum Abrufen archivierter Offers
+export function getArchivedOffers(): Offer[] {
+    return archivedOffers;
+}
+
+// Funktion zum Abrufen aller Offers (aktive + archivierte)
+export function getAllOffers(): Offer[] {
+    return [...offers, ...archivedOffers];
+}

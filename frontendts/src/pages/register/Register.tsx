@@ -46,6 +46,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       return;
     }
     toast("Registrierung erfolgreich");
+    //sessionStorage.setItem("UserId", result?.id);
     if (result?.id) {
         navigate("/login");
       }

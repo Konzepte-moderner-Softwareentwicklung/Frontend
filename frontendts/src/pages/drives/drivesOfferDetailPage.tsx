@@ -1,19 +1,30 @@
-import {useNavigate, useParams} from "react-router-dom";
-import {getOffer, isSpaceAvailable, type Item, type Offer} from "@/pages/drives/drivesService.tsx";
-import {useEffect, useRef, useState} from "react";
-import {Input} from "@/components/ui/input";
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog.tsx";
-import { Button } from "@/components/ui/button";
-import {DialogDescription} from "@radix-ui/react-dialog";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+    DEFAULT_OFFER,
+    getOffer,
+    isSpaceAvailable,
+    type Item,
+    type Offer,
+    type Space,
+} from "@/pages/drives/drivesService.tsx";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button.tsx";
+import { FeedbackDialog } from "@/components/drives/FeedbackDialog.tsx";
+import { OfferEditDialog } from "@/components/drives/offer/OfferEditDialog";
+import { OfferJoinDialog } from "@/components/drives/offer/OfferJoinDialog";
+import { OfferImageUploader } from "@/components/drives/offer/OfferImageUploader.tsx";
+import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
-    const userId = "user789";
-    const[isSelfChat, setIsSelfChat] = useState(false);
+    const userId = localStorage.getItem("UserID") || sessionStorage.getItem("UserID") || "";
+    const [isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
-    const [editedOffer, setEditedOffer] = useState<Offer | null>(null);
-
+    const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
+    const [FromLocationGeoName, setFromLocationGeoName] = useState('');
+    const [ToLocationGeoName, setToLocationGeoName] = useState('');
+   // const [showRatingDialog, setShowRatingDialog] = useState(false);
 
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
@@ -24,9 +35,13 @@ function DrivesOfferDetailPage() {
     const [itemDepth, setItemDepth] = useState("");
     const [itemWeight, setItemWeight] = useState("");
 
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const [offer, setOffer] = useState<Offer | undefined>(undefined);
+
     useEffect(() => {
-        window.scrollTo({top: 0, behavior: "smooth"});
-        // change if the token is not saved in the localStorage
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
         ws.current = new WebSocket(
             `/api/tracking?token=${sessionStorage.getItem("token")}`,
         );
@@ -35,14 +50,14 @@ function DrivesOfferDetailPage() {
             intervalRef.current = window.setInterval(() => {
                 if (navigator.geolocation && isTracking) {
                     navigator.geolocation.getCurrentPosition(
-                        (position: GeolocationPosition) => {
+                        (position) => {
                             const location = {
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
                             };
                             ws.current?.send(JSON.stringify(location));
                         },
-                        (error: GeolocationPositionError) => {
+                        (error) => {
                             console.error("Geolocation error:", error.message);
                         },
                     );
@@ -50,57 +65,48 @@ function DrivesOfferDetailPage() {
             }, 5000);
         };
 
-        ws.current.onmessage = (event: MessageEvent) => {
-            console.log("Message from server:", event.data);
-        };
-
-        ws.current.onerror = (error: Event) => {
-            console.error("WebSocket error:", error);
-        };
-
         ws.current.onclose = () => {
-            console.log("WebSocket connection closed");
+            console.log("WebSocket closed");
         };
 
-        // Cleanup
         return () => {
             if (ws.current?.readyState === WebSocket.OPEN) {
                 ws.current.close();
             }
         };
-    });
+    }, [isTracking]);
 
-    const toggleTracking = () => {
-        console.log("toggleTracking called");
-        setIsTracking(!isTracking);
-    };
-
-    const navigate = useNavigate();
-    const {id} = useParams();
-    const [offer, setOffer] = useState<Offer | undefined>(undefined);
-    const handleBack = () => {
-        navigate("/drives");
-    };
     useEffect(() => {
         if (id) {
             getOffer(id).then(setOffer);
-
-            if (offer?.driver == userId) {
-                setIsDriver(true);
-                setIsSelfChat(true);
-            }
-
         }
-    }, [id, offer?.driver,isDriver]);
-    const joinOffer = () => {
-        if (!offer || offer.passenger.includes(userId)) return;
+    }, [id]);
 
+    useEffect(() => {
+        if (offer?.driver === userId) {
+            setIsDriver(true);
+            setIsSelfChat(true);
+        }
+        if (new Date(offer?.endDateTime || "").getTime() >= new Date().getTime()) {
+            //setShowRatingDialog(true);
+        }
+    }, [offer, userId]);
+
+    const toggleTracking = () => {
+        setIsTracking(!isTracking);
+    };
+
+    const handleBack = () => {
+        navigate("/drives");
+    };
+
+    const joinOffer = () => {
+        if (!offer || offer.occupiedSpace?.some(space => space.occupiedBy === userId)) return;
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
             offer.canTransport.seats -= 1;
         }
 
-        // Füge Item hinzu
         const newItem: Item = {
             weight: parseFloat(itemWeight),
             size: {
@@ -110,38 +116,38 @@ function DrivesOfferDetailPage() {
             },
         };
 
-        if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem))
-            offer.occupiedSpace.items.push(newItem);
+        const newSpace: Space = {
+            occupiedBy: userId,
+            items: [newItem],
+            seats: 1,
+        };
 
-        offer.passenger.push(userId);
+        if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem)) {
+            offer.occupiedSpace.push(newSpace);
+        }
 
-
-        // Force re-render
-        setOffer({...offer});
+        setOffer({ ...offer });
     };
 
-
-    const isLoggedIn = true;
-    const hasJoined = offer?.passenger.includes(userId);
-    const noSeatsLeft = offer ? offer?.canTransport.seats <= 0 : undefined;
-
-
+    const isLoggedIn = sessionStorage.getItem("token") != null;
     const goToChat = () => {
-        // navigate(`/chat/${offer.chatId}`);
-        navigate(`/chat`);
+        if (isLoggedIn && !isDriver && offer?.isChat) {
+            createIfNotExistChat(offer?.chatId||"");
+            navigate(`/chat`);
+        }
     };
+
+
+    const isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
+    const canGiveFeedback = isDriver || isOccupiedSpaceUser;
 
     if (!offer) {
         return (
             <div className="min-h-screen bg-cyan-100 p-8">
                 <div className="max-w-4xl mx-auto">
-                    <button
-                        onClick={handleBack}
-                        className="mb-6 px-4 py-2 bg-white text-blue-600 rounded shadow hover:bg-blue-50 transition"
-                    >
+                    <Button onClick={handleBack} className="mb-6">
                         ← Zurück
-                    </button>
-
+                    </Button>
                     <div className="bg-white p-6 rounded-2xl shadow text-center">
                         <h1 className="text-xl font-bold text-red-600 mb-4">
                             Die Fahrt konnte nicht geladen werden.
@@ -157,283 +163,139 @@ function DrivesOfferDetailPage() {
 
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
-            <div className="max-w-4xl mx-auto relative">
-                <button
-                    onClick={handleBack}
-                    className="mb-6 px-4 py-2 bg-white text-blue-600 rounded shadow hover:bg-blue-50 transition"
-                >
-                    ← Zurück
-                </button>
+            <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow space-y-6">
+                <div className="flex justify-between items-center">
+                    <Button onClick={handleBack}>← Zurück</Button>
 
-                <div className="absolute top-0 right-0 mt-2 mr-2 flex gap-2">
-                    {isDriver && (
-                        <button
-                            onClick={() => {
-                                setEditedOffer({...offer});
-                                setShowEditDialog(true);
-                            }}
-                            className="px-4 py-2 rounded shadow bg-yellow-500 text-white hover:bg-yellow-600"
+                    <div className="flex gap-4">
+                        {isDriver && (
+                            <Button
+                                variant="outline"
+                                onClick={toggleTracking}
+                                className={
+                                    isTracking
+                                        ? "bg-red-500 text-white hover:bg-red-600"
+                                        : "bg-green-500 text-white hover:bg-green-600"
+                                }
+                            >
+                                {isTracking ? "Stop Tracking" : "Start Tracking"}
+                            </Button>
+                        )}
+
+                        <Button
+                            onClick={goToChat}
+                        disabled={isDriver ||offer?.isChat}
+                            className={
+                                isLoggedIn && offer?.isChat && isDriver
+                                    ? ""
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }
                         >
-                            Bearbeiten
-                        </button>
-                    )}
+                            Zum Chat
+                        </Button>
 
-                    {isDriver && (
-                        <button
-                            onClick={() => toggleTracking()}
-                            className={`px-4 py-2 rounded shadow transition ${
-                                isTracking
-                                    ? "bg-red-500 text-white hover:bg-red-600"
-                                    : "bg-green-500 text-white hover:bg-green-600"
-                            }`}
-                        >
-                            {isTracking ? "Stop Tracking" : "Start Tracking"}
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setShowJoinDialog(true)}
-                        disabled={!isLoggedIn || hasJoined || noSeatsLeft||isDriver}
-                        className={`px-4 py-2 rounded shadow transition ${
-                            !isLoggedIn || hasJoined || noSeatsLeft||isDriver
-                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                : "bg-green-500 text-white hover:bg-green-600"
-                        }`}
-                    >
-                        {hasJoined|| isDriver ? "Bereits teilgenommen" : "Teilnehmen"}
-                    </button>
-                    {showEditDialog && editedOffer && (
-                        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Angebot bearbeiten</DialogTitle>
-                                    <DialogDescription>Ändere die Daten des Angebots.</DialogDescription>
-                                </DialogHeader>
-
-                                <div className="grid gap-4 py-4">
-                                    <Input
-                                        placeholder="Titel"
-                                        value={editedOffer.title}
-                                        onChange={(e) =>
-                                            setEditedOffer({ ...editedOffer, title: e.target.value })
-                                        }
-                                    />
-                                    <Input
-                                        placeholder="Beschreibung"
-                                        value={editedOffer.description}
-                                        onChange={(e) =>
-                                            setEditedOffer({ ...editedOffer, description: e.target.value })
-                                        }
-                                    />
-                                    <Input
-                                        placeholder="Von"
-                                        value={editedOffer.locationFrom}
-                                        onChange={(e) =>
-                                            setEditedOffer({ ...editedOffer, locationFrom: e.target.value })
-                                        }
-                                    />
-                                    <Input
-                                        placeholder="Nach"
-                                        value={editedOffer.locationTo}
-                                        onChange={(e) =>
-                                            setEditedOffer({ ...editedOffer, locationTo: e.target.value })
-                                        }
-                                    />
-                                    <Input
-                                        placeholder="Preis in €"
-                                        type="number"
-                                        value={editedOffer.price}
-                                        onChange={(e) =>
-                                            setEditedOffer({
-                                                ...editedOffer,
-                                                price: parseFloat(e.target.value),
-                                            })
-                                        }
-                                    />
-                                </div>
-
-                                <DialogFooter>
-                                    <Button
-                                        onClick={() => {
-                                            setOffer(editedOffer); // übernimmt die Änderungen ins Hauptobjekt
-                                            setShowEditDialog(false);
-                                        }}
-                                    >
-                                        Speichern
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    )}
-
-                    {showJoinDialog && (
-                        <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Teilnahme bestätigen</DialogTitle>
-                                    <DialogDescription>
-                                        Gib bitte an, ob du selbst mitfährst und ob du Gepäck mitnimmst.
-                                    </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="grid gap-4 py-4">
-                                    <label className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={joinsWithPassenger}
-                                            onChange={(e) => setJoinsWithPassenger(e.target.checked)}
-                                        />
-                                        Ich fahre selbst mit
-                                    </label>
-
-                                    <Input
-                                        placeholder="Breite in m"
-                                        type="number"
-                                        value={itemWidth}
-                                        onChange={(e) => setItemWidth(e.target.value)}
-                                    />
-                                    <Input
-                                        placeholder="Höhe in m"
-                                        type="number"
-                                        value={itemHeight}
-                                        onChange={(e) => setItemHeight(e.target.value)}
-                                    />
-                                    <Input
-                                        placeholder="Tiefe in m"
-                                        type="number"
-                                        value={itemDepth}
-                                        onChange={(e) => setItemDepth(e.target.value)}
-                                    />
-                                    <Input
-                                        placeholder="Gewicht in kg"
-                                        type="number"
-                                        value={itemWeight}
-                                        onChange={(e) => setItemWeight(e.target.value)}
-                                    />
-                                </div>
-
-                                <DialogFooter>
-                                    <Button
-                                        onClick={() => {
-                                            joinOffer();
-                                            setShowJoinDialog(false);
-                                        }}
-                                    >
-                                        Teilnehmen
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    )}
-
-
-                    <button
-                        onClick={goToChat}
-                        disabled={!offer.chatId|| isSelfChat}
-                        className={`px-4 py-2 rounded shadow transition ${
-                            (isLoggedIn || !offer.chatId) && !isSelfChat
-                                ? "bg-blue-500 text-white hover:bg-blue-600"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        }`}
-                    >
-                        Zum Chat
-                    </button>
+                        {/*<Button variant="outline" onClick={() => setShowEditDialog(true)}>*/}
+                        {/*    Bearbeiten*/}
+                        {/*</Button>*/}
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow p-6 mt-2">
-                    <img
-                        src={offer.imageURL}
-                        alt="Angebot"
-                        className="w-full h-64 object-cover rounded mb-4"
+                <OfferEditDialog
+                    open={showEditDialog}
+                    onClose={setShowEditDialog}
+                    editedOffer={editedOffer}
+                    setEditedOffer={setEditedOffer}
+                    setOffer={setOffer}
+                    FromLocationGeoName={FromLocationGeoName}
+                    setFromLocationGeoName={setFromLocationGeoName}
+                    ToLocationGeoName={ToLocationGeoName}
+                    setToLocationGeoName={setToLocationGeoName}
+                />
+
+
+                <OfferJoinDialog
+                    open={showJoinDialog}
+                    onClose={setShowJoinDialog}
+                    joinsWithPassenger={joinsWithPassenger}
+                    setJoinsWithPassenger={setJoinsWithPassenger}
+                    itemWidth={itemWidth}
+                    setItemWidth={setItemWidth}
+                    itemHeight={itemHeight}
+                    setItemHeight={setItemHeight}
+                    itemDepth={itemDepth}
+                    setItemDepth={setItemDepth}
+                    itemWeight={itemWeight}
+                    setItemWeight={setItemWeight}
+                    onJoin={joinOffer}
+                />
+
+                {canGiveFeedback && (
+                    <FeedbackDialog
+                        isDriver={isDriver}
+                        targetId={isDriver ? offer?.occupiedSpace?.[0]?.occupiedBy ?? "" : offer?.driver}
                     />
+                )}
 
-                    <h1 className="text-2xl font-bold mb-2">{offer.title}</h1>
-                    <p className="text-gray-600 mb-4">{offer.description}</p>
+                <OfferImageUploader offer={offer} />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <p>
-                                <strong>Von:</strong> {offer.locationFrom}
-                            </p>
-                            <p>
-                                <strong>Nach:</strong> {offer.locationTo}
-                            </p>
-                            <p>
-                                <strong>Preis:</strong> {offer.price} €
-                            </p>
-                            <p>
-                                <strong>Start:</strong> {offer.startDateTime.toLocaleString()}
-                            </p>
-                            <p>
-                                <strong>Ende:</strong> {offer.endDateTime.toLocaleString()}
-                            </p>
-                        </div>
-                        <div>
-                            <p>
-                                <strong>Sitze frei:</strong> {offer.canTransport.seats}
-                            </p>
-                            <p>
-                                <strong>Kommunikation:</strong>{" "}
-                                {[
-                                    offer.isChat && "Chat",
-                                    offer.isPhone && "Telefon",
-                                    offer.isEmail && "E-Mail",
-                                ]
-                                    .filter(Boolean)
-                                    .join(", ")}
-                            </p>
-                            <p>
-                                <strong>Ersteller:</strong> {offer.driver}
-                            </p>
-                        </div>
+                <h1 className="text-3xl font-bold">{offer?.title}</h1>
+                <p className="text-gray-700">{offer?.description}</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <p><strong>Preis:</strong> {offer?.price} €</p>
+                        <p><strong>Start:</strong> {offer?.startDateTime ? new Date(offer.startDateTime).toLocaleString() : '–'}</p>
+                        <p><strong>Ende:</strong> {offer?.endDateTime ? new Date(offer.endDateTime).toLocaleString() : '–'}</p>
                     </div>
-
-
-                    <div className="mb-4">
-                        <h2 className="font-semibold">Ladefläche des Fahrzeugs</h2>
-                        <ul className="list-disc ml-5">
-                            {offer.canTransport.items.map((item, i) => (
-                                <li key={i}>
-                                    Größe: {item.size.width}×{item.size.height}×{item.size.depth}
-                                    cm, Maximalgewicht: {item.weight}kg
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-
-                    <div className="mb-4">
-                        <h2 className="font-semibold">Einschränkungen</h2>
-                        <ul className="list-disc ml-5">
-                            {offer.restrictions.map((r, i) => (
-                                <li key={i}>{r}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-
-                    <div className="mb-4">
-                        <h2 className="font-semibold">Weitere Infos</h2>
-                        <ul className="list-disc ml-5">
-                            {offer.info.map((info, i) => (
-                                <li key={i}>{info}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-
-                    <div>
-                        <h2 className="font-semibold">Fahrzeug</h2>
-                        <ul className="list-disc ml-5">
-                            {offer.infoCar.map((info, i) => (
-                                <li key={i}>{info}</li>
-                            ))}
-                        </ul>
+                    <div className="space-y-2">
+                        <p><strong>Sitze frei:</strong> {offer?.canTransport?.seats}</p>
+                        <p><strong>Kommunikation:</strong> {[offer?.isChat && "Chat", offer?.isPhone && "Telefon", offer?.isEmail && "E-Mail"].filter(Boolean).join(", ")}</p>
+                        <p><strong>Ersteller:</strong> {offer?.driver}</p>
                     </div>
                 </div>
+
+                <div>
+                    <h2 className="font-semibold mb-2">Ladefläche des Fahrzeugs</h2>
+                    <ul className="list-disc ml-5">
+                        {offer?.canTransport?.items?.map((item, i) => (
+                            <li key={i}>
+                                Größe: {item.size.width}×{item.size.height}×{item.size.depth} cm, Maximalgewicht: {item.weight}kg
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 className="font-semibold mb-2">Einschränkungen</h2>
+                    <ul className="list-disc ml-5">
+                        {offer?.restrictions?.map((r, i) => (
+                            <li key={i}>{r}</li>
+                        ))}
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 className="font-semibold mb-2">Weitere Infos</h2>
+                    <ul className="list-disc ml-5">
+                        {offer?.info?.map((info, i) => (
+                            <li key={i}>{info}</li>
+                        ))}
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 className="font-semibold mb-2">Fahrzeug</h2>
+                    <ul className="list-disc ml-5">
+                        {offer?.infoCar?.map((info, i) => (
+                            <li key={i}>{info}</li>
+                        ))}
+                    </ul>
+                </div>
+
+
             </div>
         </div>
     );
 }
-
 
 export default DrivesOfferDetailPage;

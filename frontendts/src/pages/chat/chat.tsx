@@ -73,7 +73,7 @@ export default function Chat() {
           console.log("senderID "+ msg.senderId+"    userID: "+sessionStorage.getItem("UserID"));
         }
         setMessages(data);
-        debugger;
+
       } catch (error) {
         console.error("Fehler beim Laden des Chat-Verlaufs:", error);
       } finally {
@@ -404,7 +404,7 @@ export default function Chat() {
               {Array.isArray(messages) && messages.length > 0 ? (
                   messages.map((message: ChatMessage) => {
                     const location = isLocation(message.content);
-debugger;
+
                     return (
                         <div
                             key={message.id}

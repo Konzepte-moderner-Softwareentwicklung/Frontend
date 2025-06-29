@@ -1,14 +1,17 @@
 import api from "./api";
+import type {clientFilter, Offer} from "@/pages/drives/drivesService.tsx";
 
 
 //post calls
-export async function createOffer() {
-  const response = await api.post("/angebot", {  });
+export async function createOffer(offer:Offer) {
+
+  const response = await api.post("/angebot", offer);
   return response.data;
 }
 
-export async function searchOffersByFilter() {
-  const response = await api.post("/angebot/filter", {  });
+export async function searchOffersByFilter(filter:any) {
+
+  const response = await api.post("/angebot/filter", {filter:filter  });
   return response.data;
 }
 
@@ -21,4 +24,8 @@ export async function occupyOffer(id: string) {
 export async function getOfferDetails(id: string) {
   const response = await api.get(`/angebot/${id}`);
   return response.data;
+}
+
+export async function postRating(id: string, rating: any) {
+  const response = await api.post(`/angebot/${id}/rating`, {rating});
 }

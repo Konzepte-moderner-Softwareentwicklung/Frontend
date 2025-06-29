@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {Button} from "@/components/ui/button.tsx";
-import {Card, CardContent} from "../../components/ui/card.tsx";
+
 import {useNavigate} from 'react-router-dom';
 import {
     Pagination,
@@ -30,27 +30,144 @@ import {
 import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
-    createOffer, createSearch,
-    fetchOffers,
-    fetchOffersWithFilter,
-    type Filter,
+    createNewOffer, fetchOffersWithFilter,
+    type clientFilter,
     getMaxPrice,
-    type Offer, type SearchDialogFields, type Space
+    type Offer, type Space, setLocationName, type ServerFilter, getLocationName, getActiveOffers
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
+import {DriveDetailCard} from "@/components/drives/DriveDetailCard.tsx";
 
 
+function getServerFilter(): ServerFilter {
+    return {
+        currentTime: new Date().toISOString(),
+        dateTime: new Date().toISOString(),
+        id: "",
+        includePassed: false,
+        locationFrom: { latitude: 0, longitude: 0 },
+        locationFromDiff: 0,
+        locationTo: { latitude: 0, longitude: 0 },
+        locationToDiff: 0,
+        nameStartsWith: "",
+        price: 0,
+        spaceNeeded: {
+            occupiedBy: "",
+            seats: 0,
+            items: []
+        },
+        user: "",
+        creator: ""
+    };
+}
+
+function getClientFilter(filter: clientFilter | undefined): clientFilter {
+    if (!filter) return {};
+    
+    return {
+        freeSpace: filter.freeSpace,
+        locationFrom: filter.locationFrom,
+        locationTo: filter.locationTo,
+        locationFromDiff: filter.locationFromDiff,
+        dateTime: filter.dateTime,
+        showPassed: filter.showPassed,
+        user: filter.user,
+        creator: filter.creator,
+        maxPrice: filter.maxPrice,
+        onlyOwn: filter.onlyOwn,
+        // Zusätzliche Felder die in der UI verwendet werden
+        type: filter.type,
+        rating: filter.rating,
+        maxWeight: filter.maxWeight
+    };
+}
+
+// Neue Funktion um ServerFilter aus clientFilter zu erstellen
+async function createServerFilterFromClientFilter(filter: clientFilter | undefined): Promise<ServerFilter> {
+    const baseServerFilter = getServerFilter();
+    
+    if (!filter) return baseServerFilter;
+    
+    // Location-Konvertierung für Server-Filter
+    let locationFrom = { latitude: 0, longitude: 0 };
+    let locationTo = { latitude: 0, longitude: 0 };
+    
+    if (filter.locationFrom) {
+        try {
+            const coords = await setLocationName(filter.locationFrom);
+            if (coords) locationFrom = coords;
+        } catch (error) {
+            console.error("Fehler beim Konvertieren von locationFrom:", error);
+        }
+    }
+    
+    if (filter.locationTo) {
+        try {
+            const coords = await setLocationName(filter.locationTo);
+            if (coords) locationTo = coords;
+        } catch (error) {
+            console.error("Fehler beim Konvertieren von locationTo:", error);
+        }
+    }
+    
+    return {
+        ...baseServerFilter,
+        // Server-seitige Filter die aus clientFilter abgeleitet werden können
+        price: filter.maxPrice || 0,
+        includePassed: filter.showPassed || false,
+        dateTime: filter.dateTime || new Date().toISOString(),
+        nameStartsWith: "", // Könnte aus einem Titel-Filter kommen
+        user: filter.user || "",
+        creator: filter.creator || "",
+        // Location-Filter konvertiert
+        locationFrom,
+        locationTo,
+        locationFromDiff: filter.locationFromDiff || 0,
+        locationToDiff: 0,
+        // Space-Filter basierend auf freeSpace
+        spaceNeeded: {
+            occupiedBy: "",
+            seats: filter.freeSpace || 0,
+            items: []
+        }
+    };
+}
+
+// Hilfsfunktion um zu dokumentieren welche Filter Server- vs Client-seitig verarbeitet werden
+function getFilterInfo(filter: clientFilter | undefined) {
+    if (!filter) return { server: [], client: [] };
+    
+    const serverFilters = [];
+    const clientFilters = [];
+    
+    if (filter.locationFrom) serverFilters.push("locationFrom (Server)");
+    if (filter.locationTo) serverFilters.push("locationTo (Server)");
+    if (filter.dateTime) serverFilters.push("dateTime (Server)");
+    if (filter.maxPrice) serverFilters.push("maxPrice (Server)");
+    if (filter.freeSpace) serverFilters.push("freeSpace (Server)");
+    if (filter.showPassed) serverFilters.push("showPassed (Server)");
+    if (filter.user) serverFilters.push("user (Server)");
+    if (filter.creator) serverFilters.push("creator (Server)");
+    
+    if (filter.type) clientFilters.push("type (Client)");
+    if (filter.rating) clientFilters.push("rating (Client)");
+    if (filter.maxWeight) clientFilters.push("maxWeight (Client)");
+    if (filter.onlyOwn) clientFilters.push("onlyOwn (Client)");
+    
+    return { server: serverFilters, client: clientFilters };
+}
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [filter, setFilter] = useState<Filter | undefined>(undefined);
+    const [filter, setFilter] = useState<clientFilter | undefined>({
+        type: "beides" // Standard-Wert setzen
+    });
     const maxOfferPrice = getMaxPrice();
     const [maxPrice, setMaxPrice] = useState([100]);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [car, setCar] = useState("");
     const [info, setInfo] = useState("");
     const [infoCar, setInfoCar] = useState("");
     const [fromLocation, setFromLocation] = useState("");
@@ -70,6 +187,7 @@ function Drives() {
     const numericPrice = parseFloat(price);
 
     const seats: Space = {
+        occupiedBy: sessionStorage.getItem("UserID") || "",
         seats: parseInt(canTransport),
         items: [
             {
@@ -83,92 +201,172 @@ function Drives() {
         ]
     };
 
-    const createNewOffer = () => {
+    async function createOffer() {
+        const [locationFrom, locationTo] = await Promise.all([
+            setLocationName(fromLocation),
+            setLocationName(toLocation)
+        ]);
+
 
         const offerData: Offer = {
-            id:"-1",
             title: title,
+            creator: sessionStorage.getItem("UserID") || "",
+            paidSpaces: [],
             description: description,
             price: numericPrice,
-            locationFrom: fromLocation,
-            locationTo: toLocation,
-            driver: "user789", //TODO:Mit Eingeloggten User erstetzen
-            startDateTime: startDate,
-            endDateTime: endDate,
+            locationFrom: locationFrom || {latitude: 0, longitude: 0},
+            locationTo: locationTo || {latitude: 0, longitude: 0},
+            driver: sessionStorage.getItem("UserID") || "",
+            startDateTime: startDate.toISOString(),
+            endDateTime: endDate.toISOString(),
             canTransport: seats,
-            occupiedSpace: seats,
+            occupiedSpace: [],
             isPhone: isPhone,
             isEmail: isEmail,
             isChat: isChat,
-            passenger: [],
+            isGesuch: false,
             restrictions: restrictions.split(";"),
             info: info.split(";"),
             infoCar: infoCar.split(";"),
-            car: car,
-            createdAt: new Date(),
-            chatId: "",
+            createdAt: new Date().toISOString(),
             imageURL: ""
         };
 
-        createOffer(offerData).then(function (offer){
-            navigate(`/drives/${offer.id}`);
+
+        createNewOffer(offerData).then(function (offer) {
+            if (offer)
+                navigate(`/drives/${offer.id}`);
+
         });
-    };
+    }
 
     const createNewSearch = () => {
-        const userId = sessionStorage.getItem("userId") || "user124";
-        const offerData: SearchDialogFields = {
+       // const userId = sessionStorage.getItem("UserID") || "";
+        // const offerData: SearchDialogFields = {
+        //     title: title,
+        //     description: description,
+        //     price: numericPrice,
+        //     creatorId: userId,
+        //     locationFrom: fromLocation,
+        //     locationTo: toLocation,
+        //     passengers: seats.seats,
+        //     package: seats.items[0],
+        //     restrictions: restrictions.split(";"),
+        //     info: info.split(";"),
+        // };
+
+
+        const offerData: Offer = {
             title: title,
+            creator: sessionStorage.getItem("UserID") || "",
+            paidSpaces: [],
             description: description,
             price: numericPrice,
-            creatorId:userId,
-            locationFrom: fromLocation,
-            locationTo: toLocation,
-            passengers: seats.seats,
-            package: seats.items[0],
+            locationFrom:  {latitude: 0, longitude: 0},
+            locationTo:  {latitude: 0, longitude: 0},
+            driver: sessionStorage.getItem("UserID") || "",
+            startDateTime: new Date(new Date().setFullYear(new Date().getFullYear() + 50)).toISOString(),
+            endDateTime: new Date(new Date().setFullYear(new Date().getFullYear() + 50)).toISOString(),
+            canTransport: seats,
+            occupiedSpace: [ seats],
+            isPhone: isPhone,
+            isEmail: isEmail,
+            isChat: isChat,
+            isGesuch: true,
             restrictions: restrictions.split(";"),
             info: info.split(";"),
+            infoCar: infoCar.split(";"),
+            createdAt: new Date().toISOString(),
+            imageURL: ""
         };
-
-        createSearch(offerData).then(function (offer){
-
-            navigate(`/drives/${offer.id}/search`);
+        createNewOffer(offerData).then(function (offer) {
+            if (offer)
+                navigate(`/drives/${offer.id}/search`);
         });
     };
 
 
-    const totalPages = Math.ceil(offers.length / entriesPerPage);
+    const totalPages = Math.ceil((offers?.length || 1) / entriesPerPage);
     const navigate = useNavigate();
 
-    const paginatedOffers = offers.slice(
+    const paginatedOffers = offers?.slice(
         (currentPage - 1) * entriesPerPage,
         currentPage * entriesPerPage
-    );
+    ) || [];
 
     useEffect(() => {
         async function loadOffers() {
             try {
-                const data = filter
-                    ? await fetchOffersWithFilter(filter, "user789")//TODO:eingeloggten Benutzer usen
-                    : await fetchOffers();
-                setOffers(data);
-
+                const serverFilter = await createServerFilterFromClientFilter(filter);
+                const clientFilterData = getClientFilter(filter);
+                
+                // Debug-Logs für Filter-Informationen
+           
+                
+                const data = await fetchOffersWithFilter(serverFilter);
+                
+               
+                let filteredOffers = data;
+            
+                if (filter && clientFilterData) {
+                    
+                    // Filter nach Typ (Angebote/Gesuche)
+                    if (filter.type && filter.type !== "beides") {
+                       // console.log("Filtere nach Typ:", filter.type);
+                        filteredOffers = filteredOffers.filter(offer => {
+                            if (filter.type === "angebote") return !offer.isGesuch;
+                            if (filter.type === "gesuche") return offer.isGesuch;
+                            return true;
+                        });
+                 
+                    } 
+                    
+                    // Filter nach Bewertung (falls implementiert)
+                    if (filter.rating) {
+                        // Hier könnte die Bewertungslogik implementiert werden
+                        // filteredOffers = filteredOffers.filter(offer => offer.rating >= filter.rating);
+                    }
+                    
+                  
+                    if (filter.maxWeight) {
+                        filteredOffers = filteredOffers.filter(offer => {
+                            return offer.canTransport.items.every(item => item.weight <= filter.maxWeight!);
+                        });
+                    }
+                    
+                 
+                    if (filter.onlyOwn) {
+                        const userId = sessionStorage.getItem("UserID") || "";
+                        console.log("userId", userId);
+                     
+                        filteredOffers = filteredOffers.filter(offer => {
+                            return offer.creator === userId || offer.driver === userId
+                        }                           
+                        );
+                    }
+                }
+                
+               
+                setOffers(filteredOffers);
                 setCurrentPage(1);
             } catch (error) {
                 console.error("Fehler beim Laden der Angebote:", error);
             }
         }
 
-        loadOffers();
+        loadOffers().then();
     }, [filter]);
 
-    const isLoggedIn = true;
+    const isLoggedIn = sessionStorage.getItem("token") != null;
 
 
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
 
             <section className="bg-white p-6 rounded-2xl shadow mb-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Filter</h2>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label className="block text-sm mb-1">Von</label>
@@ -188,7 +386,7 @@ function Drives() {
                         <label className="flex text-sm mb-1">Datum</label>
                         <Input
                             type="date"
-                            onChange={(e) => setFilter((prev) => ({...prev, date: e.target.value}))}
+                            onChange={(e) => setFilter((prev) => ({...prev, dateTime: e.target.value}))}
                         />
                     </div>
                     <div>
@@ -222,24 +420,6 @@ function Drives() {
                         />
                         <label htmlFor="ownTrips" className="text-sm">
                             Eigene Fahrten anzeigen
-                        </label>
-                    </div>
-                    
-                    {/* NEU: Filter für beendete Fahrten */}
-                    <div className="flex items-center gap-2 mt-6 md:mt-0">
-                        <input
-                            type="checkbox"
-                            id="hideEnded"
-                            className="w-4 h-4"
-                            onChange={(e) =>
-                                setFilter((prev) => ({
-                                    ...prev,
-                                    hideEnded: e.target.checked,
-                                }))
-                            }
-                        />
-                        <label htmlFor="hideEnded" className="text-sm">
-                            Beendete Fahrten ausblenden
                         </label>
                     </div>
                 </div>
@@ -303,61 +483,17 @@ function Drives() {
 
 
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                {offers.length === 0 ? (
+                {offers?.length === 0 ? (
                     <p className="col-span-full text-center text-gray-600">
                         Keine Angebote und Gesuche vorhanden.
                     </p>
                 ) : (
-                    paginatedOffers.map((offer: Offer) => {
-                        const isGesuch = offer.isGesuch;
-                        const isEnded = offer.ended; // NEU
-                        return (
-                            <Card
-                                key={offer.id}
-                                className={`rounded-2xl shadow cursor-pointer transition hover:shadow-lg
-                        ${isGesuch ? "bg-pink-100" : "border-2 border-green-400"}
-                        ${isEnded ? "opacity-50 grayscale" : ""}`} // NEU: Visuelle Kennzeichnung
-                                onClick={() => {
-                                    if (!isGesuch) {
-                                        navigate(`/drives/${offer.id}`);
-                                    } else {
-                                        navigate(`/drives/${offer.id}/search`);
-                                    }
-                                }}
-                            >
-                                <CardContent className="p-4">
-                                    {isEnded && ( // NEU: "Beendet" Label
-                                        <div className="bg-red-500 text-white text-xs px-2 py-1 rounded mb-2">
-                                            BEENDET
-                                        </div>
-                                    )}
-                                    {isGesuch && (
-                                        <h3 className="text-pink-700 font-semibold mb-2">Suche Fahrt:</h3>
-                                    )}
-                                    {!isGesuch && (
-                                        <h3 className="text-green-700 font-semibold mb-2">Biete an:</h3>
-                                    )}
-
-                                    <div className="bg-gray-200 h-32 rounded mb-4 overflow-hidden">
-                                        {offer.imageURL && (
-                                            <img
-                                                src={offer.imageURL}
-                                                alt="Angebot"
-                                                className="h-full w-full object-cover rounded"
-                                            />
-                                        )}
-                                    </div>
-
-                                    <p className="font-medium">
-                                        {offer.locationFrom} → {offer.locationTo}
-                                    </p>
-                                    <p className="font-bold">{offer.price} Euro</p>
-                                </CardContent>
-                            </Card>
-                        );
-                    })
+                    paginatedOffers.map((offer: Offer) => (
+                        <DriveDetailCard key={offer.id} offer={offer} />
+                    ))
                 )}
             </section>
+
 
 
             <div className="flex justify-between items-center mt-6">
@@ -458,7 +594,8 @@ function Drives() {
                             </div>
 
                             <div className="col-span-full">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug (in Meter)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Lagerraum von Fahrzeug
+                                    (in Meter)</label>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <Input
                                         placeholder="Breite"
@@ -490,15 +627,18 @@ function Drives() {
 
                             <div className="flex gap-4">
                                 <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={isPhone} onChange={(e) => setIsPhone(e.target.checked)} />
+                                    <input type="checkbox" checked={isPhone}
+                                           onChange={(e) => setIsPhone(e.target.checked)}/>
                                     Handy
                                 </label>
                                 <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={isEmail} onChange={(e) => setIsEmail(e.target.checked)} />
+                                    <input type="checkbox" checked={isEmail}
+                                           onChange={(e) => setIsEmail(e.target.checked)}/>
                                     E-Mail
                                 </label>
                                 <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={isChat} onChange={(e) => setIsChat(e.target.checked)} />
+                                    <input type="checkbox" checked={isChat}
+                                           onChange={(e) => setIsChat(e.target.checked)}/>
                                     Chat
                                 </label>
                             </div>
@@ -526,29 +666,17 @@ function Drives() {
                                     onChange={(e) => setInfoCar(e.target.value)}
                                 />
                             </div>
-
-                            <Select onValueChange={(value) => setCar(value)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Fahrzeug auswählen" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {["Audi", "Mazda", "Mercedes Benz"].map((count) => (
-                                        <SelectItem key={count} value={count}>
-                                            {count}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
 
                         <DialogFooter>
-                            <Button onClick={createNewOffer} type="submit">
+                            <Button onClick={createOffer} type="submit">
                                 Erstellen
                             </Button>
                         </DialogFooter>
                     </DialogContent>
 
                 </Dialog>
+
 
                 <Dialog>
                     <DialogTrigger asChild>
@@ -655,7 +783,8 @@ function Drives() {
 
 
                         <DialogFooter>
-                            <Button onClick={createNewSearch} className="cursor-pointer" type="submit">Erstellen</Button>
+                            <Button onClick={createNewSearch} className="cursor-pointer"
+                                    type="submit">Erstellen</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
