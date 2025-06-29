@@ -22,15 +22,7 @@ export function OfferDetailCard({
     onBackClick,
 }: OfferDetailCardProps) {
     const navigate = useNavigate();
-
-    const handleChatClick = async () => {
-        try {
-            createIfNotExistChat(offer?.chatId||"")
-            navigate('/chat');
-        } catch (error) {
-            console.error("Fehler beim Öffnen des Chats:", error);
-        }
-    };
+    const isCreator = userId === offer?.creator;
 
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
@@ -41,12 +33,26 @@ export function OfferDetailCard({
                 ← Zurück
             </button>
             <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow relative">
-                <Button
-                    className="absolute top-4 right-4"
-                    onClick={handleChatClick}
-                >
-                    Chat öffnen
-                </Button>
+                {offer?.isChat && offer.chatId && (
+                    <Button
+                        className={`absolute top-4 right-4 ${
+                            isCreator 
+                                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                                : ""
+                        }`}
+                        onClick={() => {
+
+                            if (!isCreator) {
+
+                                createIfNotExistChat(offer?.chatId||"")
+                                navigate(`/chat/${offer.chatId}`);
+                            }
+                        }}
+                        disabled={isCreator}
+                    >
+                        Chat öffnen
+                    </Button>
+                )}
 
                 <h1 className="text-2xl font-bold mb-4">
                     {offer.title || "Titel (noch leer)"}

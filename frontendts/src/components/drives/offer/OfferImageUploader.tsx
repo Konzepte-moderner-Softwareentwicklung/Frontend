@@ -2,6 +2,9 @@
 import { uploadImage } from "@/pages/drives/drivesService";
 
 export function OfferImageUploader({ offer }: { offer: any }) {
+    const currentUserId = sessionStorage.getItem("UserID");
+    const isCreator = currentUserId == offer?.creator;
+    
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -19,12 +22,14 @@ export function OfferImageUploader({ offer }: { offer: any }) {
                 />
             )}
 
-            <button
-                onClick={() => document.getElementById("imageUploadInput")?.click()}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-                Bild hochladen
-            </button>
+            {isCreator && (
+                <button
+                    onClick={() => document.getElementById("imageUploadInput")?.click()}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Bild hochladen
+                </button>
+            )}
 
             <input
                 type="file"

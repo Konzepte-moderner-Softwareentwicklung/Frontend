@@ -9,7 +9,7 @@ export async function createOffer(offer:Offer) {
   return response.data;
 }
 
-export async function searchOffersByFilter(filter:clientFilter) {
+export async function searchOffersByFilter(filter:any) {
 
   const response = await api.post("/angebot/filter", {filter:filter  });
   return response.data;

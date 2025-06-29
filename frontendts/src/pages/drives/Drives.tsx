@@ -303,12 +303,12 @@ function Drives() {
                 // Debug-Logs für Filter-Informationen
            
                 
-                const data = await fetchOffersWithFilter(serverFilter, clientFilterData);
+                const data = await fetchOffersWithFilter(serverFilter);
                 
                
                 let filteredOffers = data;
             
-                if (filter) {
+                if (filter && clientFilterData) {
                     
                     // Filter nach Typ (Angebote/Gesuche)
                     if (filter.type && filter.type !== "beides") {
@@ -340,7 +340,6 @@ function Drives() {
                         console.log("userId", userId);
                      
                         filteredOffers = filteredOffers.filter(offer => {
-                            console.log("bool:", offer.creator === userId || offer.driver === userId);
                             return offer.creator === userId || offer.driver === userId
                         }                           
                         );

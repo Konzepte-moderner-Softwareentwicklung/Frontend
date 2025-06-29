@@ -144,16 +144,12 @@ export interface Size {
 
 
 export let offers: Offer[] = [];
-export let archivedOffers: Offer[] = []; // Neue Archiv-Liste für bearbeitete Offers
+export const archivedOffers: Offer[] = [];
 const locationCache:placeList[] = [];
 
 
 export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
     let foundOffer;
-
-    // if(offers){
-    //     foundOffer = offers.find(offer => offer.id === id);
-    // }
 
     if (foundOffer == undefined) {
         await getOfferDetails(id || "").then(offer => foundOffer = offer);
@@ -172,9 +168,9 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(serverFilter:ServerFilter, filter: clientFilter): Promise<Offer[]> {
-    offers = await searchOffersByFilter(filter);
-    // Nur aktive Offers zurückgeben (nicht archivierte)
+export async function fetchOffersWithFilter(serverFilter:ServerFilter): Promise<Offer[]> {
+    offers = await searchOffersByFilter(serverFilter);
+
     return getActiveOffers();
 }
 

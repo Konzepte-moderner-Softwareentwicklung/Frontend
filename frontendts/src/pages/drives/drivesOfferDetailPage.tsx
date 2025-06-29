@@ -137,6 +137,10 @@ function DrivesOfferDetailPage() {
         }
     };
 
+
+    const isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
+    const canGiveFeedback = isDriver || isOccupiedSpaceUser;
+
     if (!offer) {
         return (
             <div className="min-h-screen bg-cyan-100 p-8">
@@ -180,9 +184,9 @@ function DrivesOfferDetailPage() {
 
                         <Button
                             onClick={goToChat}
-                            disabled={!offer?.chatId || isSelfChat}
+                        disabled={isDriver}
                             className={
-                                isLoggedIn && offer?.chatId && !isSelfChat
+                                isLoggedIn && offer?.isChat && !isDriver
                                     ? ""
                                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }
@@ -225,10 +229,12 @@ function DrivesOfferDetailPage() {
                     onJoin={joinOffer}
                 />
 
-                <FeedbackDialog
-                    isDriver={isDriver}
-                    targetId={isDriver ? offer?.occupiedSpace?.[0]?.occupiedBy ?? "" : offer?.driver}
-                />
+                {canGiveFeedback && (
+                    <FeedbackDialog
+                        isDriver={isDriver}
+                        targetId={isDriver ? offer?.occupiedSpace?.[0]?.occupiedBy ?? "" : offer?.driver}
+                    />
+                )}
 
                 <OfferImageUploader offer={offer} />
 
