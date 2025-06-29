@@ -35,6 +35,7 @@ function DrivesOfferDetailPage() {
     const [itemDepth, setItemDepth] = useState("");
     const [itemWeight, setItemWeight] = useState("");
 
+
     const navigate = useNavigate();
     const { id } = useParams();
     const [offer, setOffer] = useState<Offer | undefined>(undefined);
@@ -81,7 +82,9 @@ function DrivesOfferDetailPage() {
             getOffer(id).then(setOffer);
         }
     }, [id]);
-
+    
+    const isLoggedIn = sessionStorage.getItem("token") != null && sessionStorage.getItem("token") !== "";
+    
     useEffect(() => {
         if (offer?.driver === userId) {
             setIsDriver(true);
@@ -129,7 +132,7 @@ function DrivesOfferDetailPage() {
         setOffer({ ...offer });
     };
 
-    const isLoggedIn = sessionStorage.getItem("token") != null;
+
     const goToChat = () => {
         if (isLoggedIn && !isDriver && offer?.isChat) {
             createIfNotExistChat(offer?.chatId||"");
@@ -179,6 +182,15 @@ function DrivesOfferDetailPage() {
                                 }
                             >
                                 {isTracking ? "Stop Tracking" : "Start Tracking"}
+                            </Button>
+                        )}
+
+                        {!isDriver && !isOccupiedSpaceUser && isLoggedIn && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowJoinDialog(true)}
+                            >
+                                An Fahrt teilnehmen
                             </Button>
                         )}
 
