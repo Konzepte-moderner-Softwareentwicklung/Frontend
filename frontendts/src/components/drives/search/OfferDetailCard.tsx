@@ -33,7 +33,7 @@ export function OfferDetailCard({
                 ← Zurück
             </button>
             <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow relative">
-                {offer?.isChat && offer.chatId && (
+                { (
                     <Button
                         className={`absolute top-4 right-4 ${
                             isCreator 
@@ -43,9 +43,8 @@ export function OfferDetailCard({
                         onClick={() => {
 
                             if (!isCreator) {
-
                                 createIfNotExistChat(offer?.chatId||"")
-                                navigate(`/chat/${offer.chatId}`);
+                                navigate(`/chat`);
                             }
                         }}
                         disabled={isCreator}

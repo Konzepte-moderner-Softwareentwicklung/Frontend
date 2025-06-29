@@ -359,12 +359,6 @@ function Drives() {
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
 
-    // Funktion um Filter zurückzusetzen
-    const resetFilter = () => {
-        setFilter({
-            type: "beides"
-        });
-    };
 
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
@@ -372,13 +366,6 @@ function Drives() {
             <section className="bg-white p-6 rounded-2xl shadow mb-6">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold">Filter</h2>
-                    <Button 
-                        variant="outline" 
-                        onClick={resetFilter}
-                        className="text-sm"
-                    >
-                        Filter zurücksetzen
-                    </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>

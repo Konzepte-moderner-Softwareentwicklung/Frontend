@@ -131,7 +131,7 @@ function DrivesOfferDetailPage() {
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
     const goToChat = () => {
-        if (isLoggedIn && !isDriver) {
+        if (isLoggedIn && !isDriver && offer?.isChat) {
             createIfNotExistChat(offer?.chatId||"");
             navigate(`/chat`);
         }
@@ -184,9 +184,9 @@ function DrivesOfferDetailPage() {
 
                         <Button
                             onClick={goToChat}
-                        disabled={isDriver}
+                        disabled={isDriver ||offer?.isChat}
                             className={
-                                isLoggedIn && offer?.isChat && !isDriver
+                                isLoggedIn && offer?.isChat && isDriver
                                     ? ""
                                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }
