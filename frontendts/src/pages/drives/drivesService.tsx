@@ -300,14 +300,14 @@ export async function getLocationFromList(
     }
 }
 
-// Neue Funktion zum Erstellen eines bearbeiteten Offers
+
 export async function createEditedOffer(originalOffer: Offer, editedFields: SearchDialogFields): Promise<Offer | undefined> {
     try {
-        // Das ursprüngliche Offer als "ended" markieren und ins Archiv verschieben
+
         originalOffer.ended = true;
         archivedOffers.push(originalOffer);
         
-        // Neues Offer mit den bearbeiteten Feldern erstellen
+
         const locationFrom = await setLocationName(editedFields.locationFrom);
         const locationTo = await setLocationName(editedFields.locationTo);
         
