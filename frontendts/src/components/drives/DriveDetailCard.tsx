@@ -7,24 +7,60 @@ export function DriveDetailCard({ offer }: { offer: Offer }) {
     const navigate = useNavigate();
     const [fromLocation, setFromLocation] = useState<string | null>(null);
     const [toLocation, setToLocation] = useState<string | null>(null);
+    const [isLoadingLocations, setIsLoadingLocations] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         async function fetchLocations() {
-            const { coordinatesFrom, coordinatesTo } = await getLocationFromList(
-                offer.id||"",
-                offer.locationFrom,
-                offer.locationTo
-            );
-            console.log("Von :"+ coordinatesFrom);
-            console.log("Bis :"+ coordinatesTo);
-            setFromLocation(coordinatesFrom);
-            setToLocation(coordinatesTo);
+            if (!offer?.id) {
+                setIsLoadingLocations(false);
+                return;
+            }
+
+            try {
+                setIsLoadingLocations(true);
+                const { coordinatesFrom, coordinatesTo } = await getLocationFromList(
+                    offer.id,
+                    offer.locationFrom,
+                    offer.locationTo
+                );
+                
+                if (isMounted) {
+                    setFromLocation(coordinatesFrom);
+                    setToLocation(coordinatesTo);
+                }
+            } catch (error) {
+                console.error("Fehler beim Laden der Locations:", error);
+                if (isMounted) {
+                    setFromLocation("Unbekannt");
+                    setToLocation("Unbekannt");
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoadingLocations(false);
+                }
+            }
         }
 
         fetchLocations();
-    }, [offer]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [offer?.id, offer?.locationFrom, offer?.locationTo]);
 
     const isGesuch = offer.isGesuch;
+
+    const getLocationDisplay = () => {
+        if (isLoadingLocations) {
+            return "Lade...";
+        }
+        if (fromLocation && toLocation) {
+            return `${fromLocation} → ${toLocation}`;
+        }
+        return "Standort unbekannt";
+    };
 
     return (
         <Card
@@ -57,9 +93,7 @@ export function DriveDetailCard({ offer }: { offer: Offer }) {
                     )}
                 </div>
                 <p className="font-medium">
-                    {fromLocation && toLocation
-                        ? `${fromLocation} → ${toLocation}`
-                        : "Lade..."}
+                    {getLocationDisplay()}
                 </p>
                 <p className="font-bold">{offer.price} Euro</p>
             </CardContent>

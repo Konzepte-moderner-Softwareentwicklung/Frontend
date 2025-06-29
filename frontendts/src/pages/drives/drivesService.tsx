@@ -103,6 +103,10 @@ export interface clientFilter {
     creator?: string;
     maxPrice?: number;
     onlyOwn?: boolean;
+    // Zusätzliche Felder für erweiterte Filterung
+    type?: "angebote" | "gesuche" | "beides";
+    rating?: number;
+    maxWeight?: number;
 }
 
 export interface ServerFilter {

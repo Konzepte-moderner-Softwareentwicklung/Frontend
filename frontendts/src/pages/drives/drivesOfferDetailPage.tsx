@@ -13,6 +13,7 @@ import { FeedbackDialog } from "@/components/drives/FeedbackDialog.tsx";
 import { OfferEditDialog } from "@/components/drives/offer/OfferEditDialog";
 import { OfferJoinDialog } from "@/components/drives/offer/OfferJoinDialog";
 import { OfferImageUploader } from "@/components/drives/offer/OfferImageUploader.tsx";
+import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -131,6 +132,7 @@ function DrivesOfferDetailPage() {
     const isLoggedIn = sessionStorage.getItem("token") != null;
     const goToChat = () => {
         if (isLoggedIn && !isDriver) {
+            createIfNotExistChat(offer?.chatId||"");
             navigate(`/chat`);
         }
     };

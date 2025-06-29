@@ -61,15 +61,109 @@ function getServerFilter(): ServerFilter {
     };
 }
 
-function getClientFilter(): clientFilter {
-    return {};
+function getClientFilter(filter: clientFilter | undefined): clientFilter {
+    if (!filter) return {};
+    
+    return {
+        freeSpace: filter.freeSpace,
+        locationFrom: filter.locationFrom,
+        locationTo: filter.locationTo,
+        locationFromDiff: filter.locationFromDiff,
+        dateTime: filter.dateTime,
+        showPassed: filter.showPassed,
+        user: filter.user,
+        creator: filter.creator,
+        maxPrice: filter.maxPrice,
+        onlyOwn: filter.onlyOwn,
+        // Zusätzliche Felder die in der UI verwendet werden
+        type: filter.type,
+        rating: filter.rating,
+        maxWeight: filter.maxWeight
+    };
+}
+
+// Neue Funktion um ServerFilter aus clientFilter zu erstellen
+async function createServerFilterFromClientFilter(filter: clientFilter | undefined): Promise<ServerFilter> {
+    const baseServerFilter = getServerFilter();
+    
+    if (!filter) return baseServerFilter;
+    
+    // Location-Konvertierung für Server-Filter
+    let locationFrom = { latitude: 0, longitude: 0 };
+    let locationTo = { latitude: 0, longitude: 0 };
+    
+    if (filter.locationFrom) {
+        try {
+            const coords = await setLocationName(filter.locationFrom);
+            if (coords) locationFrom = coords;
+        } catch (error) {
+            console.error("Fehler beim Konvertieren von locationFrom:", error);
+        }
+    }
+    
+    if (filter.locationTo) {
+        try {
+            const coords = await setLocationName(filter.locationTo);
+            if (coords) locationTo = coords;
+        } catch (error) {
+            console.error("Fehler beim Konvertieren von locationTo:", error);
+        }
+    }
+    
+    return {
+        ...baseServerFilter,
+        // Server-seitige Filter die aus clientFilter abgeleitet werden können
+        price: filter.maxPrice || 0,
+        includePassed: filter.showPassed || false,
+        dateTime: filter.dateTime || new Date().toISOString(),
+        nameStartsWith: "", // Könnte aus einem Titel-Filter kommen
+        user: filter.user || "",
+        creator: filter.creator || "",
+        // Location-Filter konvertiert
+        locationFrom,
+        locationTo,
+        locationFromDiff: filter.locationFromDiff || 0,
+        locationToDiff: 0,
+        // Space-Filter basierend auf freeSpace
+        spaceNeeded: {
+            occupiedBy: "",
+            seats: filter.freeSpace || 0,
+            items: []
+        }
+    };
+}
+
+// Hilfsfunktion um zu dokumentieren welche Filter Server- vs Client-seitig verarbeitet werden
+function getFilterInfo(filter: clientFilter | undefined) {
+    if (!filter) return { server: [], client: [] };
+    
+    const serverFilters = [];
+    const clientFilters = [];
+    
+    if (filter.locationFrom) serverFilters.push("locationFrom (Server)");
+    if (filter.locationTo) serverFilters.push("locationTo (Server)");
+    if (filter.dateTime) serverFilters.push("dateTime (Server)");
+    if (filter.maxPrice) serverFilters.push("maxPrice (Server)");
+    if (filter.freeSpace) serverFilters.push("freeSpace (Server)");
+    if (filter.showPassed) serverFilters.push("showPassed (Server)");
+    if (filter.user) serverFilters.push("user (Server)");
+    if (filter.creator) serverFilters.push("creator (Server)");
+    
+    if (filter.type) clientFilters.push("type (Client)");
+    if (filter.rating) clientFilters.push("rating (Client)");
+    if (filter.maxWeight) clientFilters.push("maxWeight (Client)");
+    if (filter.onlyOwn) clientFilters.push("onlyOwn (Client)");
+    
+    return { server: serverFilters, client: clientFilters };
 }
 
 function Drives() {
     const [offers, setOffers] = useState<Offer[]>([]);
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [filter, setFilter] = useState<clientFilter | undefined>(undefined);
+    const [filter, setFilter] = useState<clientFilter | undefined>({
+        type: "beides" // Standard-Wert setzen
+    });
     const maxOfferPrice = getMaxPrice();
     const [maxPrice, setMaxPrice] = useState([100]);
     const [title, setTitle] = useState("");
@@ -203,10 +297,58 @@ function Drives() {
     useEffect(() => {
         async function loadOffers() {
             try {
-                const serverFilter = getServerFilter();
-                const clientFilter = getClientFilter();
-                const data = await fetchOffersWithFilter(serverFilter, clientFilter);
-                setOffers(data);
+                const serverFilter = await createServerFilterFromClientFilter(filter);
+                const clientFilterData = getClientFilter(filter);
+                
+                // Debug-Logs für Filter-Informationen
+           
+                
+                const data = await fetchOffersWithFilter(serverFilter, clientFilterData);
+                
+               
+                let filteredOffers = data;
+            
+                if (filter) {
+                    
+                    // Filter nach Typ (Angebote/Gesuche)
+                    if (filter.type && filter.type !== "beides") {
+                       // console.log("Filtere nach Typ:", filter.type);
+                        filteredOffers = filteredOffers.filter(offer => {
+                            if (filter.type === "angebote") return !offer.isGesuch;
+                            if (filter.type === "gesuche") return offer.isGesuch;
+                            return true;
+                        });
+                 
+                    } 
+                    
+                    // Filter nach Bewertung (falls implementiert)
+                    if (filter.rating) {
+                        // Hier könnte die Bewertungslogik implementiert werden
+                        // filteredOffers = filteredOffers.filter(offer => offer.rating >= filter.rating);
+                    }
+                    
+                  
+                    if (filter.maxWeight) {
+                        filteredOffers = filteredOffers.filter(offer => {
+                            return offer.canTransport.items.every(item => item.weight <= filter.maxWeight!);
+                        });
+                    }
+                    
+                 
+                    if (filter.onlyOwn) {
+                        const userId = sessionStorage.getItem("UserID") || "";
+                        console.log("userId", userId);
+                     
+                        filteredOffers = filteredOffers.filter(offer => {
+                            console.log("bool:", offer.creator === userId || offer.driver === userId);
+                            return offer.creator === userId || offer.driver === userId
+                        }                           
+                        );
+                    }
+                }
+                
+               
+                setOffers(filteredOffers);
                 setCurrentPage(1);
             } catch (error) {
                 console.error("Fehler beim Laden der Angebote:", error);
@@ -218,11 +360,27 @@ function Drives() {
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
 
+    // Funktion um Filter zurückzusetzen
+    const resetFilter = () => {
+        setFilter({
+            type: "beides"
+        });
+    };
 
     return (
         <div className="bg-cyan-100 min-h-screen p-6">
 
             <section className="bg-white p-6 rounded-2xl shadow mb-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Filter</h2>
+                    <Button 
+                        variant="outline" 
+                        onClick={resetFilter}
+                        className="text-sm"
+                    >
+                        Filter zurücksetzen
+                    </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label className="block text-sm mb-1">Von</label>
@@ -249,7 +407,7 @@ function Drives() {
                         <label className="block text-sm mb-1">Anzeigen</label>
                         <select
                             className="border rounded px-3 py-2 w-full"
-                            value={"beides"}
+                            value={filter?.type || "beides"}
                             onChange={(e) =>
                                 setFilter((prev) => ({
                                     ...prev,

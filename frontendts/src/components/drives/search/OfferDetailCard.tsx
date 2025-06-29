@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { type Offer, type SearchDialogFields } from "@/pages/drives/drivesService.tsx";
 import { PackageInfoSection } from "./PackageInfoSection";
+import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 
 interface OfferDetailCardProps {
     offer: Offer;
@@ -22,6 +23,15 @@ export function OfferDetailCard({
 }: OfferDetailCardProps) {
     const navigate = useNavigate();
 
+    const handleChatClick = async () => {
+        try {
+            createIfNotExistChat(offer?.chatId||"")
+            navigate('/chat');
+        } catch (error) {
+            console.error("Fehler beim Öffnen des Chats:", error);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
             <button
@@ -31,14 +41,12 @@ export function OfferDetailCard({
                 ← Zurück
             </button>
             <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow relative">
-                {offer?.isChat && offer.chatId && (
-                    <Button
-                        className="absolute top-4 right-4"
-                        onClick={() => navigate(`/chat/${offer.chatId}`)}
-                    >
-                        Chat öffnen
-                    </Button>
-                )}
+                <Button
+                    className="absolute top-4 right-4"
+                    onClick={handleChatClick}
+                >
+                    Chat öffnen
+                </Button>
 
                 <h1 className="text-2xl font-bold mb-4">
                     {offer.title || "Titel (noch leer)"}
@@ -82,8 +90,9 @@ export function OfferDetailCard({
                     {/*    <Button onClick={onEditClick}>Bearbeiten</Button>*/}
                     {/*)}*/}
 
-                    {offer?.creator !== userId && (
-                        <Button onClick={onDriverApplicationClick}>
+                    {/*{offer?.creator !== userId && (*/}
+                    {(
+                        <Button onClick={onDriverApplicationClick}>  {/*TODO:uncomment nachdem es wieder geht*/}
                             Als Fahrer melden
                         </Button>
                     )}

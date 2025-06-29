@@ -1,5 +1,13 @@
-import {getChats, getChatMessages, connectWebSocket, postMessage, connectTrackingWebSocket} from "@/api/chat_api";
+import {
+    getChats,
+    getChatMessages,
+    connectWebSocket,
+    postMessage,
+    connectTrackingWebSocket,
+    createChat
+} from "@/api/chat_api";
 import {getUserByID} from "@/api/user_api.tsx";
+import toast from "react-hot-toast";
 
 
 // Interfaces
@@ -88,14 +96,14 @@ function formatMessageDate(dateStr: string): string {
   });
 }
 
-
+const contacts:ChatContact[] = [];
 
 // 🔹 Abrufen aller Chat-Kontakte
 export async function fetchChatContacts(){
 
   try {
     const userID = sessionStorage.getItem("UserID");
-    const contacts:ChatContact[] = [];
+
 
     const chats = await getChats();
     if(chats) {
@@ -140,8 +148,6 @@ export async function fetchChatContacts(){
         }
       }
     }
-
-    
 
 
     return contacts;
@@ -210,10 +216,6 @@ const socket = await connectWebSocket(chatId);
 
   return () => socket.close();
 }
-
-
-
-
 
 
 export async function subscribeToLiveLocations(
@@ -304,6 +306,18 @@ export function stopLiveLocationBroadcast() {
     clearInterval(trackingInterval);
     trackingInterval = null;
   }
+}
+
+export async function createIfNotExistChat(userId: string) {
+    try {
+        if (userId && contacts.find(contact => contact.id !== userId)) {
+            await createChat([userId]);
+        }
+    
+    } catch (err:any) {
+        toast.error("Chat konnte nicht erstellt werden");
+    }
+
 }
 
 
