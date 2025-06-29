@@ -9,31 +9,29 @@ import {
     PaginationNext,
     PaginationPrevious
 } from "../../components/ui/pagination.tsx";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 
 import {
     Dialog,
-    DialogTrigger,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
     DialogDescription,
     DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 
 import {Input} from "../../components/ui/input.tsx";
 import {Slider} from "@/components/ui/slider.tsx";
 import {
-    createNewOffer, fetchOffersWithFilter,
     type clientFilter,
+    createNewOffer,
+    fetchOffersWithFilter,
     getMaxPrice,
-    type Offer, type Space, setLocationName, type ServerFilter, getLocationName, getActiveOffers
+    type Offer,
+    type ServerFilter,
+    getLocationByCity,
+    type Space
 } from "@/pages/drives/drivesService.tsx";
 import {Textarea} from "@/components/ui/textarea.tsx";
 import {DriveDetailCard} from "@/components/drives/DriveDetailCard.tsx";
@@ -94,7 +92,7 @@ async function createServerFilterFromClientFilter(filter: clientFilter | undefin
     
     if (filter.locationFrom) {
         try {
-            const coords = await setLocationName(filter.locationFrom);
+            const coords = await getLocationByCity(filter.locationFrom);
             if (coords) locationFrom = coords;
         } catch (error) {
             console.error("Fehler beim Konvertieren von locationFrom:", error);
@@ -103,7 +101,7 @@ async function createServerFilterFromClientFilter(filter: clientFilter | undefin
     
     if (filter.locationTo) {
         try {
-            const coords = await setLocationName(filter.locationTo);
+            const coords = await getLocationByCity(filter.locationTo);
             if (coords) locationTo = coords;
         } catch (error) {
             console.error("Fehler beim Konvertieren von locationTo:", error);
@@ -145,12 +143,11 @@ function getFilterInfo(filter: clientFilter | undefined) {
     if (filter.dateTime) serverFilters.push("dateTime (Server)");
     if (filter.maxPrice) serverFilters.push("maxPrice (Server)");
     if (filter.freeSpace) serverFilters.push("freeSpace (Server)");
-    if (filter.showPassed) serverFilters.push("showPassed (Server)");
+    if (filter.showPassed !== undefined) serverFilters.push("showPassed (Server)");
     if (filter.user) serverFilters.push("user (Server)");
     if (filter.creator) serverFilters.push("creator (Server)");
     
     if (filter.type) clientFilters.push("type (Client)");
-    if (filter.rating) clientFilters.push("rating (Client)");
     if (filter.maxWeight) clientFilters.push("maxWeight (Client)");
     if (filter.onlyOwn) clientFilters.push("onlyOwn (Client)");
     
@@ -162,7 +159,8 @@ function Drives() {
     const [entriesPerPage, setEntriesPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [filter, setFilter] = useState<clientFilter | undefined>({
-        type: "beides" // Standard-Wert setzen
+        type: "beides", // Standard-Wert setzen
+        showPassed: true // Standardmäßig alte Fahrten anzeigen
     });
     const maxOfferPrice = getMaxPrice();
     const [maxPrice, setMaxPrice] = useState([100]);
@@ -186,6 +184,18 @@ function Drives() {
     const [storageHeight, setStorageHeight] = useState<number | null>(null);
     const numericPrice = parseFloat(price);
 
+    // Debouncing für Filter
+    const [debouncedFilter, setDebouncedFilter] = useState<clientFilter | undefined>(filter);
+
+    // Debounce-Effekt: Verzögert die Filter-Ausführung um 500ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedFilter(filter);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [filter]);
+
     const seats: Space = {
         occupiedBy: sessionStorage.getItem("UserID") || "",
         seats: parseInt(canTransport),
@@ -203,8 +213,8 @@ function Drives() {
 
     async function createOffer() {
         const [locationFrom, locationTo] = await Promise.all([
-            setLocationName(fromLocation),
-            setLocationName(toLocation)
+            getLocationByCity(fromLocation),
+            getLocationByCity(toLocation)
         ]);
 
 
@@ -297,45 +307,33 @@ function Drives() {
     useEffect(() => {
         async function loadOffers() {
             try {
-                const serverFilter = await createServerFilterFromClientFilter(filter);
-                const clientFilterData = getClientFilter(filter);
-                
-                // Debug-Logs für Filter-Informationen
-           
-                
-                const data = await fetchOffersWithFilter(serverFilter);
-                
-               
-                let filteredOffers = data;
-            
-                if (filter && clientFilterData) {
+                const serverFilter = await createServerFilterFromClientFilter(debouncedFilter);
+                const clientFilterData = getClientFilter(debouncedFilter);
+
+                let filteredOffers = await fetchOffersWithFilter(serverFilter);
+
+                if (debouncedFilter && clientFilterData) {
                     
                     // Filter nach Typ (Angebote/Gesuche)
-                    if (filter.type && filter.type !== "beides") {
-                       // console.log("Filtere nach Typ:", filter.type);
+                    if (debouncedFilter.type && debouncedFilter.type !== "beides") {
+                       // console.log("Filtere nach Typ:", debouncedFilter.type);
                         filteredOffers = filteredOffers.filter(offer => {
-                            if (filter.type === "angebote") return !offer.isGesuch;
-                            if (filter.type === "gesuche") return offer.isGesuch;
+                            if (debouncedFilter.type === "angebote") return !offer.isGesuch;
+                            if (debouncedFilter.type === "gesuche") return offer.isGesuch;
                             return true;
                         });
                  
                     } 
                     
-                    // Filter nach Bewertung (falls implementiert)
-                    if (filter.rating) {
-                        // Hier könnte die Bewertungslogik implementiert werden
-                        // filteredOffers = filteredOffers.filter(offer => offer.rating >= filter.rating);
-                    }
-                    
-                  
-                    if (filter.maxWeight) {
+                    // Filter nach Maximalgewicht
+                    if (debouncedFilter.maxWeight) {
                         filteredOffers = filteredOffers.filter(offer => {
-                            return offer.canTransport.items.every(item => item.weight <= filter.maxWeight!);
+                            return offer.canTransport.items.every(item => item.weight <= debouncedFilter.maxWeight!);
                         });
                     }
                     
-                 
-                    if (filter.onlyOwn) {
+                    // Filter nach eigenen Fahrten
+                    if (debouncedFilter.onlyOwn) {
                         const userId = sessionStorage.getItem("UserID") || "";
                         console.log("userId", userId);
                      
@@ -355,7 +353,7 @@ function Drives() {
         }
 
         loadOffers().then();
-    }, [filter]);
+    }, [debouncedFilter]);
 
     const isLoggedIn = sessionStorage.getItem("token") != null;
 
@@ -422,9 +420,26 @@ function Drives() {
                             Eigene Fahrten anzeigen
                         </label>
                     </div>
+                    <div className="flex items-center gap-2 mt-6 md:mt-0">
+                        <input
+                            type="checkbox"
+                            id="oldTrips"
+                            className="w-4 h-4"
+                            checked={filter?.showPassed ?? true}
+                            onChange={(e) =>
+                                setFilter((prev) => ({
+                                    ...prev,
+                                    showPassed: e.target.checked,
+                                }))
+                            }
+                        />
+                        <label htmlFor="oldTrips" className="text-sm">
+                            Alte Fahrten anzeigen
+                        </label>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm mb-1">Freie Plätze</label>
                         <Input
@@ -433,18 +448,6 @@ function Drives() {
                             onChange={(e) => setFilter((prev) => ({
                                 ...prev,
                                 freeSpace: e.target.value ? parseInt(e.target.value) : undefined
-                            }))}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm mb-1">Bewertungen</label>
-                        <Input
-                            placeholder="z.B.  4.5"
-                            type="number"
-                            step="0.1"
-                            onChange={(e) => setFilter((prev) => ({
-                                ...prev,
-                                rating: e.target.value ? parseFloat(e.target.value) : undefined
                             }))}
                         />
                     </div>
@@ -463,7 +466,7 @@ function Drives() {
                     <div>
                         <label className="block text-sm mb-1">Preis :{maxPrice[0]}</label>
                         <Slider
-                            defaultValue={[100]}
+                            value={[debouncedFilter?.maxPrice || 100]}
                             max={maxOfferPrice}
                             step={1}
                             onValueChange={(value) => {

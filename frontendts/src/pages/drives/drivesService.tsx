@@ -1,6 +1,6 @@
 import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
-import {downloadPicture, uploadPictureForCompound} from "@/api/media_api.tsx";
+import { uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
 
 export interface Coordinates {
@@ -8,12 +8,6 @@ export interface Coordinates {
     latitude: number;
 }
 
-export interface feedBackData {
-    answers: Record<string, number>;
-    comment: string,
-    targetName: string,
-
-}
 
 export const DEFAULT_OFFER: Offer = {
     id: '',
@@ -50,6 +44,11 @@ interface placeList{
     coordinatesTo: string
 }
 
+
+interface LocationCache {
+    city: string;
+    coordinates: Coordinates;
+}
 
 export interface Offer {
     id?: string;
@@ -147,6 +146,13 @@ export let offers: Offer[] = [];
 export const archivedOffers: Offer[] = [];
 const locationCache:placeList[] = [];
 
+// Einheitlicher Cache für alle Location-Abfragen
+const unifiedLocationCache: LocationCache[] = [];
+
+// Globaler Flag für Rate Limiting
+let isRateLimited = false;
+
+
 
 export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
     let foundOffer;
@@ -202,21 +208,69 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
     );
 }
 
-export async function getLocationByCoordinates(latitude: number, longitude: number):Promise<string> {
-    if (latitude == 0 || longitude == 0) {
+// Globale Variable für Rate-Limit-Steuerung
+let lastNominatimRequestTime = 0;
+
+export async function getLocationByCoordinates(latitude: number, longitude: number): Promise<string> {
+    if (latitude === 0 || longitude === 0) {
         return "";
     }
-    const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+
+    if (isRateLimited) {
+        return `Koordinaten: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    }
+
+    // Prüfe Cache
+    const cachedEntry = unifiedLocationCache.find(
+        entry => entry.coordinates.latitude === latitude && entry.coordinates.longitude === longitude
     );
-    const data = await response.json();
-    return data?.city; // z.B. "Berlin"
+    if (cachedEntry) {
+        return cachedEntry.city;
+    }
+
+    // 1 Sekunde warten, wenn die letzte Anfrage < 1 Sekunde her ist
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastNominatimRequestTime;
+    if (timeSinceLastRequest < 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1000 - timeSinceLastRequest));
+    }
+
+    lastNominatimRequestTime = Date.now();
+
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+        );
+
+        if (response.status === 429) {
+            isRateLimited = true;
+            return `Koordinaten: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        }
+
+        const data = await response.json();
+        const city =
+            data?.address?.city ||
+            data?.address?.town ||
+            data?.address?.village ||
+            data?.address?.hamlet ||
+            "";
+
+        if (city) {
+            unifiedLocationCache.push({
+                city,
+                coordinates: { latitude, longitude },
+            });
+        }
+
+        return city || `Koordinaten: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    } catch (error) {
+        isRateLimited = true;
+        return `Koordinaten: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    }
 }
 
 
-export async function loadImage(id: string) {
-    return await downloadPicture(id);
-}
+
 
 
 export async function uploadImage(imgId:string,file: File) {
@@ -236,27 +290,55 @@ export async function getLocationByCity(city: string) {
     if (city == null || city == "") {
         return null;
     }
-    const fetchPromise = fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&city=${city}`
-    ).then(res => res.json());
-
-
-    const timeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve([]), 10000) // nach 10 Sekunden leeres Array zurückgeben
+    
+    // Wenn bereits Rate Limited, direkt null zurückgeben
+    if (isRateLimited) {
+        return null;
+    }
+    
+    // Suche im Cache (case-insensitive)
+    const cachedEntry = unifiedLocationCache.find(
+        entry => entry.city.toLowerCase() === city.toLowerCase()
     );
-
-    const data = await Promise.race([fetchPromise, timeoutPromise]);
-
-    if (data.length === 0) {
-    toast.error('Ort nicht gefunden');
-        throw new Error('Ort nicht gefunden');
+    
+    if (cachedEntry) {
+        return cachedEntry.coordinates;
     }
+    
+    // API-Call durchführen
+    try {
+        const fetchPromise = fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&city=${city}`
+        ).then(res => res.json());
 
-    const coordinate: Coordinates = {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
+        const timeoutPromise = new Promise((resolve) =>
+            setTimeout(() => resolve([]), 10000) // nach 10 Sekunden leeres Array zurückgeben
+        );
+
+        const data = await Promise.race([fetchPromise, timeoutPromise]);
+
+        if (data.length === 0) {
+            toast.error('Ort nicht gefunden');
+            throw new Error('Ort nicht gefunden');
+        }
+
+        const coordinate: Coordinates = {
+            latitude: parseFloat(data[0].lat),
+            longitude: parseFloat(data[0].lon),
+        };
+        
+        // In Cache speichern
+        unifiedLocationCache.push({
+            city: city.toLowerCase(), // Normalisierte Form speichern
+            coordinates: coordinate
+        });
+        
+        return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
+    } catch (error) {
+        // Bei Fehlern Rate Limiting annehmen
+        isRateLimited = true;
+        return null;
     }
-    return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
 }
 
 
@@ -277,30 +359,7 @@ export async function getUserNameFromUserId(userId: string):Promise<{firstName:s
 
 }
 
-export async function getLocationFromList(
-    id: string,
-    locationFrom: Coordinates,
-    locationTo: Coordinates
-): Promise<{ coordinatesFrom: string; coordinatesTo: string }> {
-    const cached = locationCache.find((entry) => entry.id === id);
 
-    if (cached) {
-        return { coordinatesFrom: cached.coordinatesFrom, coordinatesTo: cached.coordinatesTo };
-    } else {
-
-        const fromLocation = await getLocationByCoordinates( locationFrom.latitude,locationFrom.longitude);
-        const toLocation = await getLocationByCoordinates(locationTo.latitude,locationTo.longitude);
-        locationCache.push({
-            id,
-            coordinatesFrom: fromLocation,
-            coordinatesTo: toLocation,
-        });
-
-        return {coordinatesFrom: fromLocation, coordinatesTo: toLocation};
-    }
-}
-
-// Neue Funktion zum Erstellen eines bearbeiteten Offers
 export async function createEditedOffer(originalOffer: Offer, editedFields: SearchDialogFields): Promise<Offer | undefined> {
     try {
         // Das ursprüngliche Offer als "ended" markieren und ins Archiv verschieben
@@ -361,14 +420,4 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 // Funktion zum Abrufen nur aktiver Offers (nicht archivierte)
 export function getActiveOffers(): Offer[] {
     return offers.filter(offer => !offer.ended);
-}
-
-// Funktion zum Abrufen archivierter Offers
-export function getArchivedOffers(): Offer[] {
-    return archivedOffers;
-}
-
-// Funktion zum Abrufen aller Offers (aktive + archivierte)
-export function getAllOffers(): Offer[] {
-    return [...offers, ...archivedOffers];
 }
