@@ -202,7 +202,7 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
     );
 }
 
-export async function getLocationName(latitude: number, longitude: number):Promise<string> {
+export async function getLocationByCoordinates(latitude: number, longitude: number):Promise<string> {
     if (latitude == 0 || longitude == 0) {
         return "";
     }
@@ -232,7 +232,7 @@ console.log(imgId);
     }
 }
 
-export async function setLocationName(city: string) {
+export async function getLocationByCity(city: string) {
     if (city == null || city == "") {
         return null;
     }
@@ -288,8 +288,8 @@ export async function getLocationFromList(
         return { coordinatesFrom: cached.coordinatesFrom, coordinatesTo: cached.coordinatesTo };
     } else {
 
-        const fromLocation = await getLocationName( locationFrom.latitude,locationFrom.longitude);
-        const toLocation = await getLocationName(locationTo.latitude,locationTo.longitude);
+        const fromLocation = await getLocationByCoordinates( locationFrom.latitude,locationFrom.longitude);
+        const toLocation = await getLocationByCoordinates(locationTo.latitude,locationTo.longitude);
         locationCache.push({
             id,
             coordinatesFrom: fromLocation,
@@ -308,8 +308,8 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
         archivedOffers.push(originalOffer);
         
         // Neues Offer mit den bearbeiteten Feldern erstellen
-        const locationFrom = await setLocationName(editedFields.locationFrom);
-        const locationTo = await setLocationName(editedFields.locationTo);
+        const locationFrom = await getLocationByCity(editedFields.locationFrom);
+        const locationTo = await getLocationByCity(editedFields.locationTo);
         
         const newOffer: Offer = {
             id: "0", // Wird vom Server generiert

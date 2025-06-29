@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import { setLocationName } from "@/pages/drives/drivesService";
+import { getLocationByCity } from "@/pages/drives/drivesService";
 
 export function OfferEditDialog({
                                     open,
@@ -45,7 +45,7 @@ export function OfferEditDialog({
                         onChange={(e) => setFromLocationGeoName(e.target.value)}
                         onBlur={async () => {
                             try {
-                                const coords = await setLocationName(FromLocationGeoName);
+                                const coords = await getLocationByCity(FromLocationGeoName);
                                 setEditedOffer((prev: any) => ({
                                     ...prev,
                                     locationFrom: coords || { latitude: 0, longitude: 0 },
@@ -63,7 +63,7 @@ export function OfferEditDialog({
                         onChange={(e) => setToLocationGeoName(e.target.value)}
                         onBlur={async () => {
                             try {
-                                const coords = await setLocationName(ToLocationGeoName);
+                                const coords = await getLocationByCity(ToLocationGeoName);
                                 setEditedOffer((prev: any) => ({
                                     ...prev,
                                     locationTo: coords || { latitude: 0, longitude: 0 },
