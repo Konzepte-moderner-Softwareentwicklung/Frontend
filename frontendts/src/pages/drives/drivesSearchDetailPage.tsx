@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
     createNewOffer,
-    getLocationName,
+    getLocationByCoordinates,
     getOffer,
     type Offer,
     type SearchDialogFields,
-    setLocationName,
+    getLocationByCity,
     createEditedOffer,
 } from "@/pages/drives/drivesService.tsx";
 import { useNavigate, useParams } from "react-router-dom";
@@ -78,11 +78,11 @@ function DrivesSearchDetailPage() {
                 console.log("Fetched offer:", fetchedOffer);
                 setOffer(fetchedOffer);
 
-                const locationFromName = await getLocationName(
+                const locationFromName = await getLocationByCoordinates(
                     fetchedOffer.locationFrom.latitude,
                     fetchedOffer.locationFrom.longitude
                 );
-                const locationToName = await getLocationName(
+                const locationToName = await getLocationByCoordinates(
                     fetchedOffer.locationTo.latitude,
                     fetchedOffer.locationTo.longitude
                 );
@@ -152,8 +152,8 @@ function DrivesSearchDetailPage() {
     }
 
     async function handleDriverSubmit() {
-        const locationFrom = await setLocationName(fields.locationFrom);
-        const locationTo = await setLocationName(fields.locationTo)
+        const locationFrom = await getLocationByCity(fields.locationFrom);
+        const locationTo = await getLocationByCity(fields.locationTo)
         const newOffer: Offer = {
             id: "0",
             title: fields.title,

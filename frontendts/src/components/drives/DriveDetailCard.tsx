@@ -1,6 +1,6 @@
 import {Card, CardContent} from "@/components/ui/card.tsx";
 import {useEffect, useState} from "react";
-import {getLocationFromList, type Offer} from "@/pages/drives/drivesService.tsx";
+import {getLocationByCoordinates, type Offer} from "@/pages/drives/drivesService.tsx";
 import {useNavigate} from "react-router-dom";
 import {getCompoundImageLink} from "@/api/media_api";
 
@@ -15,28 +15,39 @@ export function DriveDetailCard({ offer }: { offer: Offer }) {
         let isMounted = true;
 
         async function fetchLocations() {
-            if (!offer?.id) {
+            if (!offer?.locationFrom || !offer?.locationTo) {
                 setIsLoadingLocations(false);
                 return;
             }
 
             try {
                 setIsLoadingLocations(true);
-                const { coordinatesFrom, coordinatesTo } = await getLocationFromList(
-                    offer.id,
-                    offer.locationFrom,
-                    offer.locationTo
-                );
+                
+                // Versuche beide Locations parallel zu laden
+                const [fromResult, toResult] = await Promise.allSettled([
+                    getLocationByCoordinates(offer.locationFrom.latitude, offer.locationFrom.longitude),
+                    getLocationByCoordinates(offer.locationTo.latitude, offer.locationTo.longitude)
+                ]);
                 
                 if (isMounted) {
-                    setFromLocation(coordinatesFrom);
-                    setToLocation(coordinatesTo);
+                    // Verwende Stadtnamen oder Koordinaten als Fallback
+                    const fromDisplay = fromResult.status === 'fulfilled' && fromResult.value 
+                        ? fromResult.value 
+                        : `Koordinaten: ${offer.locationFrom.latitude.toFixed(4)}, ${offer.locationFrom.longitude.toFixed(4)}`;
+                    
+                    const toDisplay = toResult.status === 'fulfilled' && toResult.value 
+                        ? toResult.value 
+                        : `Koordinaten: ${offer.locationTo.latitude.toFixed(4)}, ${offer.locationTo.longitude.toFixed(4)}`;
+                    
+                    setFromLocation(fromDisplay);
+                    setToLocation(toDisplay);
                 }
             } catch (error) {
                 console.error("Fehler beim Laden der Locations:", error);
                 if (isMounted) {
-                    setFromLocation("Unbekannt");
-                    setToLocation("Unbekannt");
+                    // Fallback zu Koordinaten bei Fehlern
+                    setFromLocation(`Koordinaten: ${offer.locationFrom.latitude.toFixed(4)}, ${offer.locationFrom.longitude.toFixed(4)}`);
+                    setToLocation(`Koordinaten: ${offer.locationTo.latitude.toFixed(4)}, ${offer.locationTo.longitude.toFixed(4)}`);
                 }
             } finally {
                 if (isMounted) {
@@ -67,7 +78,7 @@ export function DriveDetailCard({ offer }: { offer: Offer }) {
         return () => {
             isMounted = false;
         };
-    }, [offer?.id, offer?.locationFrom, offer?.locationTo, offer?.imageURL]);
+    }, [offer?.locationFrom, offer?.locationTo, offer?.imageURL]);
 
     const isGesuch = offer.isGesuch;
 

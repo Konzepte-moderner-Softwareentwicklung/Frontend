@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import {
-    DEFAULT_OFFER,
+    DEFAULT_OFFER, getLocationByCoordinates,
     getOffer,
     isSpaceAvailable,
     type Item,
@@ -19,7 +19,6 @@ function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
     const userId = localStorage.getItem("UserID") || sessionStorage.getItem("UserID") || "";
-    const [isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
     const [FromLocationGeoName, setFromLocationGeoName] = useState('');
@@ -82,13 +81,42 @@ function DrivesOfferDetailPage() {
             getOffer(id).then(setOffer);
         }
     }, [id]);
-    
+    useEffect(() => {
+        const fetchLocations = async () => {
+            if (offer?.locationFrom?.latitude && offer?.locationFrom?.longitude) {
+                try {
+                    const from = await getLocationByCoordinates(
+                        offer.locationFrom.latitude,
+                        offer.locationFrom.longitude
+                    );
+                    setFromLocationGeoName(from || `${offer.locationFrom.latitude}, ${offer.locationFrom.longitude}`);
+                } catch {
+                    setFromLocationGeoName(`${offer.locationFrom.latitude}, ${offer.locationFrom.longitude}`);
+                }
+            }
+
+            if (offer?.locationTo?.latitude && offer?.locationTo?.longitude) {
+                try {
+                    const to = await getLocationByCoordinates(
+                        offer.locationTo.latitude,
+                        offer.locationTo.longitude
+                    );
+                    setToLocationGeoName(to || `${offer.locationTo.latitude}, ${offer.locationTo.longitude}`);
+                } catch {
+                    setToLocationGeoName(`${offer.locationTo.latitude}, ${offer.locationTo.longitude}`);
+                }
+            }
+        };
+
+        fetchLocations().then();
+    }, [offer]);
+
+
     const isLoggedIn = sessionStorage.getItem("token") != null && sessionStorage.getItem("token") !== "";
-    
+
     useEffect(() => {
         if (offer?.driver === userId) {
             setIsDriver(true);
-            setIsSelfChat(true);
         }
         if (new Date(offer?.endDateTime || "").getTime() >= new Date().getTime()) {
             //setShowRatingDialog(true);
@@ -135,7 +163,7 @@ function DrivesOfferDetailPage() {
 
     const goToChat = () => {
         if (isLoggedIn && !isDriver && offer?.isChat) {
-            createIfNotExistChat(offer?.chatId||"");
+            createIfNotExistChat(offer?.chatId || "").then();
             navigate(`/chat`);
         }
     };
@@ -258,6 +286,9 @@ function DrivesOfferDetailPage() {
                         <p><strong>Preis:</strong> {offer?.price} €</p>
                         <p><strong>Start:</strong> {offer?.startDateTime ? new Date(offer.startDateTime).toLocaleString() : '–'}</p>
                         <p><strong>Ende:</strong> {offer?.endDateTime ? new Date(offer.endDateTime).toLocaleString() : '–'}</p>
+                        <p><strong>Startort:</strong> {FromLocationGeoName || "–"}</p>
+                        <p><strong>Zielort:</strong> {ToLocationGeoName || "–"}</p>
+
                     </div>
                     <div className="space-y-2">
                         <p><strong>Sitze frei:</strong> {offer?.canTransport?.seats}</p>
