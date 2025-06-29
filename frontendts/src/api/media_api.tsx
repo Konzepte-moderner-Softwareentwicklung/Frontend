@@ -2,20 +2,23 @@ import api from "./api";
 
 //post calls
 export async function uploadPicture(file: File) {
-
-  const response = await api.post(`/media/image`, {  headers: {
+  const response = await api.post(`/media/image`, file, {
+    headers: {
       'Content-Type': file.type,
-    },body: file });
+    }
+  });
   return response.data;
 }
 
-export async function uploadPictureForCompound(id: string,file: File) {
-  debugger;
-  const response = await api.post(`/media/multi/${id}`, {body:file},{  headers: {
+export async function uploadPictureForCompound(id: string, file: File) {
+  const response = await api.post(`/media/multi/${id}`, file, {
+    headers: {
       'Content-Type': file.type,
-    }  });
+    }
+  });
   return response.data;
 }
+
 
 //get calls
 export async function healthCheck() {
