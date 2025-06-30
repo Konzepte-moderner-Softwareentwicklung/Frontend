@@ -14,6 +14,7 @@ import {OfferEditDialog} from "@/components/drives/offer/OfferEditDialog";
 import {OfferJoinDialog} from "@/components/drives/offer/OfferJoinDialog";
 import {OfferImageUploader} from "@/components/drives/offer/OfferImageUploader.tsx";
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
+import {payOffer} from "@/api/offers_api.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -173,6 +174,7 @@ function DrivesOfferDetailPage() {
         }
 
         await occupyOfferById(offer?.id || "", newSpace);
+        await payOffer(id||"",userId);
         setOffer({...offer});
     };
 

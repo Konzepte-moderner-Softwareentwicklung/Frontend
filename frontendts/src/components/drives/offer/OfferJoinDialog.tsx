@@ -67,11 +67,12 @@ export function OfferJoinDialog({
                 <DialogFooter>
                     <Button
                         onClick={() => {
+
                             onJoin();
                             onClose(false);
                         }}
                     >
-                        Teilnehmen
+                        Teilnehmen und bezahlen
                     </Button>
                 </DialogFooter>
             </DialogContent>

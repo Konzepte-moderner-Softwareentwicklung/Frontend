@@ -35,3 +35,8 @@ export async function postRating(id: string, rating: {
   const response = await api.post(`/angebot/${id}/rating`, {rating});
   return response.data;
 }
+
+export async function payOffer(id: string, userId: string) {
+  const response = await api.post(`/angebot/${id}/pay`,{userId:userId});
+  return response.data;
+}
