@@ -1,5 +1,5 @@
 import api from "./api";
-import type {serverFilter, Offer} from "@/pages/drives/drivesService.tsx";
+import type {serverFilter, Offer, Space} from "@/pages/drives/drivesService.tsx";
 
 
 //post calls
@@ -9,14 +9,14 @@ export async function createOffer(offer:Offer) {
   return response.data;
 }
 
-export async function searchOffersByFilter(filter:any) {
+export async function searchOffersByFilter(filter:serverFilter) {
 
   const response = await api.post("/angebot/filter", {filter:filter  });
   return response.data;
 }
 
-export async function occupyOffer(id: string) {
-  const response = await api.post(`/angebot/${id}/occupy`, {  });
+export async function occupyOffer(id: string, space:Space) {
+  const response = await api.post(`/angebot/${id}/occupy`, { userId:sessionStorage.getItem("userID"),space:space });
   return response.data;
 }
 
@@ -26,6 +26,12 @@ export async function getOfferDetails(id: string) {
   return response.data;
 }
 
-export async function postRating(id: string, rating: any) {
+export async function postRating(id: string, rating: {
+  answers: { content: string; value: number }[];
+  comment: string;
+  targetId: string;
+  userId: string | null
+}) {
   const response = await api.post(`/angebot/${id}/rating`, {rating});
+  return response.data;
 }

@@ -49,7 +49,6 @@ function getServerFilter(filter: filterMessage): serverFilter {
         user: filter.user,
         creator: filter.creator,
         maxPrice: filter.maxPrice,
-        onlyOwn: filter.onlyOwn,
     };
 }
 
@@ -89,7 +88,7 @@ async function createServerFilterFromClientFilter(filter: filterMessage| undefin
     }
 
     return {
-        price: filter.maxPrice || 0,
+        maxPrice: filter.maxPrice || 0,
         includePassed: filter.includePassed || false,
         dateTime: filter.dateTime || "",
         nameStartsWith: "",

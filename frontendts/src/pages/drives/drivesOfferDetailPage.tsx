@@ -1,18 +1,18 @@
-import { useNavigate, useParams } from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import {
     DEFAULT_OFFER, getLocationByCoordinates,
-    getOffer,
+    getOffer, getUserNameFromUserId,
     isSpaceAvailable,
-    type Item,
+    type Item, occupyOfferById,
     type Offer,
     type Space,
 } from "@/pages/drives/drivesService.tsx";
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button.tsx";
-import { FeedbackDialog } from "@/components/drives/FeedbackDialog.tsx";
-import { OfferEditDialog } from "@/components/drives/offer/OfferEditDialog";
-import { OfferJoinDialog } from "@/components/drives/offer/OfferJoinDialog";
-import { OfferImageUploader } from "@/components/drives/offer/OfferImageUploader.tsx";
+import {useEffect, useRef, useState} from "react";
+import {Button} from "@/components/ui/button.tsx";
+import {FeedbackDialog} from "@/components/drives/FeedbackDialog.tsx";
+import {OfferEditDialog} from "@/components/drives/offer/OfferEditDialog";
+import {OfferJoinDialog} from "@/components/drives/offer/OfferJoinDialog";
+import {OfferImageUploader} from "@/components/drives/offer/OfferImageUploader.tsx";
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 
 function DrivesOfferDetailPage() {
@@ -23,8 +23,10 @@ function DrivesOfferDetailPage() {
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
     const [FromLocationGeoName, setFromLocationGeoName] = useState('');
     const [ToLocationGeoName, setToLocationGeoName] = useState('');
-   // const [showRatingDialog, setShowRatingDialog] = useState(false);
+    const [showRatingDialog, setShowRatingDialog] = useState(false);
+    const [hasGivenFeedback, setHasGivenFeedback] = useState(false);
 
+    const [creatorName, setCreatorName] = useState("");
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
     const [showJoinDialog, setShowJoinDialog] = useState(false);
@@ -36,11 +38,11 @@ function DrivesOfferDetailPage() {
 
 
     const navigate = useNavigate();
-    const { id } = useParams();
+    const {id} = useParams();
     const [offer, setOffer] = useState<Offer | undefined>(undefined);
 
     useEffect(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({top: 0, behavior: "smooth"});
 
         ws.current = new WebSocket(
             `/api/tracking?token=${sessionStorage.getItem("token")}`,
@@ -75,6 +77,18 @@ function DrivesOfferDetailPage() {
             }
         };
     }, [isTracking]);
+    useEffect(() => {
+        const fetchCreatorName = async () => {
+            if (offer?.creator) {
+                const result = await getUserNameFromUserId(offer.creator);
+                if (result) {
+                    setCreatorName(`${result.firstName} ${result.lastName}`);
+                }
+            }
+        };
+
+        fetchCreatorName().then();
+    }, [offer?.creator]);
 
     useEffect(() => {
         if (id) {
@@ -118,9 +132,10 @@ function DrivesOfferDetailPage() {
         if (offer?.driver === userId) {
             setIsDriver(true);
         }
-        if (new Date(offer?.endDateTime || "").getTime() >= new Date().getTime()) {
-            //setShowRatingDialog(true);
-        }
+
+        //  if (new Date(offer?.endDateTime || "").getTime() <= new Date().getTime()) {
+        setShowRatingDialog(true);
+        //   }
     }, [offer, userId]);
 
     const toggleTracking = () => {
@@ -131,7 +146,7 @@ function DrivesOfferDetailPage() {
         navigate("/drives");
     };
 
-    const joinOffer = () => {
+    const joinOffer = async () => {
         if (!offer || offer.occupiedSpace?.some(space => space.occupiedBy === userId)) return;
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
@@ -157,7 +172,8 @@ function DrivesOfferDetailPage() {
             offer.occupiedSpace.push(newSpace);
         }
 
-        setOffer({ ...offer });
+        await occupyOfferById(offer?.id || "", newSpace);
+        setOffer({...offer});
     };
 
 
@@ -171,6 +187,7 @@ function DrivesOfferDetailPage() {
 
     const isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
     const canGiveFeedback = isDriver || isOccupiedSpaceUser;
+
 
     if (!offer) {
         return (
@@ -224,7 +241,7 @@ function DrivesOfferDetailPage() {
 
                         <Button
                             onClick={goToChat}
-                        disabled={isDriver ||offer?.isChat}
+                            disabled={isDriver || offer?.isChat}
                             className={
                                 isLoggedIn && offer?.isChat && isDriver
                                     ? ""
@@ -269,14 +286,19 @@ function DrivesOfferDetailPage() {
                     onJoin={joinOffer}
                 />
 
-                {canGiveFeedback && (
+                {canGiveFeedback && showRatingDialog && !hasGivenFeedback && (
                     <FeedbackDialog
+                        offerId={offer?.id || ""}
                         isDriver={isDriver}
                         targetId={isDriver ? offer?.occupiedSpace?.[0]?.occupiedBy ?? "" : offer?.driver}
+                        onFeedbackGiven={() => setHasGivenFeedback(true)}
+                        hasGivenFeedback={hasGivenFeedback}
+
                     />
                 )}
 
-                <OfferImageUploader offer={offer} />
+
+                <OfferImageUploader offer={offer}/>
 
                 <h1 className="text-3xl font-bold">{offer?.title}</h1>
                 <p className="text-gray-700">{offer?.description}</p>
@@ -284,16 +306,22 @@ function DrivesOfferDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <p><strong>Preis:</strong> {offer?.price} €</p>
-                        <p><strong>Start:</strong> {offer?.startDateTime ? new Date(offer.startDateTime).toLocaleString() : '–'}</p>
-                        <p><strong>Ende:</strong> {offer?.endDateTime ? new Date(offer.endDateTime).toLocaleString() : '–'}</p>
+                        <p>
+                            <strong>Start:</strong> {offer?.startDateTime ? new Date(offer.startDateTime).toLocaleString() : '–'}
+                        </p>
+                        <p>
+                            <strong>Ende:</strong> {offer?.endDateTime ? new Date(offer.endDateTime).toLocaleString() : '–'}
+                        </p>
                         <p><strong>Startort:</strong> {FromLocationGeoName || "–"}</p>
                         <p><strong>Zielort:</strong> {ToLocationGeoName || "–"}</p>
 
                     </div>
                     <div className="space-y-2">
                         <p><strong>Sitze frei:</strong> {offer?.canTransport?.seats}</p>
-                        <p><strong>Kommunikation:</strong> {[offer?.isChat && "Chat", offer?.isPhone && "Telefon", offer?.isEmail && "E-Mail"].filter(Boolean).join(", ")}</p>
-                        <p><strong>Ersteller:</strong> {offer?.driver}</p>
+                        <p>
+                            <strong>Kommunikation:</strong> {[offer?.isChat && "Chat", offer?.isPhone && "Telefon", offer?.isEmail && "E-Mail"].filter(Boolean).join(", ")}
+                        </p>
+                        <p><strong>Ersteller:</strong>{creatorName || "–"}</p>
                     </div>
                 </div>
 
@@ -302,7 +330,8 @@ function DrivesOfferDetailPage() {
                     <ul className="list-disc ml-5">
                         {offer?.canTransport?.items?.map((item, i) => (
                             <li key={i}>
-                                Größe: {item.size.width}×{item.size.height}×{item.size.depth} cm, Maximalgewicht: {item.weight}kg
+                                Größe: {item.size.width}×{item.size.height}×{item.size.depth} cm,
+                                Maximalgewicht: {item.weight}kg
                             </li>
                         ))}
                     </ul>
