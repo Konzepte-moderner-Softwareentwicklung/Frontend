@@ -71,7 +71,6 @@ export default function Chat() {
       try {
         const data = await fetchChatHistory(selectedContact.id);
         for(const msg of data){
-          console.log("senderID "+ msg.senderId+"    userID: "+sessionStorage.getItem("UserID"));
         }
         setMessages(data);
 

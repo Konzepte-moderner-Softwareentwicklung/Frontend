@@ -67,7 +67,6 @@ function DrivesOfferDetailPage() {
                                 latitude: position.coords.latitude,
                                 longitude: position.coords.longitude,
                             };
-                            console.log("sending: "+location.latitude+ "   "+location.longitude);
                             ws.current?.send(JSON.stringify(location));
                         },
                         (error) => {
@@ -98,8 +97,6 @@ function DrivesOfferDetailPage() {
             const fetchOffer = async () => {
                 const data = await getOffer(id);
                 setOffer(data);
-                console.log(JSON.stringify(data));
-                console.log(isOccupiedSpaceUser);
             };
             fetchOffer();
         }
@@ -107,7 +104,6 @@ function DrivesOfferDetailPage() {
 
     useEffect(() => {
         if (!offer) return;
-        console.log()
         if (offer.driver === sessionStorage.getItem("UserID")) {
             setIsDriver(true);
             setIsSelfChat(true);
@@ -206,7 +202,6 @@ function DrivesOfferDetailPage() {
     async function handleParticipation() {
         setShowJoinDialog(true)
         if(offer)await createChat([offer?.driver]);
-        else console.log("kein offer")
         }
 
 
@@ -216,7 +211,6 @@ function DrivesOfferDetailPage() {
     const chatEnabled = offer?.isChat ?? false;
 
     const isViewerDriver = !!offer && loggedInUserId === driverId;
-    console.log(loggedInUserId)
     const isViewerPassenger = (!!offer && offer.occupiedSpace?.some(space => space.occupiedBy === loggedInUserId)) ?? false;
     const isLoggedIn = !!sessionStorage.getItem("token");
 
@@ -225,9 +219,7 @@ function DrivesOfferDetailPage() {
 
 
 
-    console.log("isViewerDriver:", isViewerDriver);
-    console.log("driverId:", driverId);
-    console.log("canChat:", canChat);
+
 
 
 

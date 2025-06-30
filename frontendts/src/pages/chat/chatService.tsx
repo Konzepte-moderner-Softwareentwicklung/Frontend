@@ -60,7 +60,6 @@ function findLatestMessage(messages: ChatMessage[]): ChatMessage | null {
       latestTime = time;
     }
   }
-  console.log(latest?.createdAt);
   return latest;
 }
 
@@ -233,7 +232,6 @@ export async function subscribeToLiveLocations(
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as LiveLocationUpdate;
-      console.log(JSON.stringify(data))
       onLocationReceived(data);
 
     } catch (err) {
