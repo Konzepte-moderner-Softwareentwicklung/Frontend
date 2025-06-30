@@ -6,7 +6,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogFooter,
-    DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,11 +18,16 @@ interface FeedbackDialogProps {
     isDriver: boolean;
     targetId: string;
     offerId: string;
+    onFeedbackGiven: () => void;
+    hasGivenFeedback: boolean;
 }
+
 
 export function FeedbackDialog({offerId,
                                    isDriver,
                                    targetId,
+                                   hasGivenFeedback,
+                                   onFeedbackGiven
                                }: FeedbackDialogProps) {
     const [open, setOpen] = useState(false);
     const [answers, setAnswers] = useState<{ content: string; value: number }[]>([]);
@@ -71,10 +75,10 @@ export function FeedbackDialog({offerId,
 
     const handleSave = async () => {
         try {
-            // Fehlende Fragen ergänzen
-            const completedAnswers = questions.map((q) => {
-                const found = answers.find((a) => a.content === q);
-                return found ? found : { content: q, value: 3 };
+
+            const completedAnswers = questions.map((question) => {
+                const found = answers.find((a) => a.content === question);
+                return found ? found : { content: question, value: 3 };
             });
 
             await sendFeedback(offerId, {
@@ -87,6 +91,7 @@ export function FeedbackDialog({offerId,
             setOpen(false);
             setAnswers([]);
             setComment("");
+            onFeedbackGiven();
         } catch (err) {
             console.error("Fehler beim Senden:", err);
         }
@@ -104,11 +109,12 @@ export function FeedbackDialog({offerId,
             </DialogTrigger>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>
-                        {isDriver
-                            ? `Bewertung für Mitfahrer: ${targetName?.firstName} ${targetName?.lastName}`
-                            : `Bewertung für Fahrer: ${targetName?.firstName} ${targetName?.lastName}`}
-                    </DialogTitle>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" disabled={hasGivenFeedback}>
+                            {hasGivenFeedback ? "Bewertung abgegeben" : `Bewerte ${isDriver ? `Mitfahrer: ${targetName?.lastName}` : `Fahrer: ${targetName?.firstName} ${targetName?.lastName}`}`}
+                        </Button>
+                    </DialogTrigger>
+
                     <DialogDescription>
                         Bitte bewerte alle Fragen von 1 (schlecht) bis 5 (sehr gut) und gib optional einen Kommentar ab.
                     </DialogDescription>
