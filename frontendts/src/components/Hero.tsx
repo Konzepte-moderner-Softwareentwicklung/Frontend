@@ -1,8 +1,8 @@
-import cargonautLogo from '../assets/cargonaut_logo.png';
+import cargonautLogo from '../assets/SVG/semi_androidMyCargonaut.svg';
 
 export default function Hero() {
   return (
-      <div className="bg-cyan-100 px-10 py-8 flex flex-row items-start justify-center gap-12 text-left">
+      <div className="px-10 py-8 flex flex-row items-start justify-center gap-12 text-left">
           <img
               src={cargonautLogo}
               alt="Hero"
