@@ -133,9 +133,9 @@ function DrivesOfferDetailPage() {
             setIsDriver(true);
         }
 
-        //  if (new Date(offer?.endDateTime || "").getTime() <= new Date().getTime()) {
+          if (new Date(offer?.endDateTime || "").getTime() <= new Date().getTime()) {
         setShowRatingDialog(true);
-        //   }
+           }
     }, [offer, userId]);
 
     const toggleTracking = () => {
