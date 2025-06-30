@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import {
     DEFAULT_OFFER, getLocationByCoordinates,
-    getOffer,
+    getOffer, getUserNameFromUserId,
     isSpaceAvailable,
-    type Item,
+    type Item, occupyOfferById,
     type Offer,
     type Space,
 } from "@/pages/drives/drivesService.tsx";
@@ -23,8 +23,8 @@ function DrivesOfferDetailPage() {
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
     const [FromLocationGeoName, setFromLocationGeoName] = useState('');
     const [ToLocationGeoName, setToLocationGeoName] = useState('');
-   // const [showRatingDialog, setShowRatingDialog] = useState(false);
-
+    const [showRatingDialog, setShowRatingDialog] = useState(false);
+    const [creatorName, setCreatorName] = useState("");
     const [isDriver, setIsDriver] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
     const [showJoinDialog, setShowJoinDialog] = useState(false);
@@ -75,6 +75,18 @@ function DrivesOfferDetailPage() {
             }
         };
     }, [isTracking]);
+    useEffect(() => {
+        const fetchDriverName = async () => {
+            if (offer?.driver) {
+                const result = await getUserNameFromUserId(offer.driver);
+                if (result) {
+                    setCreatorName(`${result.firstName} ${result.lastName}`);
+                }
+            }
+        };
+
+        fetchDriverName();
+    }, [offer?.driver]);
 
     useEffect(() => {
         if (id) {
@@ -118,9 +130,10 @@ function DrivesOfferDetailPage() {
         if (offer?.driver === userId) {
             setIsDriver(true);
         }
-        if (new Date(offer?.endDateTime || "").getTime() >= new Date().getTime()) {
-            //setShowRatingDialog(true);
-        }
+
+        //if (new Date(offer?.endDateTime || "").getTime() <= new Date().getTime()) {
+            setShowRatingDialog(true);
+        //}
     }, [offer, userId]);
 
     const toggleTracking = () => {
@@ -131,7 +144,7 @@ function DrivesOfferDetailPage() {
         navigate("/drives");
     };
 
-    const joinOffer = () => {
+     const  joinOffer = async () => {
         if (!offer || offer.occupiedSpace?.some(space => space.occupiedBy === userId)) return;
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
@@ -157,6 +170,7 @@ function DrivesOfferDetailPage() {
             offer.occupiedSpace.push(newSpace);
         }
 
+        await occupyOfferById(offer?.id||"",newSpace);
         setOffer({ ...offer });
     };
 
@@ -171,6 +185,7 @@ function DrivesOfferDetailPage() {
 
     const isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
     const canGiveFeedback = isDriver || isOccupiedSpaceUser;
+
 
     if (!offer) {
         return (
@@ -269,8 +284,9 @@ function DrivesOfferDetailPage() {
                     onJoin={joinOffer}
                 />
 
-                {canGiveFeedback && (
+                {canGiveFeedback &&showRatingDialog &&  (
                     <FeedbackDialog
+                        offerId={offer?.id||""}
                         isDriver={isDriver}
                         targetId={isDriver ? offer?.occupiedSpace?.[0]?.occupiedBy ?? "" : offer?.driver}
                     />
@@ -293,7 +309,7 @@ function DrivesOfferDetailPage() {
                     <div className="space-y-2">
                         <p><strong>Sitze frei:</strong> {offer?.canTransport?.seats}</p>
                         <p><strong>Kommunikation:</strong> {[offer?.isChat && "Chat", offer?.isPhone && "Telefon", offer?.isEmail && "E-Mail"].filter(Boolean).join(", ")}</p>
-                        <p><strong>Ersteller:</strong> {offer?.driver}</p>
+                        <p><strong>Ersteller:</strong>{creatorName || "–"}</p>
                     </div>
                 </div>
 

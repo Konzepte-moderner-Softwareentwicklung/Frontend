@@ -1,6 +1,6 @@
-import {createOffer, getOfferDetails, searchOffersByFilter} from "@/api/offers_api.tsx";
+import {createOffer, getOfferDetails, occupyOffer, postRating, searchOffersByFilter} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
-import { uploadPictureForCompound} from "@/api/media_api.tsx";
+import {uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
 
 export interface Coordinates {
@@ -8,6 +8,14 @@ export interface Coordinates {
     latitude: number;
 }
 
+export interface userFeedback {
+
+    answers: [content: string, value: number];
+    comment: string;
+    targetId: string;
+    userId: string | null
+
+}
 
 export const DEFAULT_OFFER: Offer = {
     id: '',
@@ -37,7 +45,6 @@ export const DEFAULT_OFFER: Offer = {
     ended: false,
     creator: ""
 };
-
 
 
 interface LocationCache {
@@ -92,8 +99,8 @@ export interface serverFilter {
     dateTime?: string;
     nameStartsWith?: string;
     freeSpace?: number;
-    locationFrom?: Coordinates|string|number;
-    locationTo?: Coordinates|string|number;
+    locationFrom?: Coordinates | string | number;
+    locationTo?: Coordinates | string | number;
     locationFromDiff?: number;
     locationToDiff?: number;
     user?: string;
@@ -111,7 +118,7 @@ export interface clientFilter {
 export type filterMessage = serverFilter & clientFilter;
 
 export interface Space {
-    occupiedBy:string,
+    occupiedBy: string,
     items: Item[];
     seats: number;
 }
@@ -132,12 +139,10 @@ export let offers: Offer[] = [];
 export const archivedOffers: Offer[] = [];
 
 
-
 const unifiedLocationCache: LocationCache[] = [];
 
 
 let isRateLimited = false;
-
 
 
 export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
@@ -160,7 +165,7 @@ export function getMaxPrice(): number {
     return price;
 }
 
-export async function fetchOffersWithFilter(filterMessage:serverFilter): Promise<Offer[]> {
+export async function fetchOffersWithFilter(filterMessage: serverFilter): Promise<Offer[]> {
 
     offers = await searchOffersByFilter(filterMessage);
 
@@ -180,12 +185,12 @@ export async function createNewOffer(offer: Offer) {
 }
 
 export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {
-    let totalWeight = 0,totalVolume = 0;
+    let totalWeight = 0, totalVolume = 0;
     const maxItem = can.items[0];
     const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
     occupied.forEach((space) => {
-         totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-         totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+        totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+        totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
             newItem.size.width * newItem.size.height * newItem.size.depth;
     })
 
@@ -246,10 +251,10 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
                 entry => entry.coordinates.latitude === latitude && entry.coordinates.longitude === longitude
             );
 
-            if(!cachedEntry){
+            if (!cachedEntry) {
                 unifiedLocationCache.push({
                     city,
-                    coordinates: { latitude, longitude },
+                    coordinates: {latitude, longitude},
                 });
             }
         }
@@ -263,16 +268,13 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
 }
 
 
-
-
-
-export async function uploadImage(imgId:string,file: File) {
-console.log(imgId);
+export async function uploadImage(imgId: string, file: File) {
+    console.log(imgId);
     try {
-        if(imgId == null || imgId == ""){
+        if (imgId == null || imgId == "") {
             throw "";
         }
-        await uploadPictureForCompound(imgId,file)
+        await uploadPictureForCompound(imgId, file)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         toast.error('Bild konnte nicht hochgeladen werden'); //TODO:Bilder hochladen
@@ -283,10 +285,10 @@ export async function getLocationByCity(city: string) {
     if (city == null || city == "") {
         return null;
     }
-    
+
     // Wenn bereits Rate Limited, direkt null zurückgeben
 
-    
+
     // Suche im Cache (case-insensitive)
     const cachedEntry = unifiedLocationCache.find(
         entry => entry.city.toLowerCase() === city.toLowerCase()
@@ -297,7 +299,7 @@ export async function getLocationByCity(city: string) {
     if (cachedEntry) {
         return cachedEntry.coordinates;
     }
-    
+
     // API-Call durchführen
     try {
         const fetchPromise = fetch(
@@ -319,14 +321,15 @@ export async function getLocationByCity(city: string) {
             latitude: parseFloat(data[0].lat),
             longitude: parseFloat(data[0].lon),
         };
-        
+
         // In Cache speichern
         unifiedLocationCache.push({
             city: city.toLowerCase(), // Normalisierte Form speichern
             coordinates: coordinate
         });
-        
+
         return coordinate; // z.B. {latitude:"52.5108850",longitude:13.3989367}
+
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         // Bei Fehlern Rate Limiting annehmen
@@ -336,34 +339,30 @@ export async function getLocationByCity(city: string) {
 }
 
 
-export async function sendFeedback(feedBack: {
-    answers: Record<string, number>;
+export async function sendFeedback(offerId: string, feedBack: {
+    answers: { content: string; value: number }[];
     comment: string;
     targetId: string;
     userId: string | null
 }) {
-return null;
+    return await postRating(offerId, feedBack);
 }
 
-export async function getUserNameFromUserId(userId: string):Promise<{firstName:string,lastName:string}> {
-    return await getUserByID(userId).then((user) => {
-        console.log(user.firstName, user.lastName);
-        return {firstName: user.firstName, lastName: user.lastName};
-    });
-
+export async function getUserNameFromUserId(userId: string): Promise<{ firstName: string, lastName: string }> {
+    return await getUserByID(userId);
 }
 
 
 export async function createEditedOffer(originalOffer: Offer, editedFields: SearchDialogFields): Promise<Offer | undefined> {
     try {
-        // Das ursprüngliche Offer als "ended" markieren und ins Archiv verschieben
+
         originalOffer.ended = true;
         archivedOffers.push(originalOffer);
-        
-        // Neues Offer mit den bearbeiteten Feldern erstellen
+
+
         const locationFrom = await getLocationByCity(editedFields.locationFrom);
         const locationTo = await getLocationByCity(editedFields.locationTo);
-        
+
         const newOffer: Offer = {
             id: "0", // Wird vom Server generiert
             title: editedFields.title,
@@ -396,10 +395,10 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
         };
 
         const createdOffer = await createOffer(newOffer);
-        
-        // Das neue Offer zur aktiven Liste hinzufügen
+
+
         offers.push(createdOffer);
-        
+
         return createdOffer;
     } catch (error: any) {
         if (error.response?.status === 500) {
@@ -411,7 +410,24 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
     }
 }
 
-// Funktion zum Abrufen nur aktiver Offers (nicht archivierte)
+
 export function getActiveOffers(): Offer[] {
     return offers.filter(offer => !offer.ended);
+}
+
+
+export async function occupyOfferById(offerId: string, space: Space): Promise<Offer> {
+    return await occupyOffer(offerId, space);
+}
+
+export async function getUserNameById(offerId: string): Promise<Offer> {
+    try{
+        const user =  await getUserByID(offerId);
+        return user?.firstName+user?.lastName;
+    }catch(error){
+        toast.error("Username konnte nicht geladen werden")
+        console.log(error);
+        throw error;
+    }
+;
 }
