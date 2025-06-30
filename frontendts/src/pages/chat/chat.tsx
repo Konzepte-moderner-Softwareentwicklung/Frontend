@@ -403,7 +403,7 @@ export default function Chat() {
                               }`}
                           >
                             {location ? (
-                                <ChatMap lat={50.123} lon={8.678} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
+                                <ChatMap lat={curPos[0]} lon={curPos[1]} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
                             ) : (
                                 <p>{message.content}</p>
                             )}                            <div

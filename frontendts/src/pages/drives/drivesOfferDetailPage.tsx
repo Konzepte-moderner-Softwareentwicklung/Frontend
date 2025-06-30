@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import {
     DEFAULT_OFFER,
-    getOffer,
+    getOffer, getUserNameFromUserId,
     isSpaceAvailable,
     type Item,
     type Offer,
@@ -17,10 +17,11 @@ import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 import {createChat} from "@/api/chat_api.tsx";
 import {DomEvent} from "leaflet";
 import off = DomEvent.off;
+import {getUserByID} from "@/api/user_api.tsx";
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
     const intervalRef = useRef<number | null>(null);
-    const userId = localStorage.getItem("UserID") || sessionStorage.getItem("UserID") || "";
+    const userId = sessionStorage.getItem("UserID") || sessionStorage.getItem("UserID") || "";
     const [isSelfChat, setIsSelfChat] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editedOffer, setEditedOffer] = useState<Offer>(DEFAULT_OFFER);
@@ -37,10 +38,18 @@ function DrivesOfferDetailPage() {
     const [itemDepth, setItemDepth] = useState("");
     const [itemWeight, setItemWeight] = useState("");
     const [isPassenger, setIsPassenger] = useState(false);
-
+    const [userName, setUserName] = useState("");
     const navigate = useNavigate();
     const { id } = useParams();
     const [offer, setOffer] = useState<Offer | undefined>(undefined);
+
+
+
+
+
+
+
+
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -98,8 +107,8 @@ function DrivesOfferDetailPage() {
 
     useEffect(() => {
         if (!offer) return;
-
-        if (offer.driver === userId) {
+        console.log()
+        if (offer.driver === sessionStorage.getItem("UserID")) {
             setIsDriver(true);
             setIsSelfChat(true);
         } else {
@@ -111,10 +120,15 @@ function DrivesOfferDetailPage() {
             // setShowRatingDialog(true);
         }
     }, [offer, userId]);
-    
-    const isLoggedIn = sessionStorage.getItem("token") != null && sessionStorage.getItem("token") !== "";
-    
 
+
+    useEffect(() => {
+        async function getUserName(userID: string) {
+            const userName = await getUserByID(offer?.driver);
+            setUserName(userName.firstName + " " + userName.lastName);
+        }
+        getUserName(userId);
+    }, [offer]);
 
     const toggleTracking = () => {
         setIsTracking(!isTracking);
@@ -195,14 +209,35 @@ function DrivesOfferDetailPage() {
         else console.log("kein offer")
         }
 
+
+    const loggedInUserId = sessionStorage.getItem("UserID") ?? "";
+
+    const driverId = offer?.driver ?? "";
+    const chatEnabled = offer?.isChat ?? false;
+
+    const isViewerDriver = !!offer && loggedInUserId === driverId;
+    console.log(loggedInUserId)
+    const isViewerPassenger = (!!offer && offer.occupiedSpace?.some(space => space.occupiedBy === loggedInUserId)) ?? false;
+    const isLoggedIn = !!sessionStorage.getItem("token");
+
+    const canChat = !!offer && isLoggedIn && chatEnabled && isViewerPassenger && !isViewerDriver;
+    const canParticipate = !!offer && isLoggedIn && !isViewerDriver && !isViewerPassenger && !isPassenger;
+
+
+
+    console.log("isViewerDriver:", isViewerDriver);
+    console.log("driverId:", driverId);
+    console.log("canChat:", canChat);
+
+
+
     return (
         <div className="min-h-screen bg-cyan-100 p-8">
             <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow space-y-6">
                 <div className="flex justify-between items-center">
                     <Button onClick={handleBack}>← Zurück</Button>
-
                     <div className="flex gap-4">
-                        {isDriver && (
+                        {isViewerDriver && (
                             <Button
                                 variant="outline"
                                 onClick={toggleTracking}
@@ -216,31 +251,19 @@ function DrivesOfferDetailPage() {
                             </Button>
                         )}
 
-                        {!isDriver && !isOccupiedSpaceUser && isLoggedIn && !isPassenger&& (
-                            <Button
-                                variant="outline"
-                                onClick={() => handleParticipation()}
-                                    >
-                                An Fahrt teilnehmen
+                        {canChat && (
+                            <Button onClick={goToChat}>
+                                Zum Chat
                             </Button>
                         )}
 
-                        <Button
-                            onClick={goToChat}
-                        disabled={localStorage.getItem("UserID")===offer?.driver ||!offer?.isChat}
-                            className={
-                                isLoggedIn && offer?.isChat && isDriver
-                                    ? ""
-                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }
-                        >
-                            Zum Chat
-                        </Button>
-
-                        {/*<Button variant="outline" onClick={() => setShowEditDialog(true)}>*/}
-                        {/*    Bearbeiten*/}
-                        {/*</Button>*/}
+                        {canParticipate && (
+                            <Button variant="outline" onClick={handleParticipation}>
+                                An Fahrt teilnehmen
+                            </Button>
+                        )}
                     </div>
+
                 </div>
 
                 <OfferEditDialog
@@ -293,7 +316,7 @@ function DrivesOfferDetailPage() {
                     <div className="space-y-2">
                         <p><strong>Sitze frei:</strong> {offer?.canTransport?.seats}</p>
                         <p><strong>Kommunikation:</strong> {[offer?.isChat && "Chat", offer?.isPhone && "Telefon", offer?.isEmail && "E-Mail"].filter(Boolean).join(", ")}</p>
-                        <p><strong>Ersteller:</strong> {offer?.driver}</p>
+                        <p><strong>Ersteller:</strong> {userName}</p>
                     </div>
                 </div>
 

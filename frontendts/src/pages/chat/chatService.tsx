@@ -227,7 +227,7 @@ export async function subscribeToLiveLocations(
     onLocationReceived: (update: LiveLocationUpdate) => void
 ): Promise<WebSocket> {
 
-  const socket = await connectTrackingWebSocket();
+  const socket = connectTrackingWebSocket();
 
 
   socket.onmessage = (event) => {
