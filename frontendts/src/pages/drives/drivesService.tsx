@@ -1,4 +1,11 @@
-import {createOffer, getOfferDetails, occupyOffer, postRating, searchOffersByFilter} from "@/api/offers_api.tsx";
+import {
+    createOffer,
+    getOfferDetails,
+    occupyOffer,
+    payOffer,
+    postRating,
+    searchOffersByFilter
+} from "@/api/offers_api.tsx";
 import toast from "react-hot-toast";
 import {uploadPictureForCompound} from "@/api/media_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
@@ -420,14 +427,6 @@ export async function occupyOfferById(offerId: string, space: Space): Promise<Of
     return await occupyOffer(offerId, space);
 }
 
-export async function getUserNameById(offerId: string): Promise<Offer> {
-    try{
-        const user =  await getUserByID(offerId);
-        return user?.firstName+user?.lastName;
-    }catch(error){
-        toast.error("Username konnte nicht geladen werden")
-        console.log(error);
-        throw error;
-    }
-;
+export async function payOfferById(offerId: string ,userId:string): Promise<any> {
+    return await payOffer(offerId,userId);
 }
