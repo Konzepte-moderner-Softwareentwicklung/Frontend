@@ -419,7 +419,8 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 
 
 export function getActiveOffers(): Offer[] {
-    return offers.filter(offer => !offer.ended);
+    if(offers) return offers.filter(offer => !offer.ended);
+    else return [];
 }
 
 
