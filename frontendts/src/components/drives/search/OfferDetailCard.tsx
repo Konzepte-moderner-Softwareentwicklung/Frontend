@@ -91,9 +91,9 @@ export function OfferDetailCard({
                 <PackageInfoSection package={fields.package} />
 
                 <div className="flex gap-4">
-                    {/*{offer?.creator === userId && (*/}
-                    {/*    <Button onClick={onEditClick}>Bearbeiten</Button>*/}
-                    {/*)}*/}
+                    {offer?.creator === userId && (
+                        <Button onClick={onEditClick}>Bearbeiten</Button>
+                    )}
 
                     {/*{offer?.creator !== userId && (*/}
                     {(

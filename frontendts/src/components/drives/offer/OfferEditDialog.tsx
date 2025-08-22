@@ -1,9 +1,23 @@
 // components/OfferEditDialog.tsx
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
 import toast from "react-hot-toast";
-import { getLocationByCity } from "@/pages/drives/drivesService";
+import {getLocationByCity} from "@/pages/drives/drivesService";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel,
+    AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "@/components/ui/alert-dialog.tsx";
 
 export function OfferEditDialog({
                                     open,
@@ -14,7 +28,8 @@ export function OfferEditDialog({
                                     FromLocationGeoName,
                                     setFromLocationGeoName,
                                     ToLocationGeoName,
-                                    setToLocationGeoName
+                                    setToLocationGeoName,
+                                    deleteOffer
                                 }: any) {
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -29,14 +44,14 @@ export function OfferEditDialog({
                         placeholder="Titel"
                         value={editedOffer.title}
                         onChange={(e) =>
-                            setEditedOffer({ ...editedOffer, title: e.target.value })
+                            setEditedOffer({...editedOffer, title: e.target.value})
                         }
                     />
                     <Input
                         placeholder="Beschreibung"
                         value={editedOffer.description}
                         onChange={(e) =>
-                            setEditedOffer({ ...editedOffer, description: e.target.value })
+                            setEditedOffer({...editedOffer, description: e.target.value})
                         }
                     />
                     <Input
@@ -48,7 +63,7 @@ export function OfferEditDialog({
                                 const coords = await getLocationByCity(FromLocationGeoName);
                                 setEditedOffer((prev: any) => ({
                                     ...prev,
-                                    locationFrom: coords || { latitude: 0, longitude: 0 },
+                                    locationFrom: coords || {latitude: 0, longitude: 0},
                                 }));
                             } catch (err) {
                                 toast.error(
@@ -66,7 +81,7 @@ export function OfferEditDialog({
                                 const coords = await getLocationByCity(ToLocationGeoName);
                                 setEditedOffer((prev: any) => ({
                                     ...prev,
-                                    locationTo: coords || { latitude: 0, longitude: 0 },
+                                    locationTo: coords || {latitude: 0, longitude: 0},
                                 }));
                             } catch (err) {
                                 toast.error(
@@ -97,6 +112,31 @@ export function OfferEditDialog({
                     >
                         Speichern
                     </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">Löschen</Button> {/* roter Button */}
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Dieses Angebot wird dauerhaft gelöscht und kann nicht wiederhergestellt werden.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                <AlertDialogAction
+                                    className="bg-red-600 hover:bg-red-700"  // extra Rot für Action-Button
+                                    onClick={() => {
+                                        deleteOffer(editedOffer.offerId);
+                                        onClose(false);
+                                    }}
+                                >
+                                    Ja
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

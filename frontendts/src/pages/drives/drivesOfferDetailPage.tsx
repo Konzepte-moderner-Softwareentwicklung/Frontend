@@ -14,7 +14,7 @@ import {OfferEditDialog} from "@/components/drives/offer/OfferEditDialog";
 import {OfferJoinDialog} from "@/components/drives/offer/OfferJoinDialog";
 import {OfferImageUploader} from "@/components/drives/offer/OfferImageUploader.tsx";
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
-import {payOffer} from "@/api/offers_api.tsx";
+import {deleteOffer, editOffer, payOffer} from "@/api/offers_api.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -41,7 +41,24 @@ function DrivesOfferDetailPage() {
     const navigate = useNavigate();
     const {id} = useParams();
     const [offer, setOffer] = useState<Offer | undefined>(undefined);
+    async function handleDeleteOffer(offerId: string) {
+        try{
+            await deleteOffer(offerId);
+            navigate(`/drives`);
+        }catch(err){
+            console.error("Fehler beim Löschen des Offers:",err);
+        }
+    }
+    async function handleSetOffer(newOffer: Offer) {
+        try {
 
+            const savedOffer = await editOffer(newOffer);
+
+            setOffer(savedOffer);
+        } catch (err) {
+            console.error("Fehler beim Speichern des Offers:", err);
+        }
+    }
     useEffect(() => {
         window.scrollTo({top: 0, behavior: "smooth"});
 
@@ -264,11 +281,13 @@ function DrivesOfferDetailPage() {
                     onClose={setShowEditDialog}
                     editedOffer={editedOffer}
                     setEditedOffer={setEditedOffer}
-                    setOffer={setOffer}
+                    setOffer={handleSetOffer}
                     FromLocationGeoName={FromLocationGeoName}
                     setFromLocationGeoName={setFromLocationGeoName}
                     ToLocationGeoName={ToLocationGeoName}
                     setToLocationGeoName={setToLocationGeoName}
+                    deleteOffer={handleDeleteOffer}
+
                 />
 
 
