@@ -44,10 +44,10 @@ export async function payOffer(id: string, userId: string) {
 }
 
 export async function editOffer(offer:Offer){
-    const response = await(api.put(`/angebot/${id}`, {offerId:offer.id,offer:offer}));
+    const response = await(api.put(`/angebot/${offer.id}`, offer));
     return response.data;
 }
 export async function deleteOffer(offerId: string) {
-    const response = await(api.put(`/angebot/${id}`, {data: {offerId: offerId, userId:sessionStorage.getItem("userID")}}));
+    const response = await(api.put(`/angebot/${offerId}`, {data: { userId:sessionStorage.getItem("userID")}}));
     return response.data;
 }

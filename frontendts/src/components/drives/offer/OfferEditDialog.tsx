@@ -113,9 +113,7 @@ export function OfferEditDialog({
                         Speichern
                     </Button>
                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive">Löschen</Button> {/* roter Button */}
-                        </AlertDialogTrigger>
+                            <Button variant="destructive">Löschen</Button>
                         <AlertDialogContent>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Bist du sicher?</AlertDialogTitle>
@@ -126,7 +124,7 @@ export function OfferEditDialog({
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Abbrechen</AlertDialogCancel>
                                 <AlertDialogAction
-                                    className="bg-red-600 hover:bg-red-700"  // extra Rot für Action-Button
+                                    className="bg-red-600 hover:bg-red-700"
                                     onClick={() => {
                                         deleteOffer(editedOffer.offerId);
                                         onClose(false);

@@ -49,7 +49,14 @@ function DrivesOfferDetailPage() {
             console.error("Fehler beim Löschen des Offers:",err);
         }
     }
-    async function handleSetOffer(newOffer: Offer) {
+    async function handleEditOffer(newOffer: Offer) {
+        debugger;
+        if(newOffer?.occupiedSpace?.[0]?.items == null){
+            newOffer.occupiedSpace = []
+        }
+        if(newOffer.paidSpaces &&newOffer?.paidSpaces?.[0]?.items == null){
+            newOffer.paidSpaces= [];
+        }
         try {
 
             const savedOffer = await editOffer(newOffer);
@@ -165,6 +172,7 @@ function DrivesOfferDetailPage() {
     };
 
     const joinOffer = async () => {
+
         if (!offer || offer.occupiedSpace?.some(space => space.occupiedBy === userId)) return;
 
         if (joinsWithPassenger && offer.canTransport.seats > 0) {
@@ -185,14 +193,19 @@ function DrivesOfferDetailPage() {
             items: [newItem],
             seats: 1,
         };
-
+        debugger;
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem)) {
             offer.occupiedSpace.push(newSpace);
         }
 
-        await occupyOfferById(offer?.id || "", newSpace);
-        await payOffer(id||"",userId);
-        setOffer({...offer});
+        const response = await payOffer(id||"",userId);
+        debugger;
+        if(response?.ok){
+            await occupyOfferById(offer?.id || "", newSpace);
+
+            setOffer({...offer});
+        }
+
     };
 
 
@@ -270,9 +283,18 @@ function DrivesOfferDetailPage() {
                             Zum Chat
                         </Button>
 
-                        {/*<Button variant="outline" onClick={() => setShowEditDialog(true)}>*/}
-                        {/*    Bearbeiten*/}
-                        {/*</Button>*/}
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                if (offer) {
+                                    setEditedOffer(offer);   // wichtig: aktuelles Angebot in den State übernehmen
+                                }
+                                setShowEditDialog(true);    // Dialog öffnen
+                            }}
+                        >
+                            Bearbeiten
+                        </Button>
+
                     </div>
                 </div>
 
@@ -281,7 +303,7 @@ function DrivesOfferDetailPage() {
                     onClose={setShowEditDialog}
                     editedOffer={editedOffer}
                     setEditedOffer={setEditedOffer}
-                    setOffer={handleSetOffer}
+                    setOffer={handleEditOffer}
                     FromLocationGeoName={FromLocationGeoName}
                     setFromLocationGeoName={setFromLocationGeoName}
                     ToLocationGeoName={ToLocationGeoName}
