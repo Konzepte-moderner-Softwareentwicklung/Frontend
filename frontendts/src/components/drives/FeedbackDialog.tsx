@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
 import { getUserNameFromUserId, sendFeedback } from "@/pages/drives/drivesService.tsx";
+import {StarRating} from "@/components/StarRating.tsx";
 
 interface FeedbackDialogProps {
     isDriver: boolean;
@@ -124,13 +125,9 @@ export function FeedbackDialog({offerId,
                     {questions.map((q) => (
                         <div key={q}>
                             <label className="block mb-2 text-sm font-medium">{q}</label>
-                            <Slider
-                                defaultValue={[3]}
-                                min={1}
-                                max={5}
-                                step={1}
-                                value={[getAnswerValue(q)]}
-                                onValueChange={(value) => handleSliderChange(q, value)}
+                            <StarRating
+                                value={getAnswerValue(q)}
+                                onChange={(val) => handleSliderChange(q, [val])}
                             />
                             <div className="text-xs text-gray-500 mt-1">
                                 Aktuelle Bewertung: {getAnswerValue(q)}
