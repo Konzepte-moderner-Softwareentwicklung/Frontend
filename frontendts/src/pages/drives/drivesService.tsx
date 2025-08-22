@@ -114,6 +114,7 @@ export interface serverFilter {
     creator?: string;
     currentTime?: string;
     id?: string;
+    spaceNeeded?:Space
 }
 
 
