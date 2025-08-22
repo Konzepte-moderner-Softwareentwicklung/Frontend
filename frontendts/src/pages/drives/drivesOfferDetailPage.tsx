@@ -177,9 +177,14 @@ function DrivesOfferDetailPage() {
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem)) {
             offer.occupiedSpace.push(newSpace);
         }
+        try{
+            await payOffer(id||"",userId);
+        }catch (e){
+            console.log("Error: ", e);
+        }
 
         await occupyOfferById(offer?.id || "", newSpace);
-        await payOffer(id||"",userId);
+
         setOffer({...offer});
     };
 

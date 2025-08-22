@@ -182,7 +182,7 @@ export async function fetchOffersWithFilter(filterMessage: serverFilter): Promis
 export async function createNewOffer(offer: Offer) {
     try {
         return await createOffer(offer)
-    } catch (error: any) {
+    } catch (error: never) {
         if (error.response?.status === 500) {
             toast("Server interner Fehler");
         } else {
@@ -408,7 +408,6 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 
         const createdOffer = await createOffer(newOffer);
 
-
         offers.push(createdOffer);
 
         return createdOffer;
@@ -431,8 +430,4 @@ export function getActiveOffers(): Offer[] {
 
 export async function occupyOfferById(offerId: string, space: Space): Promise<Offer> {
     return await occupyOffer(offerId, space);
-}
-
-export async function payOfferById(offerId: string ,userId:string): Promise<any> {
-    return await payOffer(offerId,userId);
 }
