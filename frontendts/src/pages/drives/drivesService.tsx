@@ -183,7 +183,7 @@ export async function fetchOffersWithFilter(filterMessage: serverFilter): Promis
 export async function createNewOffer(offer: Offer) {
     try {
         return await createOffer(offer)
-    } catch (error: any) {
+    } catch (error: never) {
         if (error.response?.status === 500) {
             toast("Server interner Fehler");
         } else {
@@ -197,8 +197,9 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
     const maxItem = can.items[0];
     const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
     occupied.forEach((space) => {
-        totalWeight += space.items?.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-        totalVolume += space.items?.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+        if(space == null) return;
+        totalWeight += space?.items?.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+        totalVolume += space?.items?.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
             newItem.size.width * newItem.size.height * newItem.size.depth;
     })
 
@@ -420,7 +421,8 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 
 
 export function getActiveOffers(): Offer[] {
-    return offers.filter(offer => !offer.ended);
+    if(offers) return offers.filter(offer => !offer.ended);
+    else return [];
 }
 
 

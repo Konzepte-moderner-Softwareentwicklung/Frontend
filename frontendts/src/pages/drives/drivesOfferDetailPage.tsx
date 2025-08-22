@@ -16,6 +16,8 @@ import {OfferImageUploader} from "@/components/drives/offer/OfferImageUploader.t
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 import {payOffer} from "@/api/offers_api.tsx";
 import {getUserRatingbyID} from "@/api/user_api.tsx";
+import {createChat} from "@/api/chat_api.tsx";
+import {getUserByID} from "@/api/user_api.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -38,6 +40,7 @@ function DrivesOfferDetailPage() {
     const [itemDepth, setItemDepth] = useState("");
     const [itemWeight, setItemWeight] = useState("");
 
+    const isLoggedIn = sessionStorage.getItem("token") != null && sessionStorage.getItem("token") !== "";
 
     const navigate = useNavigate();
     const {id} = useParams();
@@ -105,7 +108,7 @@ function DrivesOfferDetailPage() {
 
     useEffect(() => {
         if (id) {
-            getOffer(id).then(setOffer);
+            getOffer(id).then(setOffer); //TODO:hat .setOffer aus .then gemacht, schauen warum.
         }
     }, [id]);
     useEffect(() => {
@@ -139,15 +142,15 @@ function DrivesOfferDetailPage() {
     }, [offer]);
 
 
-    const isLoggedIn = sessionStorage.getItem("token") != null && sessionStorage.getItem("token") !== "";
 
     useEffect(() => {
+        if (!offer) return;
         if (offer?.driver === userId) {
             setIsDriver(true);
         }
 
           if (new Date(offer?.endDateTime || "").getTime() <= new Date().getTime()) {
-        setShowRatingDialog(true);
+            setShowRatingDialog(true);
            }
     }, [offer, userId]);
 
@@ -184,15 +187,20 @@ function DrivesOfferDetailPage() {
         if (isSpaceAvailable(offer.canTransport, offer.occupiedSpace, newItem)) {
             offer.occupiedSpace.push(newSpace);
         }
+        try{
+            await payOffer(id||"",userId);
+        }catch (e){
+            console.log("Error: ", e);
+        }
 
         await occupyOfferById(offer?.id || "", newSpace);
-        await payOffer(id||"",userId);
+
         setOffer({...offer});
     };
 
 
-    const goToChat = () => {
-        if (isLoggedIn && !isDriver && offer?.isChat) {
+    const goToChat = async () => {
+        if (isLoggedIn) {
             createIfNotExistChat(offer?.chatId || "").then();
             navigate(`/chat`);
         }
@@ -201,6 +209,26 @@ function DrivesOfferDetailPage() {
 
     const isOccupiedSpaceUser = offer?.occupiedSpace?.some(space => space.occupiedBy === userId) || false;
     const canGiveFeedback = isDriver || isOccupiedSpaceUser;
+
+    async function handleParticipation() {
+        setShowJoinDialog(true)
+        if(offer)await createChat([offer?.driver]);
+        else console.log("kein offer")
+    }
+
+    const loggedInUserId = sessionStorage.getItem("UserID") ?? "";
+
+    const driverId = offer?.driver ?? "";
+    const chatEnabled = offer?.isChat ?? false;
+
+    const isViewerDriver = !!offer && loggedInUserId === driverId;
+    console.log(loggedInUserId)
+    const isViewerPassenger = (!!offer && offer.occupiedSpace?.some(space => space.occupiedBy === loggedInUserId)) ?? false;
+
+    const canChat = !!offer && isLoggedIn && chatEnabled && isViewerPassenger && !isViewerDriver;
+    const canParticipate = !!offer && isLoggedIn && !isViewerDriver && !isViewerPassenger ;
+
+
 
 
     if (!offer) {
@@ -230,7 +258,7 @@ function DrivesOfferDetailPage() {
                     <Button onClick={handleBack}>← Zurück</Button>
 
                     <div className="flex gap-4">
-                        {isDriver && (
+                        {isViewerDriver  && (
                             <Button
                                 variant="outline"
                                 onClick={toggleTracking}
@@ -244,30 +272,16 @@ function DrivesOfferDetailPage() {
                             </Button>
                         )}
 
-                        {!isDriver && !isOccupiedSpaceUser && isLoggedIn && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowJoinDialog(true)}
-                            >
+                        {canParticipate && (
+                            <Button variant="outline" onClick={handleParticipation}>
                                 An Fahrt teilnehmen
                             </Button>
                         )}
-
-                        <Button
-                            onClick={goToChat}
-                            disabled={isDriver || offer?.isChat}
-                            className={
-                                isLoggedIn && offer?.isChat && isDriver
-                                    ? ""
-                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }
-                        >
-                            Zum Chat
-                        </Button>
-
-                        {/*<Button variant="outline" onClick={() => setShowEditDialog(true)}>*/}
-                        {/*    Bearbeiten*/}
-                        {/*</Button>*/}
+                        {canChat && (
+                            <Button onClick={goToChat}>
+                                Zum Chat
+                            </Button>
+                        )}
                     </div>
                 </div>
 
