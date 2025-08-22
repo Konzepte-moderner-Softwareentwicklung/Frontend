@@ -9,11 +9,10 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
 import { getUserNameFromUserId, sendFeedback } from "@/pages/drives/drivesService.tsx";
-import {StarRating} from "@/components/StarRating.tsx";
+import {StarRating} from "@/components/drives/StarRating.tsx";
 
 interface FeedbackDialogProps {
     isDriver: boolean;
