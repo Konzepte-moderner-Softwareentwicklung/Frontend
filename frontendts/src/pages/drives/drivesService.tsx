@@ -197,8 +197,8 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
     const maxItem = can.items[0];
     const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
     occupied.forEach((space) => {
-        totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-        totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+        totalWeight += space.items?.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+        totalVolume += space.items?.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
             newItem.size.width * newItem.size.height * newItem.size.depth;
     })
 

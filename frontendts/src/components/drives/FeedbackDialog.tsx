@@ -6,7 +6,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogFooter,
-    DialogDescription,
+    DialogDescription, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,25 +102,34 @@ export function FeedbackDialog({offerId,
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
+            {/* Button zum Öffnen */}
             <DialogTrigger asChild>
-                <Button variant="outline">
-                    Bewerte {isDriver ? `Mitfahrer: ${targetName?.lastName}` : `Fahrer: ${targetName?.firstName} ${targetName?.lastName}`}
+                <Button variant="outline" disabled={hasGivenFeedback}>
+                    {hasGivenFeedback
+                        ? "Bewertung abgegeben"
+                        : `Bewerte ${
+                            isDriver
+                                ? `Mitfahrer: ${targetName?.lastName}`
+                                : `Fahrer: ${targetName?.firstName} ${targetName?.lastName}`
+                        }`}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
-                <DialogHeader>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" disabled={hasGivenFeedback}>
-                            {hasGivenFeedback ? "Bewertung abgegeben" : `Bewerte ${isDriver ? `Mitfahrer: ${targetName?.lastName}` : `Fahrer: ${targetName?.firstName} ${targetName?.lastName}`}`}
-                        </Button>
-                    </DialogTrigger>
 
+            {/* Inhalt des Dialogs */}
+            <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle className="text-xl font-semibold">
+                        {isDriver
+                            ? `Bewerte Mitfahrer: ${targetName?.lastName}`
+                            : `Bewerte Fahrer: ${targetName?.firstName} ${targetName?.lastName}`}
+                    </DialogTitle>
                     <DialogDescription>
                         Bitte bewerte alle Fragen von 1 (schlecht) bis 5 (sehr gut) und gib optional einen Kommentar ab.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6">
+                {/* Scrollbarer Bereich für Fragen + Kommentar */}
+                <div className="flex-1 overflow-y-auto pr-2 space-y-6">
                     {questions.map((q) => (
                         <div key={q}>
                             <label className="block mb-2 text-sm font-medium">{q}</label>
@@ -144,7 +153,8 @@ export function FeedbackDialog({offerId,
                     </div>
                 </div>
 
-                <DialogFooter>
+                {/* Footer bleibt fix */}
+                <DialogFooter className="mt-4 border-t pt-4">
                     <Button onClick={handleSave}>Speichern</Button>
                 </DialogFooter>
             </DialogContent>

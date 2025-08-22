@@ -15,6 +15,7 @@ import {OfferJoinDialog} from "@/components/drives/offer/OfferJoinDialog";
 import {OfferImageUploader} from "@/components/drives/offer/OfferImageUploader.tsx";
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 import {payOffer} from "@/api/offers_api.tsx";
+import {getUserRatingbyID} from "@/api/user_api.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -90,6 +91,17 @@ function DrivesOfferDetailPage() {
 
         fetchCreatorName().then();
     }, [offer?.creator]);
+
+    useEffect(() => {
+        const checkFeedback = async () => {
+            if (offer?.id && userId) {
+                const result = await getUserRatingbyID(userId);//TODO: Wenn User bewertung abgegeben hat, Dialog verhindern
+                setHasGivenFeedback(result != null);
+            }
+        };
+
+        checkFeedback();
+    }, [offer?.id, userId]);
 
     useEffect(() => {
         if (id) {
