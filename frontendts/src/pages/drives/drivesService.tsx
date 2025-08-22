@@ -196,8 +196,9 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
     const maxItem = can.items[0];
     const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
     occupied.forEach((space) => {
-        totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-        totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+        if(space == null) return;
+        totalWeight += space?.items?.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+        totalVolume += space?.items?.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
             newItem.size.width * newItem.size.height * newItem.size.depth;
     })
 
@@ -343,6 +344,10 @@ export async function getLocationByCity(city: string) {
         isRateLimited = true;
         return null;
     }
+}
+
+export async function updateOffer(offer:Offer){
+    return await updateOffer(offer);
 }
 
 
