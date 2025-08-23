@@ -17,7 +17,6 @@ import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 import {payOffer} from "@/api/offers_api.tsx";
 import {getUserRatingbyID} from "@/api/user_api.tsx";
 import {createChat} from "@/api/chat_api.tsx";
-import {getUserByID} from "@/api/user_api.tsx";
 
 function DrivesOfferDetailPage() {
     const ws = useRef<WebSocket | null>(null);
@@ -222,7 +221,7 @@ function DrivesOfferDetailPage() {
     const chatEnabled = offer?.isChat ?? false;
 
     const isViewerDriver = !!offer && loggedInUserId === driverId;
-    console.log(loggedInUserId)
+
     const isViewerPassenger = (!!offer && offer.occupiedSpace?.some(space => space.occupiedBy === loggedInUserId)) ?? false;
 
     const canChat = !!offer && isLoggedIn && chatEnabled && isViewerPassenger && !isViewerDriver;

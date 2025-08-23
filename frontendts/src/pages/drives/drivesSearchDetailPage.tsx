@@ -155,7 +155,6 @@ function DrivesSearchDetailPage() {
         const locationFrom = await getLocationByCity(fields.locationFrom);
         const locationTo = await getLocationByCity(fields.locationTo)
         const newOffer: Offer = {
-            id: "0",
             title: fields.title,
             creator: sessionStorage.getItem("UserID") || "",
             paidSpaces: [],
@@ -163,7 +162,7 @@ function DrivesSearchDetailPage() {
             price: fields.price,
             locationFrom: locationFrom || {latitude: 0, longitude: 0},
             locationTo: locationTo || {latitude: 0, longitude: 0},
-            driver:  "",
+            driver:  id||"",
             startDateTime: startDate.toISOString(),
             endDateTime: endDate.toISOString(),
             canTransport: {
