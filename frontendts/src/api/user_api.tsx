@@ -9,10 +9,6 @@ export async function getUserID() {
 }
 
 //TO IMPLEMENT
-export async function getAllUsers() {
-  const response = await api.get("/user");
-  return response.data;
-}
 
 export async function getUserByEmail() {
   const response = await api.get("/user/email");
@@ -25,7 +21,8 @@ export async function getUserByID(id:string) {
 }
 
 export async function getUserRating() {
-  const response = await api.get("/user/");
+    const id =  sessionStorage.getItem("UserID");
+  const response = await api.get(`/users/${id}/rating`);
   return response.data;
 }
 

@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { fetchProfile, updateProfile, fetchRatings, uploadProfileImage } from './profileService.tsx';
+import {getUserRating} from "@/api/user_api.tsx";
 
 // Typdefinition für Profile-Daten
 interface ProfileData {
   firstName: string;
   lastName: string;
-  smoker: string;
   language: string;
   birthDate: string;
   notes: string;
@@ -31,8 +31,8 @@ interface Rating {
   userImage: string;
   date: string;
 }
-
-// Testdaten für Bewertungen
+//
+// // Testdaten für Bewertungen
 const mockRatings: Rating[] = [
   {
     id: "1",
@@ -179,7 +179,8 @@ export default function Profile() {
       setIsLoading(true);
       try {
         // API-Endpunkt für Bewertungen
-        const response = await fetch('/api/ratings');
+        const response = await getUserRating();
+        debugger;
         const data = await response.json();
         
         // Daten in den State übernehmen
@@ -306,11 +307,10 @@ export default function Profile() {
                   placeholder="Nachname"
                 />
               </div>
-              
+
               {/* Zweite Zeile: Raucher/Nichtraucher, Sprache, Geburtsdatum */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Select
-                  value={profileData.smoker}
                   onValueChange={(value) => handleSelectChange("smoker", value)}
                 >
                   <SelectTrigger>
