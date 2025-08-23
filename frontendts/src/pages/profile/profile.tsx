@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
-import { fetchProfile, updateProfile, fetchRatings, uploadProfileImage } from './profileService.tsx';
-
+import { fetchProfile, updateProfile, uploadProfileImage } from './profileService.tsx';
+import {FeedbackDialog} from "@/components/drives/FeedbackDialog.tsx";
 // Typdefinition für Profile-Daten
 interface ProfileData {
   firstName: string;
@@ -109,21 +109,36 @@ const mockRatings: Rating[] = [
 ];
 
 export default function Profile() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: "",
-    lastName: "",
-    smoker: "nonsmoker",
-    language: "deutsch",
-    birthDate: "",
-    notes: "",
-    // Neue Erfahrungswerte
-    stats: {
-      passengers: 74,
-      weight: "Elefant",
-      distance: 3400,
-    }
-  });
+    const [isDriver, setIsDriver] = useState(false);
+    const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+    const [selectedOffer, setSelectedOffer] = useState<{ id: string } | null>(null);
+    const [profileData, setProfileData] = useState<ProfileData>({
+        firstName: "",
+        lastName: "",
+        smoker: "nonsmoker",
+        language: "deutsch",
+        birthDate: "",
+        notes: "",
+        // Neue Erfahrungswerte
+        stats: {
+            passengers: 74,
+            weight: "Elefant",
+            distance: 3400,
+        }
+    });
+    const [pendingOffers, setPendingOffers] = useState<{ id: string; title: string }[]>([]);
+    const handleOpenFeedback = (offer: Offer) => {
+        setSelectedOffer(offer);
+        setIsDriver(offer.driver == sessionStorage.getItem("UserID"));
+        setShowFeedbackDialog(true);
+        debugger;
+    };
+
+    const handleCloseDialog = () => {
+        setShowFeedbackDialog(false);
+        setSelectedOffer(null);
+    };
+
 
   // Bewertungsdaten
   const [ratings, setRatings] = useState<Rating[]>(mockRatings);
@@ -151,7 +166,13 @@ export default function Profile() {
     return { average: average.toFixed(1), total, distribution: distributionPercent };
   };
 
-  const ratingStats = calculateRatingStats();
+    useEffect(() => {
+        // Hier würdest du deine API abfragen, z.B.:
+        pendingOffers = await getOpenRatingOffers()
+        setPendingOffers(pendingOffers); // Demo-Daten
+    }, []);
+
+    const ratingStats = calculateRatingStats();
 
   // Daten aus API laden
   useEffect(() => {
@@ -441,105 +462,163 @@ export default function Profile() {
                 <div className="text-gray-500 text-sm">zurückgelegte Strecke</div>
               </div>
             </div>
-          </div>
+            <div className="mt-12">
+                <h2 className="text-xl font-bold mb-4">Noch zu bewertende Fahrten</h2>
+                {pendingOffers.length === 0 ? (
+                    <p>Keine offenen Bewertungen.</p>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {pendingOffers.map((offer) => (
+                            <div
+                                key={offer.id}
+                                className="bg-white rounded-lg p-4 shadow-md border border-gray-100 flex flex-col justify-between"
+                            >
+                                <div>
+                                    <h3 className="font-semibold mb-2">{offer.title}</h3>
+                                    <p className="text-sm text-gray-600">Noch eine Bewertung offen</p>
+                                </div>
+                                {/* Buttons nebeneinander */}
+                                <div className="flex space-x-4 mt-4">
+                                    <button
+                                        className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                                        onClick={() => handleOpenFeedback(offer)}
+                                    >
+                                        Fahrt bewerten
+                                    </button>
+                                    <button
+                                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                                        onClick={() => {
+                                            // z.B. zur Angebotsseite navigieren
+                                        }}
+                                    >
+                                        Zur Fahrt
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* FeedbackDialog nur anzeigen, wenn geöffnet */}
+                {showFeedbackDialog && selectedOffer && (
+                    <FeedbackDialog
+                        offerId={selectedOffer.id}
+                        isDriver={isDriver}
+                        targetId={isDriver ? "" /* deine Logik */ : ""/* andere Logik */}
+                        onFeedbackGiven={() => {
+                            setHasGivenFeedback(true);
+                            handleCloseDialog();
+                            // Optional: Liste aktualisieren
+                        }}
+                        hasGivenFeedback={false}
+                    />
+                )}
+            </div>
+            {/* Bewertungen - Code bleibt unverändert */}
+            <div className="mt-12">
+                <h2 className="text-xl font-bold mb-4">Bewertungen</h2>
+
+                <div className="flex overflow-x-auto gap-4 pb-4">
+                    {/* Bewertungsstatistik-Karte */}
+                    <div className="bg-white rounded-lg p-5 shadow-md border border-gray-100 min-w-[280px] flex-none">
+                        <div className="flex flex-col items-center mb-4">
+                            <div className="text-4xl font-bold text-gray-800">{ratingStats.average}</div>
+                            <div className="flex mt-1 mb-2">
+                                {renderStars(Math.round(Number(ratingStats.average)))}
+                            </div>
+                            <div className="text-gray-500 text-sm">Basierend auf {ratingStats.total} Bewertungen</div>
+                        </div>
+
+                        <div className="space-y-2 mt-4">
+                            {/* 5 Sterne */}
+                            <div className="flex items-center">
+                                <span className="text-xs w-10">5 ★</span>
+                                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
+                                    <div className="h-full rounded-full bg-green-600"
+                                         style={{width: `${ratingStats.distribution[4]}%`}}></div>
+                                </div>
+                                <span
+                                    className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[4])}%</span>
+                            </div>
+
+                            {/* 4 Sterne */}
+                            <div className="flex items-center">
+                                <span className="text-xs w-10">4 ★</span>
+                                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
+                                    <div className="h-full rounded-full bg-green-400"
+                                         style={{width: `${ratingStats.distribution[3]}%`}}></div>
+                                </div>
+                                <span
+                                    className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[3])}%</span>
+                            </div>
+
+                            {/* 3 Sterne */}
+                            <div className="flex items-center">
+                                <span className="text-xs w-10">3 ★</span>
+                                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
+                                    <div className="h-full rounded-full bg-yellow-400"
+                                         style={{width: `${ratingStats.distribution[2]}%`}}></div>
+                                </div>
+                                <span
+                                    className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[2])}%</span>
+                            </div>
+
+                            {/* 2 Sterne */}
+                            <div className="flex items-center">
+                                <span className="text-xs w-10">2 ★</span>
+                                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
+                                    <div className="h-full rounded-full bg-orange-400"
+                                         style={{width: `${ratingStats.distribution[1]}%`}}></div>
+                                </div>
+                                <span
+                                    className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[1])}%</span>
+                            </div>
+
+                            {/* 1 Stern */}
+                            <div className="flex items-center">
+                                <span className="text-xs w-10">1 ★</span>
+                                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
+                                    <div className="h-full rounded-full bg-red-500"
+                                         style={{width: `${ratingStats.distribution[0]}%`}}></div>
+                                </div>
+                                <span
+                                    className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[0])}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Einzelne Bewertungskarten */}
+                    {ratings.map(rating => (
+                        <div
+                            key={rating.id}
+                            className="bg-white rounded-lg p-5 shadow-md border border-gray-100 min-w-[280px] max-w-[280px] flex-none"
+                        >
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <div className="font-medium">{rating.title}</div>
+                                    <div className="flex mt-1">
+                                        {renderStars(rating.stars)}
+                                    </div>
+                                </div>
+                                <div className="text-xs text-gray-500">{rating.date}</div>
+                            </div>
+
+                            <p className="text-gray-700 text-sm mb-4 line-clamp-3">
+                                {rating.comment}
+                            </p>
+
+                            <div className="flex items-center mt-auto">
+                                <img
+                                    src={rating.userImage}
+                                    alt={rating.userName}
+                                    className="w-8 h-8 rounded-full mr-2"
+                                />
+                                <span className="text-sm font-medium">{rating.userName}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
-      </div>
-      
-      {/* Bewertungen - Code bleibt unverändert */}
-      <div className="mt-12">
-        <h2 className="text-xl font-bold mb-4">Bewertungen</h2>
-        
-        <div className="flex overflow-x-auto gap-4 pb-4">
-          {/* Bewertungsstatistik-Karte */}
-          <div className="bg-white rounded-lg p-5 shadow-md border border-gray-100 min-w-[280px] flex-none">
-            <div className="flex flex-col items-center mb-4">
-              <div className="text-4xl font-bold text-gray-800">{ratingStats.average}</div>
-              <div className="flex mt-1 mb-2">
-                {renderStars(Math.round(Number(ratingStats.average)))}
-              </div>
-              <div className="text-gray-500 text-sm">Basierend auf {ratingStats.total} Bewertungen</div>
-            </div>
-            
-            <div className="space-y-2 mt-4">
-              {/* 5 Sterne */}
-              <div className="flex items-center">
-                <span className="text-xs w-10">5 ★</span>
-                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
-                  <div className="h-full rounded-full bg-green-600" style={{ width: `${ratingStats.distribution[4]}%` }}></div>
-                </div>
-                <span className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[4])}%</span>
-              </div>
-              
-              {/* 4 Sterne */}
-              <div className="flex items-center">
-                <span className="text-xs w-10">4 ★</span>
-                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
-                  <div className="h-full rounded-full bg-green-400" style={{ width: `${ratingStats.distribution[3]}%` }}></div>
-                </div>
-                <span className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[3])}%</span>
-              </div>
-              
-              {/* 3 Sterne */}
-              <div className="flex items-center">
-                <span className="text-xs w-10">3 ★</span>
-                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
-                  <div className="h-full rounded-full bg-yellow-400" style={{ width: `${ratingStats.distribution[2]}%` }}></div>
-                </div>
-                <span className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[2])}%</span>
-              </div>
-              
-              {/* 2 Sterne */}
-              <div className="flex items-center">
-                <span className="text-xs w-10">2 ★</span>
-                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
-                  <div className="h-full rounded-full bg-orange-400" style={{ width: `${ratingStats.distribution[1]}%` }}></div>
-                </div>
-                <span className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[1])}%</span>
-              </div>
-              
-              {/* 1 Stern */}
-              <div className="flex items-center">
-                <span className="text-xs w-10">1 ★</span>
-                <div className="flex-1 mx-2 h-2 rounded-full bg-gray-200">
-                  <div className="h-full rounded-full bg-red-500" style={{ width: `${ratingStats.distribution[0]}%` }}></div>
-                </div>
-                <span className="text-xs w-10 text-right">{Math.round(ratingStats.distribution[0])}%</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Einzelne Bewertungskarten */}
-          {ratings.map(rating => (
-            <div 
-              key={rating.id} 
-              className="bg-white rounded-lg p-5 shadow-md border border-gray-100 min-w-[280px] max-w-[280px] flex-none"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <div className="font-medium">{rating.title}</div>
-                  <div className="flex mt-1">
-                    {renderStars(rating.stars)}
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500">{rating.date}</div>
-              </div>
-              
-              <p className="text-gray-700 text-sm mb-4 line-clamp-3">
-                {rating.comment}
-              </p>
-              
-              <div className="flex items-center mt-auto">
-                <img 
-                  src={rating.userImage} 
-                  alt={rating.userName} 
-                  className="w-8 h-8 rounded-full mr-2"
-                />
-                <span className="text-sm font-medium">{rating.userName}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
