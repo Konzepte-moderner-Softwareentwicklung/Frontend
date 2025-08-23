@@ -1,4 +1,5 @@
 import api from "./api";
+import type {serverUser} from "@/pages/profile/profileService.tsx";
 
 //all USER ROUTE API CALLS 
 
@@ -9,10 +10,6 @@ export async function getUserID() {
 }
 
 //TO IMPLEMENT
-export async function getAllUsers() {
-  const response = await api.get("/user");
-  return response.data;
-}
 
 export async function getUserByEmail() {
   const response = await api.get("/user/email");
@@ -25,12 +22,13 @@ export async function getUserByID(id:string) {
 }
 
 export async function getUserRating() {
-  const response = await api.get("/user/");
+    const id =  sessionStorage.getItem("UserID");
+  const response = await api.get(`/user/${id}/rating`);
   return response.data;
 }
 
-export async function getUserRatingbyID() {
-  const response = await api.get("/user/");
+export async function getLoggedInUser() {
+  const response = await api.get("/user");
   return response.data;
 }
 
@@ -62,13 +60,17 @@ export async function registerOptionsWithWebAuthn() {
 }
 
 //put call
-export async function updateUser() {
-  const response = await api.put("/", {  });
+export async function updateUser(user:serverUser) {
+    const id =  sessionStorage.getItem("UserID");
+    const token = sessionStorage.getItem("token");
+  const response = await api.put( `/user/${token}`, user, {
+      headers: {userId:id}
+  } );
   return response.data;
 }
 
 //delete
-export async function deleteUser() {
-  const response = await api.delete("/", {  });
+export async function deleteUser(userId:string) {
+  const response = await api.delete("/user/"+userId);
   return response.data;
 }

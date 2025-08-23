@@ -2,24 +2,13 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { Textarea } from "@/components/ui/textarea.tsx";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
-import { fetchProfile, updateProfile, fetchRatings, uploadProfileImage } from './profileService.tsx';
+import { fetchProfile, updateProfile, type ProfileData } from './profileService.tsx';
+import {deleteUser, getUserRating, updateUser} from "@/api/user_api.tsx";
+import {uploadPicture} from "@/api/media_api.tsx";
+import {useNavigate} from "react-router-dom";
 
 // Typdefinition für Profile-Daten
-interface ProfileData {
-  firstName: string;
-  lastName: string;
-  smoker: string;
-  language: string;
-  birthDate: string;
-  notes: string;
-  stats: {
-    passengers: number;
-    weight: string | number;
-    distance: number;
-  };
-}
+
 
 // Typ für Bewertungen
 interface Rating {
@@ -31,102 +20,104 @@ interface Rating {
   userImage: string;
   date: string;
 }
-
-// Testdaten für Bewertungen
-const mockRatings: Rating[] = [
-  {
-    id: "1",
-    stars: 5,
-    title: "Sehr empfehlenswert",
-    comment: "Sehr pünktlich, sauber und freundlich. Würde jederzeit wieder mitfahren.",
-    userName: "Laura M.",
-    userImage: "https://i.pravatar.cc/150?img=1",
-    date: "15.05.2025"
-  },
-  {
-    id: "2",
-    stars: 1,
-    title: "Finger weg!!",
-    comment: "Zu spät gekommen und unfreundlich. Auto war dreckig und unbequem.",
-    userName: "Felix S.",
-    userImage: "https://i.pravatar.cc/150?img=6",
-    date: "10.04.2025"
-  },
-  {
-    id: "3",
-    stars: 5,
-    title: "Tolle Fahrt!",
-    comment: "Super Fahrer! Hilfsbereit beim Gepäck und interessante Gespräche.",
-    userName: "Sophie L.",
-    userImage: "https://i.pravatar.cc/150?img=3",
-    date: "28.04.2025"
-  },
-  {
-    id: "4",
-    stars: 3,
-    title: "Okay, aber...",
-    comment: "Fahrt war in Ordnung, aber etwas zu schnell unterwegs für meinen Geschmack.",
-    userName: "Martin W.",
-    userImage: "https://i.pravatar.cc/150?img=4",
-    date: "21.04.2025"
-  },
-  {
-    id: "5",
-    stars: 4,
-    title: "Immer wieder!",
-    comment: "Perfekte Fahrt, super Musik und angenehmes Klima im Auto.",
-    userName: "Julia B.",
-    userImage: "https://i.pravatar.cc/150?img=5",
-    date: "15.04.2025"
-  },
-  {
-    id: "6",
-    stars: 1,
-    title: "Nie wieder",
-    comment: "Fahrer war unhöflich und hat mich am Zielort abgesetzt, ohne zu helfen.",
-    userName: "Max T.",
-    userImage: "https://i.pravatar.cc/150?img=8",
-    date: "01.04.2025"
-  },
-  {
-    id: "7",
-    stars: 5,
-    title: "Absolute Empfehlung",
-    comment: "Eine der besten Mitfahrgelegenheiten, die ich je hatte! Zuverlässig und super nett.",
-    userName: "Nina R.",
-    userImage: "https://i.pravatar.cc/150?img=7",
-    date: "05.04.2025"
-  },
-  {
-    id: "8",
-    stars: 4,
-    title: "Entspannte Reise",
-    comment: "Angenehme Unterhaltung und gute Fahrt. Ein Stern Abzug wegen kleiner Verspätung.",
-    userName: "Thomas K.",
-    userImage: "https://i.pravatar.cc/150?img=2",
-    date: "02.05.2025"
-  }
-];
+//
+// // Testdaten für Bewertungen
+// const mockRatings: Rating[] = [
+//   {
+//     id: "1",
+//     stars: 5,
+//     title: "Sehr empfehlenswert",
+//     comment: "Sehr pünktlich, sauber und freundlich. Würde jederzeit wieder mitfahren.",
+//     userName: "Laura M.",
+//     userImage: "https://i.pravatar.cc/150?img=1",
+//     date: "15.05.2025"
+//   },
+//   {
+//     id: "2",
+//     stars: 1,
+//     title: "Finger weg!!",
+//     comment: "Zu spät gekommen und unfreundlich. Auto war dreckig und unbequem.",
+//     userName: "Felix S.",
+//     userImage: "https://i.pravatar.cc/150?img=6",
+//     date: "10.04.2025"
+//   },
+//   {
+//     id: "3",
+//     stars: 5,
+//     title: "Tolle Fahrt!",
+//     comment: "Super Fahrer! Hilfsbereit beim Gepäck und interessante Gespräche.",
+//     userName: "Sophie L.",
+//     userImage: "https://i.pravatar.cc/150?img=3",
+//     date: "28.04.2025"
+//   },
+//   {
+//     id: "4",
+//     stars: 3,
+//     title: "Okay, aber...",
+//     comment: "Fahrt war in Ordnung, aber etwas zu schnell unterwegs für meinen Geschmack.",
+//     userName: "Martin W.",
+//     userImage: "https://i.pravatar.cc/150?img=4",
+//     date: "21.04.2025"
+//   },
+//   {
+//     id: "5",
+//     stars: 4,
+//     title: "Immer wieder!",
+//     comment: "Perfekte Fahrt, super Musik und angenehmes Klima im Auto.",
+//     userName: "Julia B.",
+//     userImage: "https://i.pravatar.cc/150?img=5",
+//     date: "15.04.2025"
+//   },
+//   {
+//     id: "6",
+//     stars: 1,
+//     title: "Nie wieder",
+//     comment: "Fahrer war unhöflich und hat mich am Zielort abgesetzt, ohne zu helfen.",
+//     userName: "Max T.",
+//     userImage: "https://i.pravatar.cc/150?img=8",
+//     date: "01.04.2025"
+//   },
+//   {
+//     id: "7",
+//     stars: 5,
+//     title: "Absolute Empfehlung",
+//     comment: "Eine der besten Mitfahrgelegenheiten, die ich je hatte! Zuverlässig und super nett.",
+//     userName: "Nina R.",
+//     userImage: "https://i.pravatar.cc/150?img=7",
+//     date: "05.04.2025"
+//   },
+//   {
+//     id: "8",
+//     stars: 4,
+//     title: "Entspannte Reise",
+//     comment: "Angenehme Unterhaltung und gute Fahrt. Ein Stern Abzug wegen kleiner Verspätung.",
+//     userName: "Thomas K.",
+//     userImage: "https://i.pravatar.cc/150?img=2",
+//     date: "02.05.2025"
+//   }
+// ];
 
 export default function Profile() {
-  const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
   const [profileData, setProfileData] = useState<ProfileData>({
     firstName: "",
     lastName: "",
-    smoker: "nonsmoker",
+    // smoker: "nonsmoker",
     language: "deutsch",
     birthDate: "",
     notes: "",
     // Neue Erfahrungswerte
-    stats: {
-      passengers: 74,
-      weight: "Elefant",
-      distance: 3400,
-    }
+    // stats: {
+    //   passengers: 74,
+    //   weight: "Elefant",
+    //   distance: 3400,
+    // }
   });
 
+
   // Bewertungsdaten
-  const [ratings, setRatings] = useState<Rating[]>(mockRatings);
+  const [ratings, setRatings] = useState<Rating[]>([]);
 
   // Bild-Daten
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -158,8 +149,8 @@ export default function Profile() {
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        // Beispiel - ersetze mit deiner User-ID-Quelle
-        const userId = sessionStorage.getItem('userId') || 'current';
+
+        const userId = sessionStorage.getItem('UserID') || 'current';
         const data = await fetchProfile(userId);
         setProfileData(data);
       } catch (error) {
@@ -174,16 +165,17 @@ export default function Profile() {
 
   // Ähnliche Änderung für das Laden der Bewertungen...
   useEffect(() => {
-    console.log(sessionStorage.getItem("UserID"));
     const fetchRatings = async () => {
       setIsLoading(true);
       try {
         // API-Endpunkt für Bewertungen
-        const response = await fetch('/api/ratings');
-        const data = await response.json();
+        const response = await getUserRating();
+
+        const data = await response?.json();
         
-        // Daten in den State übernehmen
-        setRatings(data);
+
+          if(data != null)
+              setRatings(data);
       } catch (error) {
         console.error('Fehler beim Laden der Bewertungen:', error);
       } finally {
@@ -202,28 +194,46 @@ export default function Profile() {
       [name]: value,
     }));
   };
+    const handleDeleteUser = async () => {
+        const confirmDelete = window.confirm("Möchten Sie diesen Benutzer wirklich löschen?");
+        if (!confirmDelete) return;
 
-  const handleSelectChange = (name: keyof ProfileData, value: string) => {
-    setProfileData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+        setIsLoading(true);
+        try {
+            const userId = sessionStorage.getItem("UserID") || "current";
+            await deleteUser(userId); // API Call
+            alert("Benutzer erfolgreich gelöscht.");
+            navigate("/home"); // zurück zur Startseite
+        } catch (error) {
+            console.error("Fehler beim Löschen:", error);
+            alert("Fehler beim Löschen des Benutzers.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+  // const handleSelectChange = (name: keyof ProfileData, value: string) => {
+  //   setProfileData((prev) => ({
+  //     ...prev,
+  //     [name]: value,
+  //   }));
+  // };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const userId = sessionStorage.getItem('userId') || 'current';
-      
+
+
+      const updatedProfile = updateProfile(profileData)
       // Profildaten aktualisieren
-      await updateProfile(userId, profileData);
+        await updateUser(updatedProfile)
       
       // Bild hochladen, wenn eins ausgewählt wurde
       if (selectedFile) {
         console.log("Lade Bild hoch:", selectedFile.name);
-        await uploadProfileImage(userId, selectedFile);
+        await uploadPicture( selectedFile);
         // Setze selectedFile zurück nach erfolgreichem Upload
         setSelectedFile(null);
       }
@@ -306,36 +316,35 @@ export default function Profile() {
                   placeholder="Nachname"
                 />
               </div>
-              
+
               {/* Zweite Zeile: Raucher/Nichtraucher, Sprache, Geburtsdatum */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select
-                  value={profileData.smoker}
-                  onValueChange={(value) => handleSelectChange("smoker", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Raucher/Nichtraucher" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="smoker">Raucher</SelectItem>
-                    <SelectItem value="nonsmoker">Nichtraucher</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select
-                  value={profileData.language}
-                  onValueChange={(value) => handleSelectChange("language", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sprache" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="deutsch">Deutsch</SelectItem>
-                    <SelectItem value="english">Englisch</SelectItem>
-                    <SelectItem value="français">Französisch</SelectItem>
-                    <SelectItem value="español">Spanisch</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/*<Select*/}
+                {/*  onValueChange={(value) => handleSelectChange("smoker", value)}*/}
+                {/*>*/}
+                {/*  <SelectTrigger>*/}
+                {/*    <SelectValue placeholder="Raucher/Nichtraucher" />*/}
+                {/*  </SelectTrigger>*/}
+                {/*  <SelectContent>*/}
+                {/*    <SelectItem value="smoker">Raucher</SelectItem>*/}
+                {/*    <SelectItem value="nonsmoker">Nichtraucher</SelectItem>*/}
+                {/*  </SelectContent>*/}
+                {/*</Select>*/}
+
+                {/*<Select*/}
+                {/*  value={profileData.language}*/}
+                {/*  onValueChange={(value) => handleSelectChange("language", value)}*/}
+                {/*>*/}
+                {/*  <SelectTrigger>*/}
+                {/*    <SelectValue placeholder="Sprache" />*/}
+                {/*  </SelectTrigger>*/}
+                {/*  <SelectContent>*/}
+                {/*    <SelectItem value="deutsch">Deutsch</SelectItem>*/}
+                {/*    <SelectItem value="english">Englisch</SelectItem>*/}
+                {/*    <SelectItem value="français">Französisch</SelectItem>*/}
+                {/*    <SelectItem value="español">Spanisch</SelectItem>*/}
+                {/*  </SelectContent>*/}
+                {/*</Select>*/}
                 
                 <Input
                   id="birthDate"
@@ -349,103 +358,118 @@ export default function Profile() {
               </div>
               
               {/* Dritte Zeile: Notizen */}
-              <div className="flex-grow flex flex-col">
-                <Textarea
-                  id="notes"
-                  name="notes"
-                  value={profileData.notes}
-                  onChange={handleChange}
-                  placeholder="Zusätzliche Informationen über dich..."
-                  className="h-full min-h-[200px] resize-none" 
-                />
-              </div>
+              {/*<div className="flex-grow flex flex-col">*/}
+              {/*  <Textarea*/}
+              {/*    id="notes"*/}
+              {/*    name="notes"*/}
+              {/*    value={profileData.notes}*/}
+              {/*    onChange={handleChange}*/}
+              {/*    placeholder="Zusätzliche Informationen über dich..."*/}
+              {/*    className="h-full min-h-[200px] resize-none" */}
+              {/*  />*/}
+              {/*</div>*/}
             </div>
           </div>
         </div>
         
         {/* Buttons auf gleicher Höhe */}
-        <div className="flex justify-between">
-          <Button 
-            variant="outline" 
-            type="button" 
-            className="w-64"
-            onClick={() => document.getElementById('file-upload')?.click()}
-          >
-            Bild ändern
-          </Button>
-          
-          <Button type="submit" className="px-8">
-            Änderungen speichern
-          </Button>
-        </div>
-        <input
-          id="file-upload"
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-        {/* Nach dem versteckten Input */}
-        {selectedFile && (
-          <div className="mt-2 text-sm text-gray-600">
-            Ausgewähltes Bild: {selectedFile.name}
+          <div className="flex justify-between gap-4">
+              <Button
+                  variant="outline"
+                  type="button"
+                  className="w-64"
+                  onClick={() => document.getElementById("file-upload")?.click()}
+              >
+                  Bild ändern
+              </Button>
+
+              <div className="flex gap-2">
+                  <Button type="submit" className="px-8" disabled={isLoading}>
+                      Änderungen speichern
+                  </Button>
+                  <Button
+                      type="button"
+                      variant="destructive"
+                      className="px-8"
+                      onClick={handleDeleteUser}
+                      disabled={isLoading}
+                  >
+                      Benutzer löschen
+                  </Button>
+              </div>
           </div>
-        )}
+
+          <input
+              id="file-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+          />
+          {selectedFile && (
+              <div className="mt-2 text-sm text-gray-600">
+                  Ausgewähltes Bild: {selectedFile.name}
+              </div>
+          )}
       </form>
-      
-      {/* Erfahrungen/Statistiken - kompakter */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">Meine Erfahrung</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Karte: Beförderte Mitfahrer */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div>
-                <div className="font-bold text-2xl">{profileData.stats.passengers}</div>
-                <div className="text-gray-500 text-sm">beförderte Mitfahrer</div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Karte: Befördertes Gewicht */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-green-100 text-green-600 mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                </svg>
-              </div>
-              <div>
-                <div className="font-bold text-2xl">{profileData.stats.weight}</div>
-                <div className="text-gray-500 text-sm">befördertes Gewicht</div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Karte: Zurückgelegte Strecke */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-purple-100 text-purple-600 mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              </div>
-              <div>
-                <div className="font-bold text-2xl">{profileData.stats.distance} KM</div>
-                <div className="text-gray-500 text-sm">zurückgelegte Strecke</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Bewertungen - Code bleibt unverändert */}
+
+
+        {/* Erfahrungen/Statistiken - kompakter */}
+        {/*{profileData.stats && (*/}
+        {/*    <div className="mt-8">*/}
+        {/*        <h2 className="text-xl font-bold mb-4">Meine Erfahrung</h2>*/}
+
+        {/*        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">*/}
+        {/*            /!* Karte: Beförderte Mitfahrer *!/*/}
+        {/*            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">*/}
+        {/*                <div className="flex items-center">*/}
+        {/*                    <div className="p-2 rounded-full bg-blue-100 text-blue-600 mr-3">*/}
+        {/*                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">*/}
+        {/*                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />*/}
+        {/*                        </svg>*/}
+        {/*                    </div>*/}
+        {/*                    <div>*/}
+        {/*                        <div className="font-bold text-2xl">{profileData.stats.passengers}</div>*/}
+        {/*                        <div className="text-gray-500 text-sm">beförderte Mitfahrer</div>*/}
+        {/*                    </div>*/}
+        {/*                </div>*/}
+        {/*            </div>*/}
+
+        {/*            /!* Karte: Befördertes Gewicht *!/*/}
+        {/*            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">*/}
+        {/*                <div className="flex items-center">*/}
+        {/*                    <div className="p-2 rounded-full bg-green-100 text-green-600 mr-3">*/}
+        {/*                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">*/}
+        {/*                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />*/}
+        {/*                        </svg>*/}
+        {/*                    </div>*/}
+        {/*                    <div>*/}
+        {/*                        <div className="font-bold text-2xl">{profileData.stats.weight}</div>*/}
+        {/*                        <div className="text-gray-500 text-sm">befördertes Gewicht</div>*/}
+        {/*                    </div>*/}
+        {/*                </div>*/}
+        {/*            </div>*/}
+
+        {/*            /!* Karte: Zurückgelegte Strecke *!/*/}
+        {/*            <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">*/}
+        {/*                <div className="flex items-center">*/}
+        {/*                    <div className="p-2 rounded-full bg-purple-100 text-purple-600 mr-3">*/}
+        {/*                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">*/}
+        {/*                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />*/}
+        {/*                        </svg>*/}
+        {/*                    </div>*/}
+        {/*                    <div>*/}
+        {/*                        <div className="font-bold text-2xl">{profileData.stats.distance} KM</div>*/}
+        {/*                        <div className="text-gray-500 text-sm">zurückgelegte Strecke</div>*/}
+        {/*                    </div>*/}
+        {/*                </div>*/}
+        {/*            </div>*/}
+        {/*        </div>*/}
+        {/*    </div>*/}
+        {/*)}*/}
+
+
+        {/* Bewertungen - Code bleibt unverändert */}
       <div className="mt-12">
         <h2 className="text-xl font-bold mb-4">Bewertungen</h2>
         

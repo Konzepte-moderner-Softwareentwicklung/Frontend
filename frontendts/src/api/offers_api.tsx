@@ -16,7 +16,7 @@ export async function searchOffersByFilter(filter:serverFilter) {
 }
 
 export async function occupyOffer(id: string, space:Space) {
-  const response = await api.post(`/angebot/${id}/occupy`, { userId:sessionStorage.getItem("userID"),space:space });
+  const response = await api.post(`/angebot/${id}/occupy`, { userId:sessionStorage.getItem("UserID"),space:space });
   return response.data;
 }
 
