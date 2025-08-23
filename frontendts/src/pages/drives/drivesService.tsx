@@ -113,6 +113,7 @@ export interface serverFilter {
     creator?: string;
     currentTime?: string;
     id?: string;
+    spaceNeeded?:Space
 }
 
 
@@ -347,10 +348,6 @@ export async function getLocationByCity(city: string) {
     }
 }
 
-export async function updateOffer(offer:Offer){
-    return await updateOffer(offer);
-}
-
 
 export async function sendFeedback(offerId: string, feedBack: {
     answers: { content: string; value: number }[];
@@ -409,6 +406,7 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 
         const createdOffer = await createOffer(newOffer);
 
+
         offers.push(createdOffer);
 
         return createdOffer;
@@ -431,4 +429,8 @@ export function getActiveOffers(): Offer[] {
 
 export async function occupyOfferById(offerId: string, space: Space): Promise<Offer> {
     return await occupyOffer(offerId, space);
+}
+
+export async function payOfferById(offerId: string ,userId:string): Promise<any> {
+    return await payOffer(offerId,userId);
 }

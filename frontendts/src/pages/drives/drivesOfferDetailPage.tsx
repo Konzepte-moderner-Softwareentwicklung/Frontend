@@ -15,6 +15,7 @@ import {OfferJoinDialog} from "@/components/drives/offer/OfferJoinDialog";
 import {OfferImageUploader} from "@/components/drives/offer/OfferImageUploader.tsx";
 import {createIfNotExistChat} from "@/pages/chat/chatService.tsx";
 import {payOffer} from "@/api/offers_api.tsx";
+import {getUserRatingbyID} from "@/api/user_api.tsx";
 import {createChat} from "@/api/chat_api.tsx";
 import {getUserByID} from "@/api/user_api.tsx";
 
@@ -95,6 +96,17 @@ function DrivesOfferDetailPage() {
     }, [offer?.creator]);
 
     useEffect(() => {
+        const checkFeedback = async () => {
+            if (offer?.id && userId) {
+                const result = await getUserRatingbyID(userId);//TODO: Wenn User bewertung abgegeben hat, Dialog verhindern
+                setHasGivenFeedback(result != null);
+            }
+        };
+
+        checkFeedback();
+    }, [offer?.id, userId]);
+
+    useEffect(() => {
         if (id) {
             getOffer(id).then(setOffer); //TODO:hat .setOffer aus .then gemacht, schauen warum.
         }
@@ -141,8 +153,6 @@ function DrivesOfferDetailPage() {
             setShowRatingDialog(true);
            }
     }, [offer, userId]);
-    
-
 
     const toggleTracking = () => {
         setIsTracking(!isTracking);
@@ -220,9 +230,6 @@ function DrivesOfferDetailPage() {
 
 
 
-    console.log("isViewerDriver:", isViewerDriver);
-    console.log("driverId:", driverId);
-    console.log("canChat:", canChat);
 
     if (!offer) {
         return (
