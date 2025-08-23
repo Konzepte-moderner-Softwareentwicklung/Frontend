@@ -284,7 +284,7 @@ function Drives() {
                     }
 
                     // Filter nach eigenen Fahrten
-                    if (debouncedFilter.onlyOwn) {
+                    if (debouncedFilter.creator|| debouncedFilter.includePassed) {
                         const userId = sessionStorage.getItem("UserID") || "";
                         console.log("userId", userId);
 

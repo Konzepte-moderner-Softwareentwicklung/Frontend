@@ -29,8 +29,8 @@ export async function getUserRating() {
   return response.data;
 }
 
-export async function getUserRatingbyID() {
-  const response = await api.get("/user/");
+export async function getUserRatingbyID(id:string) {
+  const response = await api.get(`/user/${id}/rating`);
   return response.data;
 }
 

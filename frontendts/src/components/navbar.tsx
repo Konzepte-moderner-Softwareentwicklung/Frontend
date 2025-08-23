@@ -27,18 +27,18 @@ export default function Navbar() {
       <div className="flex items-center space-x-4">
         {/* Logo (replace with <Image> if needed) */}
         <img src={Logo} className="h-10 w-10"/>
-        <span className="text-xl font-semibold">MyCargonaut</span>
+        <p className="text-xl font-semibold">MyCargonaut</p>
       </div>
 
       {/* Right: Navigation Menu */}
       <NavigationMenu>
         <NavigationMenuList className="space-x-6">
           <NavigationMenuItem>
-            <Link href="/">
-              <NavigationMenuLink className="text-black hover: transition-colors" asChild>
+            <NavigationMenuLink asChild>
+              <a href="/" className="text-black hover:transition-colors">
                 Home
-              </NavigationMenuLink>
-            </Link>
+              </a>
+            </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>

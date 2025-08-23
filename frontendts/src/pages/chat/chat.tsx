@@ -11,7 +11,6 @@ import {
   transformMessages,
   type ChatContact,
   type ChatMessage,
-  startLiveLocationBroadcast,
   subscribeToLiveLocations
 } from "./chatService";
 
@@ -24,7 +23,9 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [userID] = useState<string>(sessionStorage.getItem("UserID") || "");
   const [liveLocationMessageId, setLiveLocationMessageId] = useState<string | null>(null);
-  const [trackingSocket, setTrackingSocket] = useState<WebSocket | null>(null);
+    const [isTracking, setIsTracking] = useState<boolean>(false);
+    const [curPos, setCurPos] = useState<number[] | null>(null);
+    const [trackingSocket, setTrackingSocket] = useState<WebSocket| null>(null);
 
   interface ChatMapProps {
     lat: number;
@@ -257,40 +258,19 @@ export default function Chat() {
         </div>
     );
   }
-
+    useEffect(() => {
+        handleStartLiveLocation();
+    }, []);
 
   const handleStartLiveLocation = async () => {
     if (!selectedContact) return;
 
-    let currentId = liveLocationMessageId;
-
-    if (!currentId) {
-      currentId = `live-${crypto.randomUUID()}`;
-      const newMessage: ChatMessage = {
-        id: currentId,
-        senderId: userID,
-        chatId: selectedContact.id,
-        content: JSON.stringify([0, 0]),
-        createdAt: new Date().toISOString(),
-        read: false
-      };
-      setMessages(prev => [...prev, newMessage]);
-      setLiveLocationMessageId(currentId);
-    }
-
     if (!trackingSocket) {
       const socket = await subscribeToLiveLocations((update) => {
-        setMessages(prev =>
-            prev.map(msg =>
-                msg.id === currentId
-                    ? { ...msg, content: JSON.stringify([update.location.lat, update.location.lon]) }
-                    : msg
-            )
-        );
+          setIsTracking(true);
+          setCurPos([update.location.lat,update.location.lon]);
       });
       setTrackingSocket(socket);
-
-      startLiveLocationBroadcast(socket);
     }
   };
 
@@ -304,6 +284,14 @@ export default function Chat() {
         typeof content[1] === 'number'
     );
   }
+    function showMap(): import("react").ReactNode | Iterable<import("react").ReactNode> {
+        if(curPos) {
+            return <ChatMap lat={curPos[0]} lon={curPos[1]} maptilerKey="vkU8ScE7aTGgHihSlzzK"/>
+        }
+        else{
+            return <p>Karte kann nicht geladen werden</p>
+        }
+    }
 
   return (
     <div className="p-4 h-[calc(100vh-4rem)] flex">
@@ -390,12 +378,6 @@ export default function Chat() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <h3 className="text-lg font-semibold">{selectedContact.name}</h3>
-                  <button
-                      onClick={handleStartLiveLocation}
-                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-                  >
-                    📍 Standort teilen
-                  </button>
                 </div>
               </div>
             </div>
@@ -420,7 +402,7 @@ export default function Chat() {
                               }`}
                           >
                             {location ? (
-                                <ChatMap lat={50.123} lon={8.678} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
+                                <ChatMap lat={curPos[0]} lon={curPos[1]} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
                             ) : (
                                 <p>{message.content}</p>
                             )}                            <div
@@ -439,6 +421,7 @@ export default function Chat() {
                     Beginne einen Chat mit {selectedContact?.name ?? "jemandem"}
                   </div>
               )}
+                {isTracking && showMap()}
               <div ref={messagesEndRef} />
             </div>
 

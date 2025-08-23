@@ -2,7 +2,6 @@ import {
     createOffer,
     getOfferDetails,
     occupyOffer,
-    payOffer,
     postRating,
     searchOffersByFilter
 } from "@/api/offers_api.tsx";
@@ -114,6 +113,7 @@ export interface serverFilter {
     creator?: string;
     currentTime?: string;
     id?: string;
+    spaceNeeded?:Space
 }
 
 
@@ -182,7 +182,7 @@ export async function fetchOffersWithFilter(filterMessage: serverFilter): Promis
 export async function createNewOffer(offer: Offer) {
     try {
         return await createOffer(offer)
-    } catch (error: any) {
+    } catch (error: never) {
         if (error.response?.status === 500) {
             toast("Server interner Fehler");
         } else {
@@ -196,8 +196,9 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
     const maxItem = can.items[0];
     const maxVolume = maxItem.size.width * maxItem.size.height * maxItem.size.depth;
     occupied.forEach((space) => {
-        totalWeight += space.items.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
-        totalVolume += space.items.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
+        if(space == null) return;
+        totalWeight += space?.items?.reduce((sum, i) => sum + i.weight, 0) + newItem.weight;
+        totalVolume += space?.items?.reduce((sum, i) => sum + i.size.width * i.size.height * i.size.depth, 0) +
             newItem.size.width * newItem.size.height * newItem.size.depth;
     })
 
@@ -246,6 +247,11 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
         }
 
         const data = await response.json();
+
+        if (data?.error || !data?.address) {
+            // Handle error case: e.g., unable to geocode
+            return `Unable to geocode: ${latitude}, ${longitude}`;
+        }
         const city =
             data?.address?.city ||
             data?.address?.town ||
@@ -293,20 +299,17 @@ export async function getLocationByCity(city: string) {
         return null;
     }
 
-    // Wenn bereits Rate Limited, direkt null zurückgeben
-
-
     // Suche im Cache (case-insensitive)
     const cachedEntry = unifiedLocationCache.find(
         entry => entry.city.toLowerCase() === city.toLowerCase()
     );
-    if (isRateLimited) {
-        return null;
-    }
+
     if (cachedEntry) {
         return cachedEntry.coordinates;
     }
-
+    if (isRateLimited) {
+        return null;
+    }
     // API-Call durchführen
     try {
         const fetchPromise = fetch(
@@ -419,7 +422,8 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
 
 
 export function getActiveOffers(): Offer[] {
-    return offers.filter(offer => !offer.ended);
+    if(offers) return offers.filter(offer => !offer.ended);
+    else return [];
 }
 
 
