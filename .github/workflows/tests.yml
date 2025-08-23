@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, testcicd ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontendts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontendts/package-lock.json  # 👈 cache for correct folder
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest (CI mode + coverage)
+        run: npm run test:ci
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: frontendts/coverage/
