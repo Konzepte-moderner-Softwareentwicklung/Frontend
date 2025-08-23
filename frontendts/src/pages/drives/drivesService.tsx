@@ -2,7 +2,6 @@ import {
     createOffer,
     getOfferDetails,
     occupyOffer,
-    payOffer,
     postRating,
     searchOffersByFilter
 } from "@/api/offers_api.tsx";
@@ -247,6 +246,11 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
         }
 
         const data = await response.json();
+
+        if (data?.error || !data?.address) {
+            // Handle error case: e.g., unable to geocode
+            return `Unable to geocode: ${latitude}, ${longitude}`;
+        }
         const city =
             data?.address?.city ||
             data?.address?.town ||
@@ -294,20 +298,17 @@ export async function getLocationByCity(city: string) {
         return null;
     }
 
-    // Wenn bereits Rate Limited, direkt null zurückgeben
-
-
     // Suche im Cache (case-insensitive)
     const cachedEntry = unifiedLocationCache.find(
         entry => entry.city.toLowerCase() === city.toLowerCase()
     );
-    if (isRateLimited) {
-        return null;
-    }
+
     if (cachedEntry) {
         return cachedEntry.coordinates;
     }
-
+    if (isRateLimited) {
+        return null;
+    }
     // API-Call durchführen
     try {
         const fetchPromise = fetch(
