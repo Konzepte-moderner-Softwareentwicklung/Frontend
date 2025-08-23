@@ -25,8 +25,6 @@ export default function OfferWrapper(offer:Offer) {
 
     return (
         <RideCard
-            locationFrom={offer.locationFrom}
-            locationTo={offer.locationTo}
             from={locations.from}
             to={locations.to}
             price={offer.price}

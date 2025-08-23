@@ -1,8 +1,6 @@
 import React from "react";
 
 interface RideCardProps {
-    locationFrom: { latitude: number; longitude: number };
-    locationTo: { latitude: number; longitude: number };
     from: string;
     to: string;
     price: number;

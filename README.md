@@ -85,7 +85,6 @@ src/
     lib/ # honestly no idea
     pages/ # Every single page from the Mockups
     App.tsx
-    types.tsx
 ```
 
 # UML
