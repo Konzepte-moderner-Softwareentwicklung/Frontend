@@ -1,4 +1,4 @@
-import React from "react";
+
 
 interface RideCardProps {
     locationFrom: { latitude: number; longitude: number };

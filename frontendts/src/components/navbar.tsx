@@ -5,7 +5,6 @@ import {
   NavigationMenuList,
 
 } from "@/components/ui/navigation-menu"
-import { Link } from "@radix-ui/react-navigation-menu"
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg"
 import { useState } from "react"
 import { Button } from "./ui/button"
