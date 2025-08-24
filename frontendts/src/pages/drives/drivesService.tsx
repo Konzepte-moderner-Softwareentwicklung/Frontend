@@ -431,6 +431,3 @@ export async function occupyOfferById(offerId: string, space: Space): Promise<Of
     return await occupyOffer(offerId, space);
 }
 
-export async function payOfferById(offerId: string ,userId:string): Promise<any> {
-    return await payOffer(offerId,userId);
-}

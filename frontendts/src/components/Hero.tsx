@@ -3,11 +3,13 @@ import cargonautLogo from '../assets/SVG/semi_androidMyCargonaut.svg';
 export default function Hero() {
   return (
       <div className="px-10 py-8 flex flex-row items-start justify-center gap-12 text-left">
-          <img
-              src={cargonautLogo}
-              alt="Hero"
-              className="w-[500px] h-auto"
-          />
+          {cargonautLogo && (
+              <img
+                  src={cargonautLogo}
+                  alt="Hero"
+                  className="w-[500px] h-auto"
+              />
+          )}
           <div className="max-w-xl text-[14px] leading-snug">
               <p className="mb-3">
                   Entdecke eine völlig neue Art, Transport und Mitfahrgelegenheiten zu verbinden.
