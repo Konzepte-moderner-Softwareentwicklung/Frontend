@@ -102,4 +102,24 @@ src/
 ![wireframe](docs/wireframes.png)
 
 # Contributing
-Pull requests are welcome, but need to be reviewed by one of the core team members.
+Pull requests are welcome, but need to be reviewed by one of the core team members, after the DoD are met.
+If thats not the case a core member will point out what is missing. 
+
+## Definition of Done(DoD) – Requirements for New Contributions
+
+All new contributions must meet the following criteria:
+
+1. **Thorough Testing**  
+   - Test all changes extensively before committing.
+
+2. **Code Clarity**  
+   - Add comments where the code is not self-explanatory.
+
+3. **Error Logging**  
+   - Ensure that errors are properly logged to support easier debugging.
+
+4. **Test Coverage**  
+   - Write new tests for your code, or update existing ones as needed.
+
+5. **Pipeline Stability**  
+   - The CI/CD pipeline must run without errors.
