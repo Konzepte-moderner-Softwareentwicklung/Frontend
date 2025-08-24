@@ -117,6 +117,7 @@ All new contributions must meet the following criteria:
 
 3. **Error Logging**  
    - Ensure that errors are properly logged to support easier debugging.
+   - Make sure the application is useable if an error occurs.
 
 4. **Test Coverage**  
    - Write new tests for your code, or update existing ones as needed.
