@@ -14,14 +14,6 @@ export interface Coordinates {
     latitude: number;
 }
 
-export interface userFeedback {
-
-    answers: [content: string, value: number];
-    comment: string;
-    targetId: string;
-    userId: string | null
-
-}
 
 export const DEFAULT_OFFER: Offer = {
     id: '',
@@ -151,7 +143,10 @@ const unifiedLocationCache: LocationCache[] = [];
 
 let isRateLimited = false;
 
-
+/**
+ * Liedert ein gegebenes Offer von der gegebenen id
+ * @param id
+ */
 export async function getOffer(id: string | undefined): Promise<Offer | undefined> {
     let foundOffer;
 
@@ -162,6 +157,9 @@ export async function getOffer(id: string | undefined): Promise<Offer | undefine
 
 }
 
+/**
+ * Liefert den getilterten Maximalen Preis von Angeboten
+ */
 export function getMaxPrice(): number {
     let price = 0;
     offers?.forEach((offer: Offer) => {
@@ -172,6 +170,10 @@ export function getMaxPrice(): number {
     return price;
 }
 
+/**
+ * Liefert gefilterte Angebote
+ * @param filterMessage
+ */
 export async function fetchOffersWithFilter(filterMessage: serverFilter): Promise<Offer[]> {
 
     offers = await searchOffersByFilter(filterMessage);
@@ -179,6 +181,10 @@ export async function fetchOffersWithFilter(filterMessage: serverFilter): Promis
     return getActiveOffers();
 }
 
+/**
+ * Erstellt ein neues Angebot
+ * @param offer Das zu erstellende Angebot
+ */
 export async function createNewOffer(offer: Offer) {
     try {
         return await createOffer(offer)
@@ -191,6 +197,12 @@ export async function createNewOffer(offer: Offer) {
     }
 }
 
+/**
+ * Berechnet, ob noch Objekte angegeben werden können
+ * @param can
+ * @param occupied
+ * @param newItem
+ */
 export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): boolean {
     let totalWeight = 0, totalVolume = 0;
     const maxItem = can.items[0];
@@ -211,6 +223,11 @@ export function isSpaceAvailable(can: Space, occupied: Space[], newItem: Item): 
 // Globale Variable für Rate-Limit-Steuerung
 let lastNominatimRequestTime = 0;
 
+/**
+ * Liefert die Stadt von den Koordinaten mit der Nominatim API
+ * @param latitude
+ * @param longitude
+ */
 export async function getLocationByCoordinates(latitude: number, longitude: number): Promise<string> {
     if (latitude === 0 || longitude === 0) {
         return "";
@@ -280,6 +297,11 @@ export async function getLocationByCoordinates(latitude: number, longitude: numb
     }
 }
 
+/**
+ * Lädt ein Bild für ein Angebot hoch
+ * @param imgId
+ * @param file
+ */
 
 export async function uploadImage(imgId: string, file: File) {
     console.log(imgId);
@@ -294,6 +316,10 @@ export async function uploadImage(imgId: string, file: File) {
     }
 }
 
+/**
+ * Liefert die Koordinaten anhand der gegebenen Stadt mit der nominatim API.
+ * @param city
+ */
 export async function getLocationByCity(city: string) {
     if (city == null || city == "") {
         return null;
@@ -348,7 +374,11 @@ export async function getLocationByCity(city: string) {
     }
 }
 
-
+/**
+ * Sendet das Benutzerfeedback an den Server
+ * @param offerId id des Nutzers
+ * @param feedBack Das gegebene Feedback
+ */
 export async function sendFeedback(offerId: string, feedBack: {
     answers: { content: string; value: number }[];
     comment: string;
@@ -358,11 +388,19 @@ export async function sendFeedback(offerId: string, feedBack: {
     return await postRating(offerId, feedBack);
 }
 
+/**
+ * Liefert den vollen Benutzernamen anhand der gegegebenen ID
+ * @param userId
+ */
 export async function getUserNameFromUserId(userId: string): Promise<{ firstName: string, lastName: string }> {
     return await getUserByID(userId);
 }
 
-
+/**
+ * BBearbeitete das gegebene Offer
+ * @param originalOffer
+ * @param editedFields
+ */
 export async function createEditedOffer(originalOffer: Offer, editedFields: SearchDialogFields): Promise<Offer | undefined> {
     try {
 
@@ -420,17 +458,19 @@ export async function createEditedOffer(originalOffer: Offer, editedFields: Sear
     }
 }
 
-
+/**
+ * Liefert alle aktiven Angebote
+ */
 export function getActiveOffers(): Offer[] {
     if(offers) return offers.filter(offer => !offer.ended);
     else return [];
 }
 
-
+/**
+ * MEldet den gegebenen Benutzer für die angegebene Fahrt
+ * @param offerId DAs Angebot
+ * @param space Die Breite des Gepäcks der Benutzers
+ */
 export async function occupyOfferById(offerId: string, space: Space): Promise<Offer> {
     return await occupyOffer(offerId, space);
-}
-
-export async function payOfferById(offerId: string ,userId:string): Promise<any> {
-    return await payOffer(offerId,userId);
 }

@@ -1,10 +1,10 @@
 import {
-    getChats,
-    getChatMessages,
-    connectWebSocket,
-    postMessage,
     connectTrackingWebSocket,
-    createChat
+    connectWebSocket,
+    createChat,
+    getChatMessages,
+    getChats,
+    postMessage
 } from "@/api/chat_api";
 import {getUserByID} from "@/api/user_api.tsx";
 
@@ -164,8 +164,7 @@ export async function fetchChatContacts(){
 export async function fetchChatHistory(id:string): Promise<ChatMessage[]> {
       const rawMessages = await getChatMessages(id);
       if (rawMessages) {
-        const messages = transformMessages(rawMessages);
-        return messages;
+          return transformMessages(rawMessages);
       }
       return [];
 
@@ -189,7 +188,7 @@ export async function sendChatMessage(
   const res = await postMessage(chatID, content);
 
   if(res)return newMessage;
-
+  return newMessage;
 }
 
 
@@ -199,7 +198,7 @@ export async function subscribeToMessages(
     chatId: string,
     onMessageReceived: (msg: ChatMessage) => void
 ): Promise<() => void> {
-const socket = await connectWebSocket(chatId);
+const socket = connectWebSocket(chatId);
   socket.onmessage = (event) => {
     try {
       const msg: ChatMessage = JSON.parse(event.data);

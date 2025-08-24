@@ -1,12 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card.tsx";
-import { useState } from "react";
+import {type FormEvent, useState} from "react";
 import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import Logo from "@/assets/SVG/semi_androidMyCargonaut.svg";
 import { DatePicker } from "@/components/DatePicker.tsx";
 import { register } from "@/api/user_api.tsx";
 import toast from "react-hot-toast";
-import { Navigate, Router, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -17,7 +17,7 @@ export default function Register() {
   const [date, setDate] = useState<Date>();
   const navigate = useNavigate();
 
-const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: FormEvent) => {
   e.preventDefault();
 
   if (password !== confirmPassword) {
