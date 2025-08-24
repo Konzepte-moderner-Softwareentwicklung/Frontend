@@ -105,6 +105,9 @@ src/
 Pull requests are welcome, but need to be reviewed by one of the core team members, after the DoD are met.
 If thats not the case a core member will point out what is missing. 
 
+# Grober Klassenaufbau
+![Klassenaufbau](docs/cleaned-architecture.drawio(2).png)
+
 ## Definition of Done(DoD) – Requirements for New Contributions
 
 All new contributions must meet the following criteria:
