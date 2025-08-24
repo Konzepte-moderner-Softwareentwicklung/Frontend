@@ -1,5 +1,9 @@
 // Profilspezifischer Service - nur für deine Komponente
 
+/**
+ * Liefert die daten von dem eingeloggten Benutzer
+ * @param userId
+ */
 export async function fetchProfile(userId: string) {
   try {
     const token = sessionStorage.getItem('token');
@@ -24,6 +28,11 @@ export async function fetchProfile(userId: string) {
   }
 }
 
+/**
+ * Aktualisert die Daten von den aktuellen Benutzer
+ * @param userId
+ * @param profileData
+ */
 export async function updateProfile(userId: string, profileData: any) {
   try {
     const token = sessionStorage.getItem('token');
@@ -47,6 +56,10 @@ export async function updateProfile(userId: string, profileData: any) {
   }
 }
 
+/**
+ * Liefert die Bewertungen von dem eingeloggten Benutzer
+ * @param userId
+ */
 export async function fetchRatings(userId: string) {
   try {
     const response = await fetch(`/api/ratings/user/${userId}`);
@@ -62,6 +75,11 @@ export async function fetchRatings(userId: string) {
   }
 }
 
+/**
+ * Lädt ein neues Profilbild für den Benutzer hoch
+ * @param userId
+ * @param file
+ */
 export async function uploadProfileImage(userId: string, file: File) {
   try {
     const formData = new FormData();

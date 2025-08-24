@@ -1,17 +1,17 @@
-import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {type FormEvent, useEffect, useRef, useState} from "react";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import {MapContainer, Marker, Popup, TileLayer} from 'react-leaflet';
 import {
-  fetchChatContacts,
-  fetchChatHistory,
-  sendChatMessage,
-  subscribeToMessages,
-  transformMessages,
-  type ChatContact,
-  type ChatMessage,
-  subscribeToLiveLocations
+    type ChatContact,
+    type ChatMessage,
+    fetchChatContacts,
+    fetchChatHistory,
+    sendChatMessage,
+    subscribeToLiveLocations,
+    subscribeToMessages,
+    transformMessages
 } from "./chatService";
 
 export default function Chat() {
@@ -22,7 +22,6 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userID] = useState<string>(sessionStorage.getItem("UserID") || "");
-  const [liveLocationMessageId, setLiveLocationMessageId] = useState<string | null>(null);
     const [isTracking, setIsTracking] = useState<boolean>(false);
     const [curPos, setCurPos] = useState<number[] | null>(null);
     const [trackingSocket, setTrackingSocket] = useState<WebSocket| null>(null);
@@ -43,10 +42,10 @@ export default function Chat() {
       setIsLoading(true);
       try {
         const data = await fetchChatContacts();
-          setContacts(data);
+          setContacts(data||[]);
 
         // Optional: Ersten Kontakt automatisch auswählen
-        if (data.length > 0 && !selectedContact) {
+        if (data && data.length > 0 && !selectedContact) {
           setSelectedContact(data[0]);
         }
       } catch (error) {
@@ -57,7 +56,7 @@ export default function Chat() {
     };
 
     loadContacts();
-  }, []);
+  }, [selectedContact]);
 
 
 
@@ -101,41 +100,38 @@ export default function Chat() {
 
     const subscribe = async () => {
       try {
-        const unsubscribe = await subscribeToMessages(selectedContact.id, async (newMsg) => {
-          if (!isSubscribed) return;
+          socketCleanup = await subscribeToMessages(selectedContact.id, async (newMsg) => {
+            if (!isSubscribed) return;
 
-         if (newMsg.senderId === selectedContact.receiverId) {
-            newMsg = transformMessages([newMsg])[0]
-            setMessages((prev) => [...prev, newMsg]);
-         }
+            if (newMsg.senderId === selectedContact.receiverId) {
+                newMsg = transformMessages([newMsg])[0]
+                setMessages((prev) => [...prev, newMsg]);
+            }
 
-          const data = await fetchChatHistory(selectedContact.id);
+            const data = await fetchChatHistory(selectedContact.id);
 
-          setMessages(data);
+            setMessages(data);
 
-          setContacts((prev) =>
-              prev.map((contact) => {
-                if (
-                    contact.receiverId === newMsg.senderId &&
-                    contact.receiverId !== selectedContact.receiverId &&
-                    newMsg.createdAt &&
-                    !isNaN(Date.parse(newMsg.createdAt))
-                ) {
-                  return {
-                    ...contact,
-                    unreadCount: (contact.unreadCount || 0) + 1,
-                    lastMessage: newMsg.content,
-                    lastMessageTime: newMsg.createdAt,
-                  };
-                }
-                return contact;
+            setContacts((prev) =>
+                prev.map((contact) => {
+                    if (
+                        contact.receiverId === newMsg.senderId &&
+                        contact.receiverId !== selectedContact.receiverId &&
+                        newMsg.createdAt &&
+                        !isNaN(Date.parse(newMsg.createdAt))
+                    ) {
+                        return {
+                            ...contact,
+                            unreadCount: (contact.unreadCount || 0) + 1,
+                            lastMessage: newMsg.content,
+                            lastMessageTime: newMsg.createdAt,
+                        };
+                    }
+                    return contact;
 
-              })
-
-        );
+                })
+            );
         });
-
-        socketCleanup = unsubscribe;
       } catch (err) {
         console.error("WebSocket Subscribe-Fehler:", err);
       }
@@ -151,7 +147,7 @@ export default function Chat() {
 
 
   // Absenden einer neuen Nachricht
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!selectedContact || !newMessage.trim()) return;
@@ -260,7 +256,7 @@ export default function Chat() {
   }
     useEffect(() => {
         handleStartLiveLocation();
-    }, []);
+    });
 
   const handleStartLiveLocation = async () => {
     if (!selectedContact) return;
@@ -402,7 +398,7 @@ export default function Chat() {
                               }`}
                           >
                             {location ? (
-                                <ChatMap lat={curPos[0]} lon={curPos[1]} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
+                                <ChatMap lat={curPos ? curPos[0]:0} lon={curPos ? curPos[1]:0} maptilerKey="vkU8ScE7aTGgHihSlzzK" />
                             ) : (
                                 <p>{message.content}</p>
                             )}                            <div

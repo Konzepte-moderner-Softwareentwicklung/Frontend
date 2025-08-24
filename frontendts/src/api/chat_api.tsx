@@ -27,17 +27,13 @@ export async function getChatMessages(id: string) {
 
 export  function connectWebSocket(id: string) {
   const token = sessionStorage.getItem("token"); // oder aus deinem api-Modul holen
-  const socket = new WebSocket(`api/ws/chat/${id}?token=${token}`);
-
-  return socket;
+    return new WebSocket(`api/ws/chat/${id}?token=${token}`);
 
 }
 
 export  function connectTrackingWebSocket() {
-    const socket = new WebSocket(
-        `/api/tracking?token=${sessionStorage.getItem("token")}`,
-    );
-
-  return socket;
+    return new WebSocket(
+      `/api/tracking?token=${sessionStorage.getItem("token")}`,
+  );
 
 }
